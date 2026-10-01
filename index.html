@@ -167,10 +167,9 @@
         const TICKERS = Object.keys(STOCKS);
 
         // ========== КОНСТАНТЫ API ==========
-        // Запрашиваем LAST (цена) и LASTTOPREVPRICE (изменение в рублях от закрытия пред. дня)
         const MARKETDATA_URL = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities.json?iss.only=marketdata&marketdata.columns=SECID,LAST,LASTTOPREVPRICE';
         const CANDLES_BASE = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities';
-        const REQUEST_INTERVAL = 15000; // 15 секунд
+        const REQUEST_INTERVAL = 15000;
 
         // ========== СОСТОЯНИЕ ==========
         let currentPeriod = 'day';
@@ -214,10 +213,11 @@
 
         // ========== КЛИК — ОТКРЫТИЕ БКС ==========
         function openBcsPage(ticker) {
-            // Universal/App Link на сайт БКС.
-            // Если приложение установлено и зарегистрировало домен — откроется приложение.
-            // Иначе — браузер с карточкой инструмента.
-            const url = `https://bcs.ru/markets/${ticker}`;
+            // Открываем страницу поиска БКС с тикером.
+            // Если приложение установлено и поддерживает Universal Links/App Links —
+            // система откроет карточку инструмента внутри приложения.
+            // Иначе откроется браузер с результатами поиска.
+            const url = `https://bcs.ru/search?q=${ticker}`;
             window.open(url, '_blank');
         }
 
@@ -247,7 +247,6 @@
             if (priceEl) priceEl.textContent = formatPrice(price);
             if (changeEl) changeEl.textContent = formatChange(change);
             card.className = 'card ' + getBgClass(change);
-            // Обработчик клика сохраняется, т.к. мы не пересоздаём элемент
         }
 
         // ========== ИСТОРИЯ (для недели и месяца) ==========
@@ -327,7 +326,6 @@
                     let change = null;
 
                     if (currentPeriod === 'day') {
-                        // Считаем % из абсолютного изменения в рублях
                         if (delta !== null) {
                             const prevPrice = last - delta;
                             if (prevPrice > 0) {
@@ -335,7 +333,6 @@
                             }
                         }
                     } else {
-                        // Для недели/месяца считаем от исторической цены закрытия
                         const basis = historicalBasis[secid];
                         if (basis && basis > 0) {
                             change = ((last - basis) / basis) * 100;
@@ -376,7 +373,7 @@
         document.getElementById('periodSelect').addEventListener('change', async (e) => {
             currentPeriod = e.target.value;
             await loadHistoricalBasis();
-            lastRequestTime = 0; // разрешаем немедленное обновление
+            lastRequestTime = 0;
             await fetchQuotes();
         });
 
