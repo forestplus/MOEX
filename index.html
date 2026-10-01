@@ -143,7 +143,8 @@
         const BOARD_PATH = `${MOEX_ISS}/engines/stock/markets/shares/boards/${BOARD}`;
         const HISTORY_PATH = `${MOEX_ISS}/history/engines/stock/markets/shares/boards/${BOARD}`;
         const REQUEST_INTERVAL = 15000;
-        const FETCH_TIMEOUT = 12000;
+        const FETCH_TIMEOUT = 25000;
+        const FETCH_RETRIES = 3;                  // попыток на один запрос
         const MAX_BACK_DAYS = 10;                 // сколько дней назад искать торговый день для базы
         const ALLOWED_SECTYPES = new Set([1, 2]); // 1 — обыкновенные, 2 — привилегированные акции
 
@@ -172,15 +173,28 @@
             const timer = setTimeout(() => controller.abort(), timeout);
             try {
                 return await fetch(url, { cache: 'no-store', signal: controller.signal });
+            } catch (e) {
+                if (e && e.name === 'AbortError') throw new Error('MOEX не ответил вовремя');
+                throw new Error('нет связи с MOEX (сеть или блокировка)');
             } finally {
                 clearTimeout(timer);
             }
         }
 
+        // Запрос с повторами: ISS с мобильных сетей иногда отвечает медленно или обрывает соединение
         async function fetchJson(url, timeout) {
-            const response = await fetchWithTimeout(url, timeout);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return response.json();
+            let lastErr;
+            for (let attempt = 1; attempt <= FETCH_RETRIES; attempt++) {
+                try {
+                    const response = await fetchWithTimeout(url, timeout);
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    return await response.json();
+                } catch (e) {
+                    lastErr = e;
+                    if (attempt < FETCH_RETRIES) await new Promise(r => setTimeout(r, 1500 * attempt));
+                }
+            }
+            throw lastErr;
         }
 
         // Безопасное приведение к числу: null / '' / NaN -> null
@@ -359,8 +373,7 @@
         async function fetchSnapshot() {
             const url = `${BOARD_PATH}/securities.json?iss.meta=off&iss.only=securities,marketdata`
                 + `&securities.columns=SECID,SHORTNAME,SECTYPE,DECIMALS,PREVPRICE,PREVLEGALCLOSEPRICE`
-                + `&marketdata.columns=SECID,LAST,LASTCHANGE,LASTCHANGEPRCNT,MARKETPRICE`
-                + `&_t=${Date.now()}`;
+                + `&marketdata.columns=SECID,LAST,LASTCHANGE,LASTCHANGEPRCNT,MARKETPRICE`;
             const data = await fetchJson(url);
 
             const sec = data.securities;
@@ -583,7 +596,7 @@
         async function start() {
             await loadSecurities();
             if (!isInitialized) {
-                setTimeout(start, 30000);
+                setTimeout(start, 10000);
                 return;
             }
 
