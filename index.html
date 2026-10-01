@@ -142,7 +142,6 @@
     </div>
 
     <script>
-        // Список акций индекса Мосбиржи: тикер -> название
         const STOCKS = {
             "GAZP": "ГАЗПРОМ ао", "LKOH": "ЛУКОЙЛ", "ROSN": "Роснефть", "NVTK": "Новатэк ао",
             "SNGS": "Сургнфгз", "SNGSP": "Сургнфгз-п", "TATN": "Татнфт Зао", "TATNP": "Татнфт Зап",
@@ -159,15 +158,15 @@
         };
 
         const TICKERS = Object.keys(STOCKS);
+        // Используем LASTCHANGEPRCNT для получения готового процента изменения
         const API_BASE = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities.json';
+        const REQUEST_INTERVAL = 15000;
 
         let updateTimer = null;
         let lastRequestTime = 0;
-        const REQUEST_INTERVAL = 15000; // 15 секунд
 
-        // Определение цветового класса по проценту изменения
         function getBgClass(change) {
-            if (change === null || change === undefined) return 'bg-neutral';
+            if (change === null || change === undefined || isNaN(change)) return 'bg-neutral';
             if (change >= 2.0) return 'bg-pos-5';
             if (change >= 1.0) return 'bg-pos-4';
             if (change >= 0.5) return 'bg-pos-3';
@@ -180,20 +179,17 @@
             return 'bg-neg-5';
         }
 
-        // Форматирование цены
         function formatPrice(p) {
             if (p === null || p === undefined || isNaN(p)) return '—';
             return p.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
         }
 
-        // Форматирование процента
         function formatChange(c) {
             if (c === null || c === undefined || isNaN(c)) return '—';
             const sign = c > 0 ? '+' : '';
             return sign + c.toFixed(2) + ' %';
         }
 
-        // Отрисовка одной карточки
         function renderCard(container, ticker, name, price, change) {
             const card = document.createElement('div');
             card.className = 'card ' + getBgClass(change);
@@ -211,7 +207,6 @@
             container.appendChild(card);
         }
 
-        // Обновление существующих карточек
         function updateCard(ticker, price, change) {
             const card = document.querySelector(`.card[data-ticker="${ticker}"]`);
             if (!card) return;
@@ -222,16 +217,13 @@
             if (priceEl) priceEl.textContent = formatPrice(price);
             if (changeEl) changeEl.textContent = formatChange(change);
 
-            // Обновляем цвет фона
             card.className = 'card ' + getBgClass(change);
         }
 
-        // Основная функция загрузки данных
         async function fetchQuotes() {
             const statusEl = document.getElementById('status');
             const now = Date.now();
 
-            // Защита от слишком частых запросов
             if (now - lastRequestTime < 2000) return;
             lastRequestTime = now;
 
@@ -239,12 +231,11 @@
                 statusEl.className = 'status';
                 statusEl.textContent = 'Обновление...';
 
-                const url = `${API_BASE}?iss.only=marketdata&marketdata.columns=SECID,LAST,LASTTOPREVPRICE`;
+                // Запрашиваем LASTCHANGEPRCNT - готовый процент изменения
+                const url = `${API_BASE}?iss.only=marketdata&marketdata.columns=SECID,LAST,LASTCHANGEPRCNT`;
                 const response = await fetch(url);
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                 const data = await response.json();
                 const marketdata = data.marketdata;
@@ -253,20 +244,19 @@
 
                 const idxSec = columns.indexOf('SECID');
                 const idxLast = columns.indexOf('LAST');
-                const idxPrev = columns.indexOf('LASTTOPREVPRICE');
+                const idxChange = columns.indexOf('LASTCHANGEPRCNT');
 
-                const grid = document.getElementById('grid');
                 let updatedCount = 0;
 
                 rows.forEach(row => {
                     const secid = row[idxSec];
                     const last = row[idxLast];
-                    const prev = row[idxPrev];
+                    const change = row[idxChange];
 
                     if (!TICKERS.includes(secid)) return;
-                    if (last === null || prev === null || prev === 0) return;
+                    // Пропускаем бумаги, по которым нет данных (например, торги не начались)
+                    if (last === null || change === null) return;
 
-                    const change = ((last - prev) / prev) * 100;
                     updateCard(secid, last, change);
                     updatedCount++;
                 });
@@ -281,7 +271,6 @@
             }
         }
 
-        // Первоначальная отрисовка скелета
         function initGrid() {
             const grid = document.getElementById('grid');
             grid.innerHTML = '';
@@ -290,7 +279,6 @@
             });
         }
 
-        // Запуск
         function start() {
             initGrid();
             fetchQuotes();
@@ -299,9 +287,7 @@
             updateTimer = setInterval(fetchQuotes, REQUEST_INTERVAL);
         }
 
-        // Реакция на смену периода (заглушка — API ISS отдаёт только дневные данные)
         document.getElementById('periodSelect').addEventListener('change', (e) => {
-            // Здесь можно добавить логику для других периодов, если API позволит
             console.log('Выбран период:', e.target.value);
         });
 
