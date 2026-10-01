@@ -144,6 +144,8 @@
         const HISTORY_PATH = `${MOEX_ISS}/history/engines/stock/markets/shares/boards/${BOARD}`;
         const REQUEST_INTERVAL = 15000;
         const FETCH_TIMEOUT = 25000;
+        const VERSION = 'v3';
+        const DEBUG = new URLSearchParams(location.search).has('debug'); // ?debug=1 показывает базы расчёта
         const FETCH_RETRIES = 3;                  // попыток на один запрос
         const MAX_BACK_DAYS = 10;                 // сколько дней назад искать торговый день для базы
         const ALLOWED_SECTYPES = new Set([1, 2]); // 1 — обыкновенные, 2 — привилегированные акции
@@ -393,6 +395,8 @@
                     name: row[sIdx('SHORTNAME')] || secid,
                     sectype: row[sIdx('SECTYPE')],
                     decimals: num(row[sIdx('DECIMALS')]),
+                    prevLegal: num(row[sIdx('PREVLEGALCLOSEPRICE')]),
+                    prevPrice: num(row[sIdx('PREVPRICE')]),
                     prev: num(row[sIdx('PREVLEGALCLOSEPRICE')]) ?? num(row[sIdx('PREVPRICE')]),
                     last: null, lastChange: null, lastChangePct: null, marketPrice: null
                 });
@@ -488,13 +492,16 @@
                     const { price, change, delta } = computeChange(item);
                     if (price === null) return;
                     updateCard(stock, price, change, delta);
+                    if (DEBUG) {
+                        cardEls[stock.ticker].price.textContent += ` L${item.prevLegal} P${item.prevPrice}`;
+                    }
                     if (change !== null) updatedCount++;
                 });
 
                 sortCards();
 
                 const timeStr = new Date().toLocaleTimeString('ru-RU');
-                let text = `Обновлено ${updatedCount} акций в ${timeStr} (MOEX, задержка ~15 мин)`;
+                let text = `Обновлено ${updatedCount} акций в ${timeStr} (MOEX, задержка ~15 мин) · ${VERSION}`;
                 if (currentPeriod !== 'day' && basisDate) {
                     text += `. База: закрытие ${humanDate(basisDate)}`;
                 }
