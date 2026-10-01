@@ -133,6 +133,7 @@
             <button id="refreshBtn" title="Обновить сейчас">↻ Обновить</button>
             <span id="status" class="status">Загрузка данных...</span>
         </div>
+        <div id="debugInfo" class="status" style="white-space: pre-wrap; margin-bottom: 8px;"></div>
         <div class="grid" id="grid"></div>
     </div>
 
@@ -144,7 +145,7 @@
         const HISTORY_PATH = `${MOEX_ISS}/history/engines/stock/markets/shares/boards/${BOARD}`;
         const REQUEST_INTERVAL = 15000;
         const FETCH_TIMEOUT = 25000;
-        const VERSION = 'v4';
+        const VERSION = 'v5';
         const DEBUG = new URLSearchParams(location.search).has('debug'); // ?debug=1 показывает базы расчёта
         const FETCH_RETRIES = 3;                  // попыток на один запрос
         const MAX_BACK_DAYS = 10;                 // сколько дней назад искать торговый день для базы
@@ -598,6 +599,32 @@
             }
         }
 
+        // Отладка (?debug=1 или ?debug=AFLT): дневные цены одной бумаги вокруг даты базы
+        async function showDebugHistory() {
+            const el = document.getElementById('debugInfo');
+            if (!DEBUG || !el) return;
+            if (currentPeriod === 'day') { el.textContent = ''; return; }
+            const ticker = (() => {
+                const v = new URLSearchParams(location.search).get('debug');
+                return v && v.length > 1 ? v.toUpperCase() : 'OZON';
+            })();
+            const today = moscowDateStr(new Date());
+            const target = currentPeriod === 'week'
+                ? shiftDateStr(today, { days: -7 })
+                : shiftDateStr(today, { months: -1 });
+            const from = shiftDateStr(target, { days: -7 });
+            const till = shiftDateStr(target, { days: 3 });
+            try {
+                const url = `${HISTORY_PATH}/securities/${encodeURIComponent(ticker)}.json?from=${from}&till=${till}`
+                    + `&iss.meta=off&iss.only=history&history.columns=TRADEDATE,OPEN,CLOSE,LEGALCLOSEPRICE`;
+                const d = await fetchJson(url, 15000);
+                const rows = (d.history && d.history.data || []).map(r => `${r[0]}  O:${r[1]}  C:${r[2]}  L:${r[3]}`);
+                el.textContent = `${ticker}, цель ${target}:\n` + rows.join('\n');
+            } catch (e) {
+                el.textContent = 'debug: ' + e.message;
+            }
+        }
+
         // ========== СТАРТ ==========
         async function start() {
             await loadSecurities();
@@ -625,6 +652,7 @@
 
             const ok = await loadHistoricalBasis(token);
             if (token !== periodToken) return;
+            showDebugHistory();
             // Если история не загрузилась, всё равно показываем цены (без изменений)
             if (!ok && currentPeriod !== 'day') {
                 isFetching = false;
