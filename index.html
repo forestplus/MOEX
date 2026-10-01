@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тепловая карта индекса Мосбиржи — онлайн</title>
+    <title>Тепловая карта акций Мосбиржи — онлайн</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -16,7 +16,7 @@
         }
         .container {
             width: 100%;
-            max-width: 1100px;
+            max-width: 1200px;
             background: #fff;
             padding: 16px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -70,19 +70,19 @@
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(6, 1fr);
             gap: 2px;
             background-color: #fff;
         }
 
         .card {
-            padding: 8px 10px;
+            padding: 6px 8px;
             display: flex;
             justify-content: space-between;
             align-items: stretch;
-            min-height: 66px;
+            min-height: 58px;
             color: #fff;
-            font-size: 13px;
+            font-size: 12px;
             line-height: 1.2;
             transition: background-color 0.3s ease, transform 0.1s ease, filter 0.1s ease;
             cursor: pointer;
@@ -97,7 +97,8 @@
             flex-direction: column;
             justify-content: space-between;
             flex: 1;
-            padding-right: 8px;
+            padding-right: 6px;
+            overflow: hidden;
         }
         .card-right {
             display: flex;
@@ -107,10 +108,10 @@
             text-align: right;
             white-space: nowrap;
         }
-        .name { font-weight: bold; font-size: 13px; }
-        .price { font-size: 12px; opacity: 0.95; }
-        .change { font-size: 15px; font-weight: bold; }
-        .delta { font-size: 11px; opacity: 0.9; }
+        .name { font-weight: bold; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .price { font-size: 11px; opacity: 0.95; }
+        .change { font-size: 13px; font-weight: bold; }
+        .delta { font-size: 10px; opacity: 0.9; }
 
         .bg-pos-5 { background-color: #2e7d32; }
         .bg-pos-4 { background-color: #388e3c; }
@@ -124,13 +125,19 @@
         .bg-neg-5 { background-color: #8e0000; }
         .bg-neutral { background-color: #9e9e9e; color: #fff; }
 
+        @media (max-width: 1000px) {
+            .grid { grid-template-columns: repeat(4, 1fr); }
+        }
         @media (max-width: 768px) {
+            .grid { grid-template-columns: repeat(3, 1fr); }
+            .card { min-height: 52px; padding: 5px 6px; }
+            .name { font-size: 10px; }
+            .price { font-size: 9px; }
+            .change { font-size: 12px; }
+            .delta { font-size: 9px; }
+        }
+        @media (max-width: 480px) {
             .grid { grid-template-columns: repeat(2, 1fr); }
-            .card { min-height: 56px; padding: 6px 8px; }
-            .name { font-size: 11px; }
-            .price { font-size: 10px; }
-            .change { font-size: 13px; }
-            .delta { font-size: 10px; }
         }
     </style>
 </head>
@@ -145,7 +152,7 @@
                     <option value="month">за месяц</option>
                 </select>
                 <button id="refreshBtn" title="Обновить сейчас">↻ Обновить</button>
-                <span id="status" class="status">Загрузка данных...</span>
+                <span id="status" class="status">Загрузка справочника...</span>
             </div>
             <div class="logo"><span>ДО</span>ДОХОД</div>
         </div>
@@ -153,34 +160,25 @@
     </div>
 
     <script>
-        const STOCKS = {
-            "GAZP": "ГАЗПРОМ ао", "LKOH": "ЛУКОЙЛ", "ROSN": "Роснефть", "NVTK": "Новатэк ао",
-            "SNGS": "Сургнфгз", "SNGSP": "Сургнфгз-п", "TATN": "Татнфт Зао", "TATNP": "Татнфт Зап",
-            "SBER": "Сбербанк", "SBERP": "Сбербанк-п", "VTBR": "ВТБ ао", "T": "Т-Техно ао",
-            "MOEX": "МосБиржа", "CBOM": "МКБ ао", "SVCB": "Совкомбанк", "BSPB": "БСП ао",
-            "YDEX": "ЯНДЕКС", "OZON": "Озон", "VKCO": 'МКПАО "ВК"', "POSI": "iПозитив",
-            "HEAD": "Хэдхантер", "GMKN": "ГМКНорник", "PLZL": "Полюс", "CHMF": "СевСт-ао",
-            "NLMK": "НЛМК ао", "MAGN": "ММК", "RUAL": "РУСАЛ ао", "ALRS": "АЛРОСА ао",
-            "UGLD": "ЮГК", "ENPG": "ЭНГРУП ао", "X5": "КЦ ИКС 5", "LENT": "Лента",
-            "RAGR": "Русагро", "AFLT": "Аэрофлот", "FLOT": "Совкомфлот", "TRNFP": "Транснф ап",
-            "IRAO": "ИнтерРАОао", "MSNG": "Мосэнерго", "DOMRF": "ДОМ.РФ", "PHOR": "ФосАгро ао",
-            "MDMG": "MDMG-ао", "CNRU": "Циан", "AFKS": "Система ао", "RENI": "Ренессанс",
-            "SMLT": "Самолет", "RASP": "Распадская"
-        };
-
-        const TICKERS = Object.keys(STOCKS);
-
-        const MARKETDATA_URL = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities.json?iss.only=marketdata&marketdata.columns=SECID,LAST,LASTCHANGEPRCNT,LASTTOPREVPRICE';
-        const CANDLES_BASE = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities';
+        // ========== КОНСТАНТЫ API ==========
+        const SECURITIES_LIST_URL = 'https://iss.moex.com/iss/securities.json?iss.meta=off&iss.only=securities&securities.columns=SECID,SHORTNAME,SECNAME,TYPE,PRIMARY_BOARDID';
+        const MARKETDATA_BASE = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards';
+        const CANDLES_BASE = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards';
         const REQUEST_INTERVAL = 15000;
 
+        // ========== СОСТОЯНИЕ ==========
+        let allStocks = [];         // [{ticker, name, board}]
+        let tickerBoardMap = {};    // ticker -> board
+        let tickerNameMap = {};     // ticker -> name
         let currentPeriod = 'day';
         let historicalBasis = {};
         let updateTimer = null;
         let lastRequestTime = 0;
         let isLoadingHistory = false;
+        let isInitialized = false;
         const currentChanges = {};
 
+        // ========== ЦВЕТ ==========
         function getBgClass(change) {
             if (change === null || change === undefined || isNaN(change)) return 'bg-neutral';
             if (change > 0) {
@@ -200,6 +198,7 @@
             return 'bg-neutral';
         }
 
+        // ========== ФОРМАТИРОВАНИЕ ==========
         function formatPrice(p) {
             if (p === null || p === undefined || isNaN(p)) return '—';
             const decimals = (Math.abs(p) < 10) ? 3 : 2;
@@ -213,7 +212,6 @@
             return sign + c.toFixed(2).replace('.', ',') + ' %';
         }
 
-        // Компактное форматирование рублей: до 3 знаков после запятой, без лишних нулей
         function formatRubDelta(d) {
             if (d === null || d === undefined || isNaN(d)) return '—';
             const abs = Math.abs(d);
@@ -223,13 +221,15 @@
             return sign + d.toFixed(decimals).replace('.', ',') + ' ₽';
         }
 
+        // ========== КЛИК — ОТКРЫТИЕ БКС ==========
         function openBcsPage(ticker) {
             const url = `https://lk.bcs.ru/catalog?popup=/catalog/instrument/${ticker}/TQBR`;
             window.open(url, '_blank');
         }
 
+        // ========== СОРТИРОВКА ==========
         function sortCards() {
-            const entries = TICKERS.map(t => ({ ticker: t, change: currentChanges[t] }));
+            const entries = allStocks.map(s => ({ ticker: s.ticker, change: currentChanges[s.ticker] }));
             entries.sort((a, b) => {
                 const av = (a.change === null || a.change === undefined || isNaN(a.change)) ? -Infinity : a.change;
                 const bv = (b.change === null || b.change === undefined || isNaN(b.change)) ? -Infinity : b.change;
@@ -241,13 +241,14 @@
             });
         }
 
+        // ========== ОТРИСОВКА ==========
         function renderCard(container, ticker, name, price, change, delta) {
             const card = document.createElement('div');
             card.className = 'card ' + getBgClass(change);
             card.dataset.ticker = ticker;
             card.innerHTML = `
                 <div class="card-left">
-                    <div class="name">${name}</div>
+                    <div class="name" title="${name}">${name}</div>
                     <div class="price">${formatPrice(price)}</div>
                 </div>
                 <div class="card-right">
@@ -272,8 +273,178 @@
             currentChanges[ticker] = change;
         }
 
+        // ========== ЗАГРУЗКА СПРАВОЧНИКА АКЦИЙ ==========
+        async function loadSecuritiesList() {
+            const statusEl = document.getElementById('status');
+            statusEl.className = 'status loading';
+            statusEl.textContent = 'Загрузка справочника акций...';
+
+            try {
+                const url = `${SECURITIES_LIST_URL}&_t=${Date.now()}`;
+                const response = await fetch(url, { cache: 'no-store' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const sec = data.securities;
+                const rows = sec.data;
+                const columns = sec.columns;
+                const idxSec = columns.indexOf('SECID');
+                const idxShort = columns.indexOf('SHORTNAME');
+                const idxType = columns.indexOf('TYPE');
+                const idxBoard = columns.indexOf('PRIMARY_BOARDID');
+
+                allStocks = [];
+                tickerBoardMap = {};
+                tickerNameMap = {};
+
+                rows.forEach(row => {
+                    const secid = row[idxSec];
+                    const shortname = row[idxShort];
+                    const type = row[idxType];
+                    const board = row[idxBoard];
+
+                    // Оставляем только акции (TYPE === '1' означает акцию) и паи (TYPE === '8' или '9')
+                    if (!secid || !type) return;
+                    if (type !== '1' && type !== '8' && type !== '9') return;
+                    if (!board) return;
+
+                    // Пропускаем бумаги, которые не торгуются на основных бордах
+                    if (!['TQBR', 'TQTF', 'TQIF', 'TQTD', 'TQTE'].includes(board)) return;
+
+                    allStocks.push({ ticker: secid, name: shortname, board: board });
+                    tickerBoardMap[secid] = board;
+                    tickerNameMap[secid] = shortname;
+                });
+
+                statusEl.className = 'status ok';
+                statusEl.textContent = `Загружено ${allStocks.length} бумаг`;
+                isInitialized = true;
+            } catch (err) {
+                console.error('Ошибка загрузки справочника:', err);
+                statusEl.className = 'status error';
+                statusEl.textContent = `Ошибка справочника: ${err.message}`;
+                // Используем запасной список, если справочник не загрузился
+                allStocks = Object.keys(FALLBACK_STOCKS).map(t => ({ ticker: t, name: FALLBACK_STOCKS[t], board: 'TQBR' }));
+                allStocks.forEach(s => { tickerBoardMap[s.ticker] = s.board; tickerNameMap[s.ticker] = s.name; });
+                isInitialized = true;
+            }
+        }
+
+        // Запасной список на случай недоступности справочника
+        const FALLBACK_STOCKS = {
+            "GAZP": "ГАЗПРОМ ао", "LKOH": "ЛУКОЙЛ", "ROSN": "Роснефть", "NVTK": "Новатэк ао",
+            "SNGS": "Сургнфгз", "SNGSP": "Сургнфгз-п", "TATN": "Татнфт Зао", "TATNP": "Татнфт Зап",
+            "SBER": "Сбербанк", "SBERP": "Сбербанк-п", "VTBR": "ВТБ ао", "T": "Т-Техно ао",
+            "MOEX": "МосБиржа", "CBOM": "МКБ ао", "SVCB": "Совкомбанк", "BSPB": "БСП ао",
+            "YDEX": "ЯНДЕКС", "OZON": "Озон", "VKCO": 'МКПАО "ВК"', "POSI": "iПозитив",
+            "HEAD": "Хэдхантер", "GMKN": "ГМКНорник", "PLZL": "Полюс", "CHMF": "СевСт-ао",
+            "NLMK": "НЛМК ао", "MAGN": "ММК", "RUAL": "РУСАЛ ао", "ALRS": "АЛРОСА ао",
+            "UGLD": "ЮГК", "ENPG": "ЭНГРУП ао", "X5": "КЦ ИКС 5", "LENT": "Лента",
+            "RAGR": "Русагро", "AFLT": "Аэрофлот", "FLOT": "Совкомфлот", "TRNFP": "Транснф ап",
+            "IRAO": "ИнтерРАОао", "MSNG": "Мосэнерго", "DOMRF": "ДОМ.РФ", "PHOR": "ФосАгро ао",
+            "MDMG": "MDMG-ао", "CNRU": "Циан", "AFKS": "Система ао", "RENI": "Ренессанс",
+            "SMLT": "Самолет", "RASP": "Распадская"
+        };
+
+        // ========== ЗАГРУЗКА КОТИРОВОК ПО ВСЕМ БУМАГАМ ==========
+        async function fetchQuotes() {
+            const statusEl = document.getElementById('status');
+            const now = Date.now();
+            if (now - lastRequestTime < 2000) return;
+            lastRequestTime = now;
+            if (isLoadingHistory || !isInitialized) return;
+
+            try {
+                statusEl.className = 'status';
+                statusEl.textContent = 'Обновление...';
+
+                // Группируем тикеры по бордам
+                const byBoard = {};
+                allStocks.forEach(s => {
+                    if (!byBoard[s.board]) byBoard[s.board] = [];
+                    byBoard[s.board].push(s.ticker);
+                });
+
+                let totalUpdated = 0;
+
+                // Запрашиваем данные по каждому борду отдельно
+                for (const [board, tickers] of Object.entries(byBoard)) {
+                    const secList = tickers.join(',');
+                    const url = `${MARKETDATA_BASE}/${board}/securities.json?iss.only=marketdata&marketdata.columns=SECID,LAST,LASTCHANGEPRCNT,LASTTOPREVPRICE&securities=${secList}&_t=${now}`;
+
+                    try {
+                        const response = await fetch(url, { cache: 'no-store' });
+                        if (!response.ok) continue;
+
+                        const data = await response.json();
+                        const md = data.marketdata;
+                        if (!md || !md.data) continue;
+
+                        const rows = md.data;
+                        const columns = md.columns;
+                        const idxSec = columns.indexOf('SECID');
+                        const idxLast = columns.indexOf('LAST');
+                        const idxPct = columns.indexOf('LASTCHANGEPRCNT');
+                        const idxDelta = columns.indexOf('LASTTOPREVPRICE');
+
+                        rows.forEach(row => {
+                            const secid = row[idxSec];
+                            const last = row[idxLast];
+                            const pctFromApi = row[idxPct];
+                            const deltaFromApi = row[idxDelta];
+
+                            if (!tickerBoardMap[secid]) return;
+                            if (last === null || last === undefined) return;
+
+                            let change = null;
+                            let delta = null;
+
+                            if (currentPeriod === 'day') {
+                                // Основной источник — абсолютное изменение в рублях
+                                if (deltaFromApi !== null && deltaFromApi !== 0) {
+                                    delta = deltaFromApi;
+                                    const prev = last - delta;
+                                    if (prev > 0) change = (delta / prev) * 100;
+                                }
+                                // Fallback — официальный процент
+                                if (change === null && pctFromApi !== null && pctFromApi !== undefined) {
+                                    change = pctFromApi;
+                                    if (change !== -100) {
+                                        const prev = last / (1 + change / 100);
+                                        delta = last - prev;
+                                    }
+                                }
+                            } else {
+                                const basis = historicalBasis[secid];
+                                if (basis && basis > 0) {
+                                    delta = last - basis;
+                                    change = (delta / basis) * 100;
+                                }
+                            }
+
+                            updateCard(secid, last, change, delta);
+                            totalUpdated++;
+                        });
+                    } catch (e) {
+                        console.warn('Ошибка борда', board, e);
+                    }
+                }
+
+                sortCards();
+
+                const timeStr = new Date().toLocaleTimeString('ru-RU');
+                statusEl.className = 'status ok';
+                statusEl.textContent = `Обновлено ${totalUpdated} бумаг в ${timeStr} (данные MOEX с задержкой ~15 мин)`;
+            } catch (err) {
+                console.error('Ошибка загрузки котировок:', err);
+                statusEl.className = 'status error';
+                statusEl.textContent = `Ошибка загрузки: ${err.message}`;
+            }
+        }
+
+        // ========== ИСТОРИЯ ДЛЯ НЕДЕЛИ / МЕСЯЦА ==========
         async function loadHistoricalBasis() {
             if (currentPeriod === 'day') { historicalBasis = {}; return; }
+
             const days = currentPeriod === 'week' ? 8 : 31;
             const from = new Date();
             from.setDate(from.getDate() - days);
@@ -285,13 +456,16 @@
 
             isLoadingHistory = true;
             const basis = {};
-            const batchSize = 8;
+            const batchSize = 6;
 
-            for (let i = 0; i < TICKERS.length; i += batchSize) {
-                const batch = TICKERS.slice(i, i + batchSize);
+            const tickers = allStocks.map(s => s.ticker);
+
+            for (let i = 0; i < tickers.length; i += batchSize) {
+                const batch = tickers.slice(i, i + batchSize);
                 await Promise.all(batch.map(async (ticker) => {
                     try {
-                        const url = `${CANDLES_BASE}/${ticker}/candles.json?from=${fromStr}&interval=24&_t=${Date.now()}`;
+                        const board = tickerBoardMap[ticker] || 'TQBR';
+                        const url = `${CANDLES_BASE}/${board}/securities/${ticker}/candles.json?from=${fromStr}&interval=24&_t=${Date.now()}`;
                         const r = await fetch(url, { cache: 'no-store' });
                         if (!r.ok) return;
                         const d = await r.json();
@@ -300,106 +474,36 @@
                             const idxClose = candles.columns.indexOf('close');
                             basis[ticker] = candles.data[0][idxClose];
                         }
-                    } catch (e) { console.warn('Свечи не получены для', ticker); }
+                    } catch (e) { /* пропускаем */ }
                 }));
             }
+
             historicalBasis = basis;
             isLoadingHistory = false;
         }
 
-        async function fetchQuotes() {
-            const statusEl = document.getElementById('status');
-            const now = Date.now();
-            if (now - lastRequestTime < 2000) return;
-            lastRequestTime = now;
-            if (isLoadingHistory) return;
-
-            try {
-                statusEl.className = 'status';
-                statusEl.textContent = 'Обновление...';
-
-                // cache-busting: добавляем _t, отключаем кеш
-                const url = `${MARKETDATA_URL}&_t=${now}`;
-                const response = await fetch(url, { cache: 'no-store' });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-                const data = await response.json();
-                const md = data.marketdata;
-                const rows = md.data;
-                const columns = md.columns;
-                const idxSec = columns.indexOf('SECID');
-                const idxLast = columns.indexOf('LAST');
-                const idxPct = columns.indexOf('LASTCHANGEPRCNT');
-                const idxDelta = columns.indexOf('LASTTOPREVPRICE');
-
-                let updatedCount = 0;
-
-                rows.forEach(row => {
-                    const secid = row[idxSec];
-                    const last = row[idxLast];
-                    const pctFromApi = row[idxPct];
-                    const deltaFromApi = row[idxDelta];
-
-                    if (!TICKERS.includes(secid)) return;
-                    if (last === null) return;
-
-                    let change = null;
-                    let delta = null;
-
-                    if (currentPeriod === 'day') {
-                        // Основной источник — абсолютное изменение в рублях (LASTTOPREVPRICE)
-                        if (deltaFromApi !== null && deltaFromApi !== 0) {
-                            delta = deltaFromApi;
-                            const prev = last - delta;
-                            if (prev > 0) change = (delta / prev) * 100;
-                        }
-                        // Fallback: официальный процент MOEX
-                        if ((change === null) && pctFromApi !== null) {
-                            change = pctFromApi;
-                            if (change !== -100) {
-                                const prev = last / (1 + change / 100);
-                                delta = last - prev;
-                            }
-                        }
-                    } else {
-                        const basis = historicalBasis[secid];
-                        if (basis && basis > 0) {
-                            delta = last - basis;
-                            change = (delta / basis) * 100;
-                        }
-                    }
-
-                    updateCard(secid, last, change, delta);
-                    updatedCount++;
-                });
-
-                sortCards();
-
-                const timeStr = new Date().toLocaleTimeString('ru-RU');
-                statusEl.className = 'status ok';
-                statusEl.textContent = `Обновлено ${updatedCount} бумаг в ${timeStr} (данные MOEX с задержкой ~15 мин)`;
-            } catch (err) {
-                console.error('Ошибка загрузки:', err);
-                statusEl.className = 'status error';
-                statusEl.textContent = `Ошибка загрузки: ${err.message}`;
-            }
-        }
-
-        function initGrid() {
+        // ========== ИНИЦИАЛИЗАЦИЯ ==========
+        async function initGrid() {
             const grid = document.getElementById('grid');
             grid.innerHTML = '';
-            TICKERS.forEach(ticker => {
-                renderCard(grid, ticker, STOCKS[ticker], null, null, null);
+
+            allStocks.forEach(s => {
+                renderCard(grid, s.ticker, s.name, null, null, null);
             });
         }
 
         async function start() {
-            initGrid();
+            await loadSecuritiesList();
+            if (!isInitialized) return;
+
+            await initGrid();
             await fetchQuotes();
+
             if (updateTimer) clearInterval(updateTimer);
             updateTimer = setInterval(fetchQuotes, REQUEST_INTERVAL);
         }
 
+        // ========== СОБЫТИЯ ==========
         document.getElementById('periodSelect').addEventListener('change', async (e) => {
             currentPeriod = e.target.value;
             await loadHistoricalBasis();
