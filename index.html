@@ -393,7 +393,7 @@
                     name: row[sIdx('SHORTNAME')] || secid,
                     sectype: row[sIdx('SECTYPE')],
                     decimals: num(row[sIdx('DECIMALS')]),
-                    prev: num(row[sIdx('PREVPRICE')]) ?? num(row[sIdx('PREVLEGALCLOSEPRICE')]),
+                    prev: num(row[sIdx('PREVLEGALCLOSEPRICE')]) ?? num(row[sIdx('PREVPRICE')]),
                     last: null, lastChange: null, lastChangePct: null, marketPrice: null
                 });
             });
@@ -446,18 +446,17 @@
                 // Нет сделок сегодня — изменение 0 относительно прошлого закрытия
                 if (item.last === null) return { price, change: 0, delta: 0 };
 
-                let change = item.lastChangePct;
-                let delta = item.lastChange;
-                if (change === null || delta === null) {
-                    // Страховка: считаем сами от цены предыдущего дня
-                    if (item.prev && item.prev > 0) {
-                        delta = item.last - item.prev;
-                        change = (delta / item.prev) * 100;
-                    } else {
-                        return { price, change: null, delta: null };
-                    }
+                // Считаем сами от официального закрытия прошлой основной сессии (как у брокеров).
+                // Поля LASTCHANGE/LASTCHANGEPRCNT от MOEX считаются от последней сделки вчерашнего дня,
+                // включая вечернюю сессию, поэтому дают другие цифры.
+                if (item.prev && item.prev > 0) {
+                    const delta = item.last - item.prev;
+                    return { price, change: (delta / item.prev) * 100, delta };
                 }
-                return { price, change, delta };
+                if (item.lastChangePct !== null && item.lastChange !== null) {
+                    return { price, change: item.lastChangePct, delta: item.lastChange };
+                }
+                return { price, change: null, delta: null };
             }
 
             const basis = historicalBasis[item.ticker];
@@ -522,7 +521,7 @@
                 const iClose = h.columns.indexOf('CLOSE');
                 const iLegal = h.columns.indexOf('LEGALCLOSEPRICE');
                 h.data.forEach(row => {
-                    const price = num(row[iClose]) ?? num(row[iLegal]);
+                    const price = num(row[iLegal]) ?? num(row[iClose]);
                     if (price !== null && price > 0) map[row[iSec]] = price;
                 });
                 return h.data.length;
