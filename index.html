@@ -145,7 +145,7 @@
         const HISTORY_PATH = `${MOEX_ISS}/history/engines/stock/markets/shares/boards/${BOARD}`;
         const REQUEST_INTERVAL = 15000;
         const FETCH_TIMEOUT = 25000;
-        const VERSION = 'v5';
+        const VERSION = 'v6';
         const DEBUG = new URLSearchParams(location.search).has('debug'); // ?debug=1 показывает базы расчёта
         const FETCH_RETRIES = 3;                  // попыток на один запрос
         const MAX_BACK_DAYS = 10;                 // сколько дней назад искать торговый день для базы
@@ -620,6 +620,13 @@
                 const d = await fetchJson(url, 15000);
                 const rows = (d.history && d.history.data || []).map(r => `${r[0]}  O:${r[1]}  C:${r[2]}  L:${r[3]}`);
                 el.textContent = `${ticker}, цель ${target}:\n` + rows.join('\n');
+
+                // Часовые свечи за дату цели — проверка гипотезы «цена в то же время суток»
+                const cUrl = `${BOARD_PATH}/securities/${encodeURIComponent(ticker)}/candles.json?from=${target}&till=${target}`
+                    + `&interval=60&iss.meta=off&iss.only=candles&candles.columns=begin,open,close`;
+                const c = await fetchJson(cUrl, 15000);
+                const cRows = (c.candles && c.candles.data || []).map(r => `${String(r[0]).slice(11, 16)}  O:${r[1]}  C:${r[2]}`);
+                el.textContent += `\n\nЧасовые свечи ${target}:\n` + cRows.join('\n');
             } catch (e) {
                 el.textContent = 'debug: ' + e.message;
             }
