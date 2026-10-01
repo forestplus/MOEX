@@ -169,7 +169,7 @@
         // ========== КОНСТАНТЫ API ==========
         const MARKETDATA_URL = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities.json?iss.only=marketdata&marketdata.columns=SECID,LAST,LASTTOPREVPRICE';
         const CANDLES_BASE = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities';
-        const REQUEST_INTERVAL = 15000;
+        const REQUEST_INTERVAL = 15000; // 15 секунд
 
         // ========== СОСТОЯНИЕ ==========
         let currentPeriod = 'day';
@@ -213,11 +213,9 @@
 
         // ========== КЛИК — ОТКРЫТИЕ БКС ==========
         function openBcsPage(ticker) {
-            // Открываем страницу поиска БКС с тикером.
-            // Если приложение установлено и поддерживает Universal Links/App Links —
-            // система откроет карточку инструмента внутри приложения.
-            // Иначе откроется браузер с результатами поиска.
-            const url = `https://bcs.ru/search?q=${ticker}`;
+            // Прямая ссылка на карточку инструмента в личном кабинете БКС.
+            // После авторизации открывает карточку бумаги с графиком и стаканом.
+            const url = `https://lk.bcs.ru/catalog?popup=/catalog/instrument/${ticker}/TQBR`;
             window.open(url, '_blank');
         }
 
@@ -326,6 +324,7 @@
                     let change = null;
 
                     if (currentPeriod === 'day') {
+                        // Процент считаем из абсолютного изменения в рублях
                         if (delta !== null) {
                             const prevPrice = last - delta;
                             if (prevPrice > 0) {
@@ -333,6 +332,7 @@
                             }
                         }
                     } else {
+                        // Для недели/месяца считаем от исторической цены закрытия
                         const basis = historicalBasis[secid];
                         if (basis && basis > 0) {
                             change = ((last - basis) / basis) * 100;
