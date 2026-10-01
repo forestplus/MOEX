@@ -125,9 +125,7 @@
         .bg-neg-5 { background-color: #8e0000; }
         .bg-neutral { background-color: #9e9e9e; color: #fff; }
 
-        @media (max-width: 1000px) {
-            .grid { grid-template-columns: repeat(4, 1fr); }
-        }
+        @media (max-width: 1000px) { .grid { grid-template-columns: repeat(4, 1fr); } }
         @media (max-width: 768px) {
             .grid { grid-template-columns: repeat(3, 1fr); }
             .card { min-height: 52px; padding: 5px 6px; }
@@ -136,9 +134,7 @@
             .change { font-size: 12px; }
             .delta { font-size: 9px; }
         }
-        @media (max-width: 480px) {
-            .grid { grid-template-columns: repeat(2, 1fr); }
-        }
+        @media (max-width: 480px) { .grid { grid-template-columns: repeat(2, 1fr); } }
     </style>
 </head>
 <body>
@@ -160,16 +156,15 @@
     </div>
 
     <script>
-        // ========== КОНСТАНТЫ API ==========
-        const SECURITIES_LIST_URL = 'https://iss.moex.com/iss/securities.json?iss.meta=off&iss.only=securities&securities.columns=SECID,SHORTNAME,SECNAME,TYPE,PRIMARY_BOARDID';
-        const MARKETDATA_BASE = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards';
-        const CANDLES_BASE = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards';
+        // ========== КОНСТАНТЫ ==========
+        const MOEX_ISS = 'https://iss.moex.com/iss';
+        const BOARDS = ['TQBR', 'TQTF']; // Основной режим акций + паи/ETF
         const REQUEST_INTERVAL = 15000;
 
         // ========== СОСТОЯНИЕ ==========
-        let allStocks = [];         // [{ticker, name, board}]
-        let tickerBoardMap = {};    // ticker -> board
-        let tickerNameMap = {};     // ticker -> name
+        let allStocks = [];
+        let tickerBoardMap = {};
+        let tickerNameMap = {};
         let currentPeriod = 'day';
         let historicalBasis = {};
         let updateTimer = null;
@@ -198,20 +193,18 @@
             return 'bg-neutral';
         }
 
-        // ========== ФОРМАТИРОВАНИЕ ==========
+        // ========== ФОРМАТ ==========
         function formatPrice(p) {
             if (p === null || p === undefined || isNaN(p)) return '—';
             const decimals = (Math.abs(p) < 10) ? 3 : 2;
             return p.toLocaleString('ru-RU', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
         }
-
         function formatChange(c) {
             if (c === null || c === undefined || isNaN(c)) return '—';
             if (Math.abs(c) < 0.005) return '0,00 %';
             const sign = c > 0 ? '+' : '';
             return sign + c.toFixed(2).replace('.', ',') + ' %';
         }
-
         function formatRubDelta(d) {
             if (d === null || d === undefined || isNaN(d)) return '—';
             const abs = Math.abs(d);
@@ -221,10 +214,9 @@
             return sign + d.toFixed(decimals).replace('.', ',') + ' ₽';
         }
 
-        // ========== КЛИК — ОТКРЫТИЕ БКС ==========
+        // ========== КЛИК ==========
         function openBcsPage(ticker) {
-            const url = `https://lk.bcs.ru/catalog?popup=/catalog/instrument/${ticker}/TQBR`;
-            window.open(url, '_blank');
+            window.open(`https://lk.bcs.ru/catalog?popup=/catalog/instrument/${ticker}/TQBR`, '_blank');
         }
 
         // ========== СОРТИРОВКА ==========
@@ -242,94 +234,88 @@
         }
 
         // ========== ОТРИСОВКА ==========
-        function renderCard(container, ticker, name, price, change, delta) {
+        function renderCard(container, ticker, name) {
             const card = document.createElement('div');
-            card.className = 'card ' + getBgClass(change);
+            card.className = 'card bg-neutral';
             card.dataset.ticker = ticker;
             card.innerHTML = `
                 <div class="card-left">
                     <div class="name" title="${name}">${name}</div>
-                    <div class="price">${formatPrice(price)}</div>
+                    <div class="price">—</div>
                 </div>
                 <div class="card-right">
-                    <div class="change">${formatChange(change)}</div>
-                    <div class="delta">${formatRubDelta(delta)}</div>
+                    <div class="change">—</div>
+                    <div class="delta">—</div>
                 </div>
             `;
             card.addEventListener('click', () => openBcsPage(ticker));
             container.appendChild(card);
         }
-
         function updateCard(ticker, price, change, delta) {
             const card = document.querySelector(`.card[data-ticker="${ticker}"]`);
             if (!card) return;
-            const priceEl = card.querySelector('.price');
-            const changeEl = card.querySelector('.change');
-            const deltaEl = card.querySelector('.delta');
-            if (priceEl) priceEl.textContent = formatPrice(price);
-            if (changeEl) changeEl.textContent = formatChange(change);
-            if (deltaEl) deltaEl.textContent = formatRubDelta(delta);
+            card.querySelector('.price').textContent = formatPrice(price);
+            card.querySelector('.change').textContent = formatChange(change);
+            card.querySelector('.delta').textContent = formatRubDelta(delta);
             card.className = 'card ' + getBgClass(change);
             currentChanges[ticker] = change;
         }
 
-        // ========== ЗАГРУЗКА СПРАВОЧНИКА АКЦИЙ ==========
+        // ========== ЗАГРУЗКА СПРАВОЧНИКА ==========
+        // Берём список бумаг напрямую с борда TQBR (основные акции) и TQTF (паи).
+        // Эндпоинт: /iss/engines/stock/markets/shares/boards/{board}/securities.json
         async function loadSecuritiesList() {
             const statusEl = document.getElementById('status');
             statusEl.className = 'status loading';
-            statusEl.textContent = 'Загрузка справочника акций...';
+            statusEl.textContent = 'Загрузка справочника бумаг...';
 
-            try {
-                const url = `${SECURITIES_LIST_URL}&_t=${Date.now()}`;
-                const response = await fetch(url, { cache: 'no-store' });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                const sec = data.securities;
-                const rows = sec.data;
-                const columns = sec.columns;
-                const idxSec = columns.indexOf('SECID');
-                const idxShort = columns.indexOf('SHORTNAME');
-                const idxType = columns.indexOf('TYPE');
-                const idxBoard = columns.indexOf('PRIMARY_BOARDID');
+            allStocks = [];
+            tickerBoardMap = {};
+            tickerNameMap = {};
 
-                allStocks = [];
-                tickerBoardMap = {};
-                tickerNameMap = {};
+            for (const board of BOARDS) {
+                try {
+                    const url = `${MOEX_ISS}/engines/stock/markets/shares/boards/${board}/securities.json?iss.meta=off&iss.only=securities&_t=${Date.now()}`;
+                    const response = await fetch(url, { cache: 'no-store' });
+                    if (!response.ok) continue;
 
-                rows.forEach(row => {
-                    const secid = row[idxSec];
-                    const shortname = row[idxShort];
-                    const type = row[idxType];
-                    const board = row[idxBoard];
+                    const data = await response.json();
+                    const sec = data.securities;
+                    if (!sec || !sec.data) continue;
 
-                    // Оставляем только акции (TYPE === '1' означает акцию) и паи (TYPE === '8' или '9')
-                    if (!secid || !type) return;
-                    if (type !== '1' && type !== '8' && type !== '9') return;
-                    if (!board) return;
+                    const idxSec = sec.columns.indexOf('SECID');
+                    const idxShort = sec.columns.indexOf('SHORTNAME');
+                    if (idxSec < 0) continue;
 
-                    // Пропускаем бумаги, которые не торгуются на основных бордах
-                    if (!['TQBR', 'TQTF', 'TQIF', 'TQTD', 'TQTE'].includes(board)) return;
+                    sec.data.forEach(row => {
+                        const secid = row[idxSec];
+                        const name = row[idxShort] || secid;
+                        if (!secid || tickerBoardMap[secid]) return; // пропускаем дубли
+                        allStocks.push({ ticker: secid, name, board });
+                        tickerBoardMap[secid] = board;
+                        tickerNameMap[secid] = name;
+                    });
+                } catch (e) {
+                    console.warn('Борд не загрузился:', board, e);
+                }
+            }
 
-                    allStocks.push({ ticker: secid, name: shortname, board: board });
-                    tickerBoardMap[secid] = board;
-                    tickerNameMap[secid] = shortname;
+            if (allStocks.length === 0) {
+                // Запасной список (только индекс Мосбиржи), если API не ответил
+                statusEl.className = 'status error';
+                statusEl.textContent = 'API не ответил, используем запасной список';
+                Object.entries(FALLBACK_STOCKS).forEach(([t, n]) => {
+                    allStocks.push({ ticker: t, name: n, board: 'TQBR' });
+                    tickerBoardMap[t] = 'TQBR';
+                    tickerNameMap[t] = n;
                 });
-
+            } else {
                 statusEl.className = 'status ok';
                 statusEl.textContent = `Загружено ${allStocks.length} бумаг`;
-                isInitialized = true;
-            } catch (err) {
-                console.error('Ошибка загрузки справочника:', err);
-                statusEl.className = 'status error';
-                statusEl.textContent = `Ошибка справочника: ${err.message}`;
-                // Используем запасной список, если справочник не загрузился
-                allStocks = Object.keys(FALLBACK_STOCKS).map(t => ({ ticker: t, name: FALLBACK_STOCKS[t], board: 'TQBR' }));
-                allStocks.forEach(s => { tickerBoardMap[s.ticker] = s.board; tickerNameMap[s.ticker] = s.name; });
-                isInitialized = true;
             }
+            isInitialized = true;
         }
 
-        // Запасной список на случай недоступности справочника
         const FALLBACK_STOCKS = {
             "GAZP": "ГАЗПРОМ ао", "LKOH": "ЛУКОЙЛ", "ROSN": "Роснефть", "NVTK": "Новатэк ао",
             "SNGS": "Сургнфгз", "SNGSP": "Сургнфгз-п", "TATN": "Татнфт Зао", "TATNP": "Татнфт Зап",
@@ -345,7 +331,7 @@
             "SMLT": "Самолет", "RASP": "Распадская"
         };
 
-        // ========== ЗАГРУЗКА КОТИРОВОК ПО ВСЕМ БУМАГАМ ==========
+        // ========== ЗАГРУЗКА КОТИРОВОК (по бордам, батчами) ==========
         async function fetchQuotes() {
             const statusEl = document.getElementById('status');
             const now = Date.now();
@@ -357,75 +343,74 @@
                 statusEl.className = 'status';
                 statusEl.textContent = 'Обновление...';
 
-                // Группируем тикеры по бордам
-                const byBoard = {};
-                allStocks.forEach(s => {
-                    if (!byBoard[s.board]) byBoard[s.board] = [];
-                    byBoard[s.board].push(s.ticker);
-                });
-
                 let totalUpdated = 0;
 
-                // Запрашиваем данные по каждому борду отдельно
-                for (const [board, tickers] of Object.entries(byBoard)) {
-                    const secList = tickers.join(',');
-                    const url = `${MARKETDATA_BASE}/${board}/securities.json?iss.only=marketdata&marketdata.columns=SECID,LAST,LASTCHANGEPRCNT,LASTTOPREVPRICE&securities=${secList}&_t=${now}`;
+                for (const board of BOARDS) {
+                    // Разбиваем бумаги на ба(url, { cache:тчи по 50 (чтобы URL не был слишком длинным)
+                    const tickersOnBoard = allStocks.filter(s => s.board === board).map(s => s.ticker);
+                    const batchSize = 50;
 
-                    try {
-                        const response = await fetch(url, { cache: 'no-store' });
-                        if (!response.ok) continue;
+                    for (let i = 0; i < tickersOnBoard.length; i += batchSize) {
+                        const batch = tickersOnBoard.slice(i, i + batchSize);
+                        const secList = batch.join(',');
+                        const url = `${MOEX_ISS}/engines/stock/markets/shares/boards/${board}/securities.json?iss.only=marketdata&marketdata.columns=SECID,LAST,LASTCHANGEPRCNT,LASTTOPREVPRICE&securities=${secList}&_t=${now}`;
 
-                        const data = await response.json();
-                        const md = data.marketdata;
-                        if (!md || !md.data) continue;
+                        try {
+                            const response = await fetch 'no-store' });
+                            if (!response.ok) continue;
 
-                        const rows = md.data;
-                        const columns = md.columns;
-                        const idxSec = columns.indexOf('SECID');
-                        const idxLast = columns.indexOf('LAST');
-                        const idxPct = columns.indexOf('LASTCHANGEPRCNT');
-                        const idxDelta = columns.indexOf('LASTTOPREVPRICE');
+                            const data = await response.json();
+                            const md = data.marketdata;
+                            if (!md || !md.data) continue;
 
-                        rows.forEach(row => {
-                            const secid = row[idxSec];
-                            const last = row[idxLast];
-                            const pctFromApi = row[idxPct];
-                            const deltaFromApi = row[idxDelta];
+                            const rows = md.data;
+                            const columns = md.columns;
+                            const idxSec = columns.indexOf('SECID');
+                            const idxLast = columns.indexOf('LAST');
+                            const idxPct = columns.indexOf('LASTCHANGEPRCNT');
+                            const idxDelta = columns.indexOf('LASTTOPREVPRICE');
 
-                            if (!tickerBoardMap[secid]) return;
-                            if (last === null || last === undefined) return;
+                            rows.forEach(row => {
+                                const secid = row[idxSec];
+                                const last = row[idxLast];
+                                const pctFromApi = row[idxPct];
+                                const deltaFromApi = row[idxDelta];
 
-                            let change = null;
-                            let delta = null;
+                                if (!tickerBoardMap[secid]) return;
+                                if (last === null || last === undefined) return;
 
-                            if (currentPeriod === 'day') {
-                                // Основной источник — абсолютное изменение в рублях
-                                if (deltaFromApi !== null && deltaFromApi !== 0) {
-                                    delta = deltaFromApi;
-                                    const prev = last - delta;
-                                    if (prev > 0) change = (delta / prev) * 100;
-                                }
-                                // Fallback — официальный процент
-                                if (change === null && pctFromApi !== null && pctFromApi !== undefined) {
-                                    change = pctFromApi;
-                                    if (change !== -100) {
-                                        const prev = last / (1 + change / 100);
-                                        delta = last - prev;
+                                let change = null;
+                                let delta = null;
+
+                                if (currentPeriod === 'day') {
+                                    // Приоритет — абсолютная дельта в рублях
+                                    if (deltaFromApi !== null && deltaFromApi !== 0) {
+                                        delta = deltaFromApi;
+                                        const prev = last - delta;
+                                        if (prev > 0) change = (delta / prev) * 100;
+                                    }
+                                    // Fallback — официальный процент MOEX
+                                    if (change === null && pctFromApi !== null && pctFromApi !== undefined) {
+                                        change = pctFromApi;
+                                        if (change !== -100) {
+                                            const prev = last / (1 + change / 100);
+                                            delta = last - prev;
+                                        }
+                                    }
+                                } else {
+                                    const basis = historicalBasis[secid];
+                                    if (basis && basis > 0) {
+                                        delta = last - basis;
+                                        change = (delta / basis) * 100;
                                     }
                                 }
-                            } else {
-                                const basis = historicalBasis[secid];
-                                if (basis && basis > 0) {
-                                    delta = last - basis;
-                                    change = (delta / basis) * 100;
-                                }
-                            }
 
-                            updateCard(secid, last, change, delta);
-                            totalUpdated++;
-                        });
-                    } catch (e) {
-                        console.warn('Ошибка борда', board, e);
+                                updateCard(secid, last, change, delta);
+                                totalUpdated++;
+                            });
+                        } catch (e) {
+                            console.warn('Батч не загружен:', board, e);
+                        }
                     }
                 }
 
@@ -433,7 +418,7 @@
 
                 const timeStr = new Date().toLocaleTimeString('ru-RU');
                 statusEl.className = 'status ok';
-                statusEl.textContent = `Обновлено ${totalUpdated} бумаг в ${timeStr} (данные MOEX с задержкой ~15 мин)`;
+                statusEl.textContent = `Обновлено ${totalUpdated} бумаг в ${timeStr} (MOEX, задержка ~15 мин)`;
             } catch (err) {
                 console.error('Ошибка загрузки котировок:', err);
                 statusEl.className = 'status error';
@@ -444,7 +429,6 @@
         // ========== ИСТОРИЯ ДЛЯ НЕДЕЛИ / МЕСЯЦА ==========
         async function loadHistoricalBasis() {
             if (currentPeriod === 'day') { historicalBasis = {}; return; }
-
             const days = currentPeriod === 'week' ? 8 : 31;
             const from = new Date();
             from.setDate(from.getDate() - days);
@@ -456,16 +440,15 @@
 
             isLoadingHistory = true;
             const basis = {};
-            const batchSize = 6;
-
             const tickers = allStocks.map(s => s.ticker);
+            const batchSize = 6;
 
             for (let i = 0; i < tickers.length; i += batchSize) {
                 const batch = tickers.slice(i, i + batchSize);
                 await Promise.all(batch.map(async (ticker) => {
                     try {
                         const board = tickerBoardMap[ticker] || 'TQBR';
-                        const url = `${CANDLES_BASE}/${board}/securities/${ticker}/candles.json?from=${fromStr}&interval=24&_t=${Date.now()}`;
+                        const url = `${MOEX_ISS}/engines/stock/markets/shares/boards/${board}/securities/${ticker}/candles.json?from=${fromStr}&interval=24&_t=${Date.now()}`;
                         const r = await fetch(url, { cache: 'no-store' });
                         if (!r.ok) return;
                         const d = await r.json();
@@ -482,21 +465,15 @@
             isLoadingHistory = false;
         }
 
-        // ========== ИНИЦИАЛИЗАЦИЯ ==========
-        async function initGrid() {
-            const grid = document.getElementById('grid');
-            grid.innerHTML = '';
-
-            allStocks.forEach(s => {
-                renderCard(grid, s.ticker, s.name, null, null, null);
-            });
-        }
-
+        // ========== СТАРТ ==========
         async function start() {
             await loadSecuritiesList();
             if (!isInitialized) return;
 
-            await initGrid();
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            allStocks.forEach(s => renderCard(grid, s.ticker, s.name));
+
             await fetchQuotes();
 
             if (updateTimer) clearInterval(updateTimer);
@@ -510,7 +487,6 @@
             lastRequestTime = 0;
             await fetchQuotes();
         });
-
         document.getElementById('refreshBtn').addEventListener('click', async () => {
             lastRequestTime = 0;
             await fetchQuotes();
