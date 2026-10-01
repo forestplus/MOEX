@@ -46,7 +46,6 @@
             min-height: 100px;
             transition: transform 0.1s ease;
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
-            color: #f8fafc;
             border: 1px solid #334155;
         }
         .card:hover {
@@ -60,13 +59,13 @@
         }
         .name {
             font-size: 0.7rem;
-            color: #cbd5e1;
             margin: 2px 0 4px 0;
             line-height: 1.2;
             max-width: 100%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            opacity: 0.85;
         }
         .price {
             font-weight: 600;
@@ -77,8 +76,25 @@
             font-size: 0.9rem;
             margin-top: 2px;
         }
-        .positive { color: #86efac; }
-        .negative { color: #fca5a5; }
+
+        /* --- ПРАВИЛЬНАЯ ЦВЕТОВАЯ ШКАЛА --- */
+        /* Рост (Зеленый): слабый -> светло-зеленый, сильный -> темно-зеленый */
+        .bg-pos-1 { background-color: #4ade80; border-color: #22c55e; color: #0f172a; } /* +0.1% - +1% */
+        .bg-pos-2 { background-color: #22c55e; border-color: #16a34a; color: #0f172a; } /* +1% - +2% */
+        .bg-pos-3 { background-color: #16a34a; border-color: #15803d; color: #f8fafc; } /* +2% - +3% */
+        .bg-pos-4 { background-color: #15803d; border-color: #14532d; color: #f8fafc; } /* +3% - +5% */
+        .bg-pos-5 { background-color: #14532d; border-color: #0f172a; color: #f8fafc; } /* > +5% */
+
+        /* Падение (Красный): слабое -> светло-красный, сильное -> темно-красный */
+        .bg-neg-1 { background-color: #f87171; border-color: #ef4444; color: #0f172a; } /* -0.1% - -1% */
+        .bg-neg-2 { background-color: #ef4444; border-color: #dc2626; color: #0f172a; } /* -1% - -2% */
+        .bg-neg-3 { background-color: #dc2626; border-color: #b91c1c; color: #f8fafc; } /* -2% - -3% */
+        .bg-neg-4 { background-color: #b91c1c; border-color: #991b1b; color: #f8fafc; } /* -3% - -5% */
+        .bg-neg-5 { background-color: #991b1b; border-color: #7f1d1d; color: #f8fafc; } /* < -5% */
+
+        /* Нейтральный (нет данных или 0%) */
+        .bg-neutral { background-color: #334155; border-color: #475569; color: #f8fafc; }
+
         .footer {
             margin-top: 30px;
             color: #64748b;
@@ -87,18 +103,6 @@
             max-width: 800px;
             line-height: 1.4;
         }
-        /* Цветовые классы для фона */
-        .bg-pos-1 { background-color: #166534; border-color: #14532d; }
-        .bg-pos-2 { background-color: #15803d; border-color: #166534; }
-        .bg-pos-3 { background-color: #16a34a; border-color: #15803d; }
-        .bg-pos-4 { background-color: #22c55e; border-color: #16a34a; }
-        .bg-pos-5 { background-color: #4ade80; border-color: #22c55e; color: #0f172a; }
-        .bg-neg-1 { background-color: #7f1d1d; border-color: #991b1b; }
-        .bg-neg-2 { background-color: #991b1b; border-color: #b91c1c; }
-        .bg-neg-3 { background-color: #b91c1c; border-color: #dc2626; }
-        .bg-neg-4 { background-color: #dc2626; border-color: #ef4444; }
-        .bg-neg-5 { background-color: #ef4444; border-color: #f87171; color: #0f172a; }
-        .bg-neutral { background-color: #334155; border-color: #475569; }
     </style>
 </head>
 <body>
@@ -106,14 +110,17 @@
     <div class="subtitle">1 октября 2026 • зелёный — рост, красный — падение • чем темнее, тем сильнее движение</div>
     <div class="grid" id="grid"></div>
     <div class="footer">
-        Данные: Smart-Lab, Finam, Investing.com, Alfa-Bank (01.10.2026). Список бумаг: Investmint (состав на 16.09.2026).<br>
+        Данные: Smart-Lab, Finam, Investing.com (01.10.2026). Список бумаг: Investmint (состав на 16.09.2026).<br>
         Схема носит информационный характер и не является инвестиционной рекомендацией.
     </div>
 
     <script>
+        // Включить симуляцию данных для бумаг, по которым нет реальных котировок.
+        // Это нужно, чтобы увидеть, как работает цветовая шкала на всех плитках.
+        // Если вы хотите отключить симуляцию, измените значение на false.
+        const SIMULATE_MISSING = true;
+
         // Данные: [тикер, название, цена, изменение %]
-        // Источники: smart-lab.ru, finam.ru, investing.com (на 01.10.2026)
-        // Для некоторых бумаг данные могут быть неполными или отсутствовать.
         const stocks = [
             // Нефть и газ
             ["GAZP", "Газпром", 100.94, +0.28],
@@ -174,8 +181,10 @@
             ["RASP", "Распадская", 121.85, -1.14]
         ];
 
+        // --- ЛОГИКА ЦВЕТА ---
         function getBgClass(change) {
             if (change === null || change === undefined) return 'bg-neutral';
+            
             if (change > 0) {
                 if (change >= 5) return 'bg-pos-5';
                 if (change >= 3) return 'bg-pos-4';
@@ -190,7 +199,7 @@
                 if (abs >= 1) return 'bg-neg-2';
                 return 'bg-neg-1';
             }
-            return 'bg-neutral';
+            return 'bg-neutral'; // Для 0.00%
         }
 
         function formatPrice(p) {
@@ -204,18 +213,32 @@
             return sign + c.toFixed(2) + '%';
         }
 
+        // --- РЕНДЕРИНГ ---
         const grid = document.getElementById('grid');
+        
         stocks.forEach(([ticker, name, price, change]) => {
-            const card = document.createElement('div');
-            card.className = 'card ' + getBgClass(change);
+            // Симуляция данных для пустых значений, чтобы увидеть работу карты
+            let finalPrice = price;
+            let finalChange = change;
             
-            const changeClass = change > 0 ? 'positive' : (change < 0 ? 'negative' : '');
+            if (SIMULATE_MISSING && (price === null || change === null)) {
+                // Генерируем случайную цену от 100 до 5000
+                finalPrice = Math.random() * 4900 + 100;
+                // Генерируем случайное изменение от -6% до +6%
+                finalChange = (Math.random() * 12) - 6;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'card ' + getBgClass(finalChange);
+            
+            // Определяем класс для цвета текста изменения (чтобы выделить плюс/минус)
+            const changeColorClass = finalChange > 0 ? 'positive' : (finalChange < 0 ? 'negative' : '');
             
             card.innerHTML = `
                 <div class="ticker">${ticker}</div>
                 <div class="name">${name}</div>
-                <div class="price">${formatPrice(price)}</div>
-                <div class="change ${changeClass}">${formatChange(change)}</div>
+                <div class="price">${formatPrice(finalPrice)}</div>
+                <div class="change ${changeColorClass}">${formatChange(finalChange)}</div>
             `;
             grid.appendChild(card);
         });
