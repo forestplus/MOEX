@@ -37,13 +37,16 @@
             gap: 10px;
             flex-wrap: wrap;
         }
-        .header-left select {
-            padding: 4px 8px;
+        .header-left select,
+        .header-left button {
+            padding: 4px 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
             font-size: 14px;
             background: #fff;
+            cursor: pointer;
         }
+        .header-left button:hover { background: #f5f5f5; }
         .status { font-size: 12px; color: #666; }
         .status.error { color: #c00; font-weight: bold; }
         .status.ok { color: #2e7d32; }
@@ -109,7 +112,6 @@
         .change { font-size: 15px; font-weight: bold; }
         .delta { font-size: 11px; opacity: 0.9; }
 
-        /* Цветовая палитра */
         .bg-pos-5 { background-color: #2e7d32; }
         .bg-pos-4 { background-color: #388e3c; }
         .bg-pos-3 { background-color: #43a047; }
@@ -142,6 +144,7 @@
                     <option value="week">за неделю</option>
                     <option value="month">за месяц</option>
                 </select>
+                <button id="refreshBtn" title="Обновить сейчас">↻ Обновить</button>
                 <span id="status" class="status">Загрузка данных...</span>
             </div>
             <div class="logo"><span>ДО</span>ДОХОД</div>
@@ -150,7 +153,6 @@
     </div>
 
     <script>
-        // ========== СПИСОК АКЦИЙ ИНДЕКСА МОСБИРЖИ ==========
         const STOCKS = {
             "GAZP": "ГАЗПРОМ ао", "LKOH": "ЛУКОЙЛ", "ROSN": "Роснефть", "NVTK": "Новатэк ао",
             "SNGS": "Сургнфгз", "SNGSP": "Сургнфгз-п", "TATN": "Татнфт Зао", "TATNP": "Татнфт Зап",
@@ -168,22 +170,17 @@
 
         const TICKERS = Object.keys(STOCKS);
 
-        // ========== КОНСТАНТЫ API ==========
-        // Запрашиваем LAST (цена), LASTCHANGEPRCNT (официальный % от MOEX), LASTTOPREVPRICE (запасной)
         const MARKETDATA_URL = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities.json?iss.only=marketdata&marketdata.columns=SECID,LAST,LASTCHANGEPRCNT,LASTTOPREVPRICE';
         const CANDLES_BASE = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities';
         const REQUEST_INTERVAL = 15000;
 
-        // ========== СОСТОЯНИЕ ==========
         let currentPeriod = 'day';
         let historicalBasis = {};
         let updateTimer = null;
         let lastRequestTime = 0;
         let isLoadingHistory = false;
-        const currentChanges = {}; // тикер -> % изменения
-        const currentDeltas = {};  // тикер -> изменение в рублях
+        const currentChanges = {};
 
-        // ========== ЦВЕТ ==========
         function getBgClass(change) {
             if (change === null || change === undefined || isNaN(change)) return 'bg-neutral';
             if (change > 0) {
@@ -203,10 +200,8 @@
             return 'bg-neutral';
         }
 
-        // ========== ФОРМАТИРОВАНИЕ ==========
         function formatPrice(p) {
             if (p === null || p === undefined || isNaN(p)) return '—';
-            // Для дешёвых бумаг (до 10 ₽) показываем 3 знака, для остальных — 2
             const decimals = (Math.abs(p) < 10) ? 3 : 2;
             return p.toLocaleString('ru-RU', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
         }
@@ -218,23 +213,21 @@
             return sign + c.toFixed(2).replace('.', ',') + ' %';
         }
 
+        // Компактное форматирование рублей: до 3 знаков после запятой, без лишних нулей
         function formatRubDelta(d) {
             if (d === null || d === undefined || isNaN(d)) return '—';
             const abs = Math.abs(d);
             let decimals = 2;
-            if (abs < 0.01) decimals = 4;
-            else if (abs < 0.1) decimals = 3;
+            if (abs < 0.01) decimals = 3;
             const sign = d > 0 ? '+' : '';
             return sign + d.toFixed(decimals).replace('.', ',') + ' ₽';
         }
 
-        // ========== КЛИК — ОТКРЫТИЕ БКС ==========
         function openBcsPage(ticker) {
             const url = `https://lk.bcs.ru/catalog?popup=/catalog/instrument/${ticker}/TQBR`;
             window.open(url, '_blank');
         }
 
-        // ========== СОРТИРОВКА ОТ ТЁМНО-ЗЕЛЁНОГО К ТЁМНО-КРАСНОМУ ==========
         function sortCards() {
             const entries = TICKERS.map(t => ({ ticker: t, change: currentChanges[t] }));
             entries.sort((a, b) => {
@@ -248,7 +241,6 @@
             });
         }
 
-        // ========== ОТРИСОВКА ==========
         function renderCard(container, ticker, name, price, change, delta) {
             const card = document.createElement('div');
             card.className = 'card ' + getBgClass(change);
@@ -278,13 +270,10 @@
             if (deltaEl) deltaEl.textContent = formatRubDelta(delta);
             card.className = 'card ' + getBgClass(change);
             currentChanges[ticker] = change;
-            currentDeltas[ticker] = delta;
         }
 
-        // ========== ИСТОРИЯ (для недели и месяца) ==========
         async function loadHistoricalBasis() {
             if (currentPeriod === 'day') { historicalBasis = {}; return; }
-
             const days = currentPeriod === 'week' ? 8 : 31;
             const from = new Date();
             from.setDate(from.getDate() - days);
@@ -302,8 +291,8 @@
                 const batch = TICKERS.slice(i, i + batchSize);
                 await Promise.all(batch.map(async (ticker) => {
                     try {
-                        const url = `${CANDLES_BASE}/${ticker}/candles.json?from=${fromStr}&interval=24`;
-                        const r = await fetch(url);
+                        const url = `${CANDLES_BASE}/${ticker}/candles.json?from=${fromStr}&interval=24&_t=${Date.now()}`;
+                        const r = await fetch(url, { cache: 'no-store' });
                         if (!r.ok) return;
                         const d = await r.json();
                         const candles = d.candles;
@@ -311,17 +300,13 @@
                             const idxClose = candles.columns.indexOf('close');
                             basis[ticker] = candles.data[0][idxClose];
                         }
-                    } catch (e) {
-                        console.warn('Свечи не получены для', ticker);
-                    }
+                    } catch (e) { console.warn('Свечи не получены для', ticker); }
                 }));
             }
-
             historicalBasis = basis;
             isLoadingHistory = false;
         }
 
-        // ========== ЗАГРУЗКА КОТИРОВОК ==========
         async function fetchQuotes() {
             const statusEl = document.getElementById('status');
             const now = Date.now();
@@ -333,14 +318,15 @@
                 statusEl.className = 'status';
                 statusEl.textContent = 'Обновление...';
 
-                const response = await fetch(MARKETDATA_URL);
+                // cache-busting: добавляем _t, отключаем кеш
+                const url = `${MARKETDATA_URL}&_t=${now}`;
+                const response = await fetch(url, { cache: 'no-store' });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                 const data = await response.json();
-                const marketdata = data.marketdata;
-                const rows = marketdata.data;
-                const columns = marketdata.columns;
-
+                const md = data.marketdata;
+                const rows = md.data;
+                const columns = md.columns;
                 const idxSec = columns.indexOf('SECID');
                 const idxLast = columns.indexOf('LAST');
                 const idxPct = columns.indexOf('LASTCHANGEPRCNT');
@@ -361,26 +347,21 @@
                     let delta = null;
 
                     if (currentPeriod === 'day') {
-                        // 1) Берём официальный % из MOEX
-                        if (pctFromApi !== null && pctFromApi !== undefined) {
-                            change = pctFromApi;
+                        // Основной источник — абсолютное изменение в рублях (LASTTOPREVPRICE)
+                        if (deltaFromApi !== null && deltaFromApi !== 0) {
+                            delta = deltaFromApi;
+                            const prev = last - delta;
+                            if (prev > 0) change = (delta / prev) * 100;
                         }
-                        // 2) Fallback: считаем из LASTTOPREVPRICE, если он похож на дельту в рублях
-                        if ((change === null || change === 0) && deltaFromApi !== null) {
-                            const prev = last - deltaFromApi;
-                            if (prev > 0) {
-                                change = (deltaFromApi / prev) * 100;
+                        // Fallback: официальный процент MOEX
+                        if ((change === null) && pctFromApi !== null) {
+                            change = pctFromApi;
+                            if (change !== -100) {
+                                const prev = last / (1 + change / 100);
+                                delta = last - prev;
                             }
                         }
-                        // 3) Рублёвое изменение: считаем из процента (это гарантирует согласованность)
-                        if (change !== null && change !== -100) {
-                            const prev = last / (1 + change / 100);
-                            delta = last - prev;
-                        } else if (deltaFromApi !== null) {
-                            delta = deltaFromApi;
-                        }
                     } else {
-                        // Для недели и месяца — считаем от исторической цены закрытия
                         const basis = historicalBasis[secid];
                         if (basis && basis > 0) {
                             delta = last - basis;
@@ -396,15 +377,14 @@
 
                 const timeStr = new Date().toLocaleTimeString('ru-RU');
                 statusEl.className = 'status ok';
-                statusEl.textContent = `Обновлено ${updatedCount} бумаг в ${timeStr}`;
+                statusEl.textContent = `Обновлено ${updatedCount} бумаг в ${timeStr} (данные MOEX с задержкой ~15 мин)`;
             } catch (err) {
-                console.error('Ошибка загрузки котировок:', err);
+                console.error('Ошибка загрузки:', err);
                 statusEl.className = 'status error';
                 statusEl.textContent = `Ошибка загрузки: ${err.message}`;
             }
         }
 
-        // ========== ИНИЦИАЛИЗАЦИЯ ==========
         function initGrid() {
             const grid = document.getElementById('grid');
             grid.innerHTML = '';
@@ -420,10 +400,14 @@
             updateTimer = setInterval(fetchQuotes, REQUEST_INTERVAL);
         }
 
-        // ========== СМЕНА ПЕРИОДА ==========
         document.getElementById('periodSelect').addEventListener('change', async (e) => {
             currentPeriod = e.target.value;
             await loadHistoricalBasis();
+            lastRequestTime = 0;
+            await fetchQuotes();
+        });
+
+        document.getElementById('refreshBtn').addEventListener('click', async () => {
             lastRequestTime = 0;
             await fetchQuotes();
         });
