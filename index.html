@@ -5,98 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Тепловая карта индекса Мосбиржи — онлайн</title>
     <style>
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            background: #f0f0f0;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-        }
-        .container {
-            width: 100%;
-            max-width: 1100px;
-            background: #fff;
-            padding: 16px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            font-size: 14px;
-            color: #333;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .header-left select {
-            padding: 4px 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-            background: #fff;
-        }
-        .status {
-            font-size: 12px;
-            color: #666;
-        }
+        body { font-family: Arial, Helvetica, sans-serif; background: #f0f0f0; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 1100px; background: #fff; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; color: #333; flex-wrap: wrap; gap: 10px; }
+        .header-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .header-left select { padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background: #fff; }
+        .status { font-size: 12px; color: #666; }
         .status.error { color: #c00; font-weight: bold; }
         .status.ok { color: #2e7d32; }
         .status.loading { color: #f57c00; }
-        .logo {
-            font-weight: bold;
-            font-size: 18px;
-            color: #c00;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        .logo span {
-            background: #c00;
-            color: #fff;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 12px;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 2px;
-            background-color: #fff;
-        }
-        .card {
-            padding: 8px 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: stretch;
-            min-height: 60px;
-            color: #fff;
-            font-size: 13px;
-            line-height: 1.2;
-            transition: background-color 0.3s ease;
-        }
-        .card-left {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            flex: 1;
-            padding-right: 8px;
-        }
-        .card-right {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            font-size: 16px;
-            font-weight: bold;
-            white-space: nowrap;
-        }
+        .logo { font-weight: bold; font-size: 18px; color: #c00; display: flex; align-items: center; gap: 4px; }
+        .logo span { background: #c00; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; background-color: #fff; }
+        .card { padding: 8px 10px; display: flex; justify-content: space-between; align-items: stretch; min-height: 60px; color: #fff; font-size: 13px; line-height: 1.2; transition: background-color 0.3s ease; }
+        .card-left { display: flex; flex-direction: column; justify-content: space-between; flex: 1; padding-right: 8px; }
+        .card-right { display: flex; align-items: center; justify-content: flex-end; font-size: 16px; font-weight: bold; white-space: nowrap; }
         .name { font-weight: bold; font-size: 13px; }
         .price { font-size: 12px; opacity: 0.9; }
         .change { font-size: 15px; font-weight: bold; }
@@ -134,9 +57,7 @@
                 </select>
                 <span id="status" class="status">Загрузка данных...</span>
             </div>
-            <div class="logo">
-                <span>ДО</span>ДОХОД
-            </div>
+            <div class="logo"><span>ДО</span>ДОХОД</div>
         </div>
         <div class="grid" id="grid"></div>
     </div>
@@ -158,12 +79,13 @@
         };
 
         const TICKERS = Object.keys(STOCKS);
-        const MARKETDATA_URL = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities.json?iss.only=marketdata&marketdata.columns=SECID,LAST,LASTCHANGEPRCNT';
+        // Запрашиваем LAST (цена) и LASTTOPREVPRICE (изменение в рублях)
+        const MARKETDATA_URL = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities.json?iss.only=marketdata&marketdata.columns=SECID,LAST,LASTTOPREVPRICE';
         const CANDLES_BASE = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities';
         const REQUEST_INTERVAL = 15000;
 
         let currentPeriod = 'day';
-        let historicalBasis = {}; // тикер -> цена закрытия N дней назад
+        let historicalBasis = {};
         let updateTimer = null;
         let lastRequestTime = 0;
         let isLoadingHistory = false;
@@ -183,21 +105,20 @@
                 if (abs >= 1.0) return 'bg-neg-3';
                 if (abs >= 0.5) return 'bg-neg-2';
                 return 'bg-neg-1';
-            } else {
-                return 'bg-neutral';
             }
+            return 'bg-neutral';
         }
 
         function formatPrice(p) {
             if (p === null || p === undefined || isNaN(p)) return '—';
-            return p.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+            return p.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
         function formatChange(c) {
             if (c === null || c === undefined || isNaN(c)) return '—';
-            if (c === 0) return '0.00 %';
+            if (Math.abs(c) < 0.005) return '0.00 %';
             const sign = c > 0 ? '+' : '';
-            return sign + c.toFixed(2) + ' %';
+            return sign + c.toFixed(2).replace('.', ',') + ' %';
         }
 
         function renderCard(container, ticker, name, price, change) {
@@ -226,12 +147,8 @@
             card.className = 'card ' + getBgClass(change);
         }
 
-        // Загрузка исторических свечей для расчета недельного/месячного изменения
         async function loadHistoricalBasis() {
-            if (currentPeriod === 'day') {
-                historicalBasis = {};
-                return;
-            }
+            if (currentPeriod === 'day') { historicalBasis = {}; return; }
             const days = currentPeriod === 'week' ? 8 : 31;
             const from = new Date();
             from.setDate(from.getDate() - days);
@@ -243,8 +160,6 @@
 
             isLoadingHistory = true;
             const basis = {};
-
-            // Загружаем свечи параллельно, но партиями чтобы не перегрузить API
             const batchSize = 8;
             for (let i = 0; i < TICKERS.length; i += batchSize) {
                 const batch = TICKERS.slice(i, i + batchSize);
@@ -259,12 +174,9 @@
                             const idxClose = candles.columns.indexOf('close');
                             basis[ticker] = candles.data[0][idxClose];
                         }
-                    } catch (e) {
-                        console.warn('Не удалось получить свечи по', ticker, e);
-                    }
+                    } catch (e) { console.warn('Свечи не получены для', ticker); }
                 }));
             }
-
             historicalBasis = basis;
             isLoadingHistory = false;
         }
@@ -289,27 +201,33 @@
                 const columns = marketdata.columns;
                 const idxSec = columns.indexOf('SECID');
                 const idxLast = columns.indexOf('LAST');
-                const idxChange = columns.indexOf('LASTCHANGEPRCNT');
+                const idxDelta = columns.indexOf('LASTTOPREVPRICE');
 
                 let updatedCount = 0;
 
                 rows.forEach(row => {
                     const secid = row[idxSec];
                     const last = row[idxLast];
-                    const dayChange = row[idxChange];
+                    const delta = row[idxDelta];
 
                     if (!TICKERS.includes(secid)) return;
                     if (last === null) return;
 
-                    let change;
+                    let change = null;
+
                     if (currentPeriod === 'day') {
-                        change = dayChange;
+                        // Считаем % из абсолютного изменения в рублях
+                        if (delta !== null) {
+                            const prevPrice = last - delta;
+                            if (prevPrice > 0) {
+                                change = (delta / prevPrice) * 100;
+                            }
+                        }
                     } else {
+                        // Для недели/месяца считаем от исторической цены закрытия
                         const basis = historicalBasis[secid];
                         if (basis && basis > 0) {
                             change = ((last - basis) / basis) * 100;
-                        } else {
-                            change = null;
                         }
                     }
 
@@ -321,18 +239,16 @@
                 statusEl.className = 'status ok';
                 statusEl.textContent = `Обновлено ${updatedCount} бумаг в ${timeStr}`;
             } catch (err) {
-                console.error('Ошибка загрузки котировок:', err);
+                console.error('Ошибка:', err);
                 statusEl.className = 'status error';
-                statusEl.textContent = `Ошибка загрузки: ${err.message}. Повтор через 15 сек.`;
+                statusEl.textContent = `Ошибка загрузки: ${err.message}`;
             }
         }
 
         function initGrid() {
             const grid = document.getElementById('grid');
             grid.innerHTML = '';
-            TICKERS.forEach(ticker => {
-                renderCard(grid, ticker, STOCKS[ticker], null, null);
-            });
+            TICKERS.forEach(ticker => renderCard(grid, ticker, STOCKS[ticker], null, null));
         }
 
         async function start() {
@@ -345,7 +261,7 @@
         document.getElementById('periodSelect').addEventListener('change', async (e) => {
             currentPeriod = e.target.value;
             await loadHistoricalBasis();
-            lastRequestTime = 0; // разрешаем немедленное обновление
+            lastRequestTime = 0;
             await fetchQuotes();
         });
 
