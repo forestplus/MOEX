@@ -23,7 +23,6 @@
         }
         .header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             margin-bottom: 12px;
             font-size: 14px;
@@ -31,14 +30,8 @@
             flex-wrap: wrap;
             gap: 10px;
         }
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .header-left select,
-        .header-left button {
+        .header select,
+        .header button {
             padding: 4px 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
@@ -46,7 +39,7 @@
             background: #fff;
             cursor: pointer;
         }
-        .header-left button:hover { background: #f5f5f5; }
+        .header button:hover { background: #f5f5f5; }
         .status { font-size: 12px; color: #666; }
         .status.error { color: #c00; font-weight: bold; }
         .status.ok { color: #2e7d32; }
@@ -92,7 +85,13 @@
             text-align: right;
             white-space: nowrap;
         }
-        .name { font-weight: bold; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .name {
+            font-weight: bold;
+            font-size: 11px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
         .price { font-size: 11px; opacity: 0.95; }
         .change { font-size: 13px; font-weight: bold; }
         .delta { font-size: 10px; opacity: 0.9; }
@@ -124,16 +123,14 @@
 <body>
     <div class="container">
         <div class="header">
-            <div class="header-left">
-                <span>Доходность:</span>
-                <select id="periodSelect">
-                    <option value="day">за день</option>
-                    <option value="week">за неделю</option>
-                    <option value="month">за месяц</option>
-                </select>
-                <button id="refreshBtn" title="Обновить сейчас">↻ Обновить</button>
-                <span id="status" class="status">Загрузка справочника...</span>
-            </div>
+            <span>Доходность:</span>
+            <select id="periodSelect">
+                <option value="day">за день</option>
+                <option value="week">за неделю</option>
+                <option value="month">за месяц</option>
+            </select>
+            <button id="refreshBtn" title="Обновить сейчас">↻ Обновить</button>
+            <span id="status" class="status">Загрузка данных...</span>
         </div>
         <div class="grid" id="grid"></div>
     </div>
@@ -141,36 +138,49 @@
     <script>
         // ========== КОНСТАНТЫ ==========
         const MOEX_ISS = 'https://iss.moex.com/iss';
-        const BOARD = 'TQBR'; // Основной режим акций Мосбиржи
-        const REQUEST_INTERVAL = 15000;
-        const FETCH_TIMEOUT = 12000; // таймаут на один запрос, мс
-
-        // ========== УТИЛИТЫ ==========
-        // Fetch с таймаутом — чтобы страница не зависала, если API не отвечает
-        async function fetchWithTimeout(url, timeout = FETCH_TIMEOUT) {
-            const controller = new AbortController();
-            const timer = setTimeout(() => controller.abort(), timeout);
-            try {
-                const response = await fetch(url, {
-                    cache: 'no-store',
-                    signal: controller.signal
-                });
-                return response;
-            } finally {
-                clearTimeout(timer);
-            }
-        }
+        const BOARD = 'TQBR';                 // Основной режим торгов акциями ММВБ
+        const REQUEST_INTERVAL = 15000;       // Период автообновления, мс
+        const FETCH_TIMEOUT = 12000;          // Таймаут одного запроса, мс
 
         // ========== СОСТОЯНИЕ ==========
-        let allStocks = [];
-        let tickerNameMap = {};
+        let allStocks = [];                   // [{ticker, name}]
+        let tickerNameMap = {};               // ticker -> name
         let currentPeriod = 'day';
-        let historicalBasis = {};
+        let historicalBasis = {};             // ticker -> цена закрытия N дней назад
         let updateTimer = null;
         let lastRequestTime = 0;
         let isLoadingHistory = false;
         let isInitialized = false;
-        const currentChanges = {};
+        const currentChanges = {};            // ticker -> текущий % изменения
+
+        // ========== ЗАПАСНОЙ СПИСОК ==========
+        // Используется, если API Мосбиржи недоступен
+        const FALLBACK_STOCKS = {
+            "GAZP": "ГАЗПРОМ ао", "LKOH": "ЛУКОЙЛ", "ROSN": "Роснефть", "NVTK": "Новатэк ао",
+            "SNGS": "Сургнфгз", "SNGSP": "Сургнфгз-п", "TATN": "Татнфт Зао", "TATNP": "Татнфт Зап",
+            "SBER": "Сбербанк", "SBERP": "Сбербанк-п", "VTBR": "ВТБ ао", "T": "Т-Техно ао",
+            "MOEX": "МосБиржа", "CBOM": "МКБ ао", "SVCB": "Совкомбанк", "BSPB": "БСП ао",
+            "YDEX": "ЯНДЕКС", "OZON": "Озон", "VKCO": 'МКПАО "ВК"', "POSI": "iПозитив",
+            "HEAD": "Хэдхантер", "GMKN": "ГМКНорник", "PLZL": "Полюс", "CHMF": "СевСт-ао",
+            "NLMK": "НЛМК ао", "MAGN": "ММК", "RUAL": "РУСАЛ ао", "ALRS": "АЛРОСА ао",
+            "UGLD": "ЮГК", "ENPG": "ЭНГРУП ао", "X5": "КЦ ИКС 5", "LENT": "Лента",
+            "RAGR": "Русагро", "AFLT": "Аэрофлот", "FLOT": "Совкомфлот", "TRNFP": "Транснф ап",
+            "IRAO": "ИнтерРАОао", "MSNG": "Мосэнерго", "DOMRF": "ДОМ.РФ", "PHOR": "ФосАгро ао",
+            "MDMG": "MDMG-ао", "CNRU": "Циан", "AFKS": "Система ао", "RENI": "Ренессанс",
+            "SMLT": "Самолет", "RASP": "Распадская"
+        };
+
+        // ========== УТИЛИТЫ ==========
+        // fetch с таймаутом — защита от зависания при недоступности API
+        async function fetchWithTimeout(url, timeout = FETCH_TIMEOUT) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeout);
+            try {
+                return await fetch(url, { cache: 'no-store', signal: controller.signal });
+            } finally {
+                clearTimeout(timer);
+            }
+        }
 
         // ========== ЦВЕТ ==========
         function getBgClass(change) {
@@ -196,14 +206,19 @@
         function formatPrice(p) {
             if (p === null || p === undefined || isNaN(p)) return '—';
             const decimals = (Math.abs(p) < 10) ? 3 : 2;
-            return p.toLocaleString('ru-RU', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+            return p.toLocaleString('ru-RU', {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            });
         }
+
         function formatChange(c) {
             if (c === null || c === undefined || isNaN(c)) return '—';
             if (Math.abs(c) < 0.005) return '0,00 %';
             const sign = c > 0 ? '+' : '';
             return sign + c.toFixed(2).replace('.', ',') + ' %';
         }
+
         function formatRubDelta(d) {
             if (d === null || d === undefined || isNaN(d)) return '—';
             const abs = Math.abs(d);
@@ -213,14 +228,17 @@
             return sign + d.toFixed(decimals).replace('.', ',') + ' ₽';
         }
 
-        // ========== КЛИК ==========
+        // ========== КЛИК — ОТКРЫТИЕ В ЛК БКС ==========
         function openBcsPage(ticker) {
             window.open(`https://lk.bcs.ru/catalog?popup=/catalog/instrument/${ticker}/TQBR`, '_blank');
         }
 
-        // ========== СОРТИРОВКА ==========
+        // ========== СОРТИРОВКА ОТ ТЁМНО-ЗЕЛЁНОГО К ТЁМНО-КРАСНОМУ ==========
         function sortCards() {
-            const entries = allStocks.map(s => ({ ticker: s.ticker, change: currentChanges[s.ticker] }));
+            const entries = allStocks.map(s => ({
+                ticker: s.ticker,
+                change: currentChanges[s.ticker]
+            }));
             entries.sort((a, b) => {
                 const av = (a.change === null || a.change === undefined || isNaN(a.change)) ? -Infinity : a.change;
                 const bv = (b.change === null || b.change === undefined || isNaN(b.change)) ? -Infinity : b.change;
@@ -232,7 +250,7 @@
             });
         }
 
-        // ========== ОТРИСОВКА ==========
+        // ========== ОТРИСОВКА КАРТОЧЕК ==========
         function renderCard(container, ticker, name) {
             const card = document.createElement('div');
             card.className = 'card bg-neutral';
@@ -250,6 +268,7 @@
             card.addEventListener('click', () => openBcsPage(ticker));
             container.appendChild(card);
         }
+
         function updateCard(ticker, price, change, delta) {
             const card = document.querySelector(`.card[data-ticker="${ticker}"]`);
             if (!card) return;
@@ -261,7 +280,6 @@
         }
 
         // ========== ЗАГРУЗКА СПРАВОЧНИКА ==========
-        // Простой подход: берём все бумаги с борда TQBR одним запросом
         async function loadSecuritiesList() {
             const statusEl = document.getElementById('status');
             statusEl.className = 'status loading';
@@ -297,7 +315,6 @@
                 console.error('Ошибка загрузки справочника:', err);
                 statusEl.className = 'status error';
                 statusEl.textContent = `API не ответил, используем запасной список (${Object.keys(FALLBACK_STOCKS).length} бумаг)`;
-                // Запасной список
                 Object.entries(FALLBACK_STOCKS).forEach(([t, n]) => {
                     allStocks.push({ ticker: t, name: n });
                     tickerNameMap[t] = n;
@@ -306,23 +323,7 @@
             }
         }
 
-        const FALLBACK_STOCKS = {
-            "GAZP": "ГАЗПРОМ ао", "LKOH": "ЛУКОЙЛ", "ROSN": "Роснефть", "NVTK": "Новатэк ао",
-            "SNGS": "Сургнфгз", "SNGSP": "Сургнфгз-п", "TATN": "Татнфт Зао", "TATNP": "Татнфт Зап",
-            "SBER": "Сбербанк", "SBERP": "Сбербанк-п", "VTBR": "ВТБ ао", "T": "Т-Техно ао",
-            "MOEX": "МосБиржа", "CBOM": "МКБ ао", "SVCB": "Совкомбанк", "BSPB": "БСП ао",
-            "YDEX": "ЯНДЕКС", "OZON": "Озон", "VKCO": 'МКПАО "ВК"', "POSI": "iПозитив",
-            "HEAD": "Хэдхантер", "GMKN": "ГМКНорник", "PLZL": "Полюс", "CHMF": "СевСт-ао",
-            "NLMK": "НЛМК ао", "MAGN": "ММК", "RUAL": "РУСАЛ ао", "ALRS": "АЛРОСА ао",
-            "UGLD": "ЮГК", "ENPG": "ЭНГРУП ао", "X5": "КЦ ИКС 5", "LENT": "Лента",
-            "RAGR": "Русагро", "AFLT": "Аэрофлот", "FLOT": "Совкомфлот", "TRNFP": "Транснф ап",
-            "IRAO": "ИнтерРАОао", "MSNG": "Мосэнерго", "DOMRF": "ДОМ.РФ", "PHOR": "ФосАгро ао",
-            "MDMG": "MDMG-ао", "CNRU": "Циан", "AFKS": "Система ао", "RENI": "Ренессанс",
-            "SMLT": "Самолет", "RASP": "Распадская"
-        };
-
         // ========== ЗАГРУЗКА КОТИРОВОК ==========
-        // Один запрос забирает marketdata сразу по всем бумагам борда
         async function fetchQuotes() {
             const statusEl = document.getElementById('status');
             const now = Date.now();
@@ -334,7 +335,7 @@
                 statusEl.className = 'status';
                 statusEl.textContent = 'Обновление...';
 
-                const url = `${MOEX_ISS}/engines/stock/markets/shares/boards/${BOARD}/securities.json?iss.only=marketdata&marketdata.columns=SECID,LAST,LASTCHANGEPRCNT,LASTTOPREVPRICE&_t=${now}`;
+                const url = `${MOEX_ISS}/engines/stock/markets/shares/boards/${BOARD}/securities.json?iss.only=marketdata&marketdata.columns=SECID,LAST,LASTCHANGEPRCNT&_t=${now}`;
                 const response = await fetchWithTimeout(url);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
@@ -347,7 +348,6 @@
                 const idxSec = columns.indexOf('SECID');
                 const idxLast = columns.indexOf('LAST');
                 const idxPct = columns.indexOf('LASTCHANGEPRCNT');
-                const idxDelta = columns.indexOf('LASTTOPREVPRICE');
 
                 let updatedCount = 0;
 
@@ -355,7 +355,6 @@
                     const secid = row[idxSec];
                     const last = row[idxLast];
                     const pctFromApi = row[idxPct];
-                    const deltaFromApi = row[idxDelta];
 
                     if (!tickerNameMap[secid]) return;
                     if (last === null || last === undefined) return;
@@ -364,13 +363,10 @@
                     let delta = null;
 
                     if (currentPeriod === 'day') {
-                        if (deltaFromApi !== null && deltaFromApi !== 0) {
-                            delta = deltaFromApi;
-                            const prev = last - delta;
-                            if (prev > 0) change = (delta / prev) * 100;
-                        }
-                        if (change === null && pctFromApi !== null && pctFromApi !== undefined) {
+                        // Источник процента — официальное поле Мосбиржи LASTCHANGEPRCNT
+                        if (pctFromApi !== null && pctFromApi !== undefined && !isNaN(pctFromApi)) {
                             change = pctFromApi;
+                            // Рубли считаем из процента — это гарантирует согласованность
                             if (change !== -100) {
                                 const prev = last / (1 + change / 100);
                                 delta = last - prev;
@@ -400,9 +396,10 @@
             }
         }
 
-        // ========== ИСТОРИЯ ДЛЯ НЕДЕЛИ / МЕСЯЦА ==========
+        // ========== ЗАГРУЗКА ИСТОРИИ ДЛЯ НЕДЕЛИ / МЕСЯЦА ==========
         async function loadHistoricalBasis() {
             if (currentPeriod === 'day') { historicalBasis = {}; return; }
+
             const days = currentPeriod === 'week' ? 8 : 31;
             const from = new Date();
             from.setDate(from.getDate() - days);
@@ -460,6 +457,7 @@
             lastRequestTime = 0;
             await fetchQuotes();
         });
+
         document.getElementById('refreshBtn').addEventListener('click', async () => {
             lastRequestTime = 0;
             await fetchQuotes();
