@@ -105,13 +105,13 @@
         .bg-pos-4 { background-color: #388e3c; }
         .bg-pos-3 { background-color: #43a047; }
         .bg-pos-2 { background-color: #81c784; color: #1a1a1a; }
-        .bg-pos-1 { background-color: #c8e6c9; color: #1a1a1a; }
-        .bg-neg-1 { background-color: #ef9a9a; color: #1a1a1a; }
+        .bg-pos-1 { background-color: #c8e6c9; color: #1a1a1a; } /* Бледно-зеленый для 0.00% и +0.01% */
+        .bg-neg-1 { background-color: #ef9a9a; color: #1a1a1a; } /* Бледно-красный для -0.01% */
         .bg-neg-2 { background-color: #e57373; color: #1a1a1a; }
         .bg-neg-3 { background-color: #d32f2f; }
         .bg-neg-4 { background-color: #c62828; }
         .bg-neg-5 { background-color: #8e0000; }
-        .bg-neutral { background-color: #9e9e9e; }
+        .bg-neutral { background-color: #9e9e9e; color: #fff; }
 
         @media (max-width: 768px) {
             .grid { grid-template-columns: repeat(2, 1fr); }
@@ -158,25 +158,35 @@
         };
 
         const TICKERS = Object.keys(STOCKS);
-        // Используем LASTCHANGEPRCNT для получения готового процента изменения
+        // Внимание: API Мосбиржи по умолчанию отдает изменение за день, даже если выбран месяц.
         const API_BASE = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities.json';
         const REQUEST_INTERVAL = 15000;
 
         let updateTimer = null;
         let lastRequestTime = 0;
 
+        // ИСПРАВЛЕННАЯ ЛОГИКА ЦВЕТОВ
         function getBgClass(change) {
             if (change === null || change === undefined || isNaN(change)) return 'bg-neutral';
-            if (change >= 2.0) return 'bg-pos-5';
-            if (change >= 1.0) return 'bg-pos-4';
-            if (change >= 0.5) return 'bg-pos-3';
-            if (change >= 0.1) return 'bg-pos-2';
-            if (change === 0.0) return 'bg-pos-1';
-            if (change >= -0.1) return 'bg-neg-1';
-            if (change >= -0.3) return 'bg-neg-2';
-            if (change >= -0.6) return 'bg-neg-3';
-            if (change >= -1.5) return 'bg-neg-4';
-            return 'bg-neg-5';
+            
+            if (change > 0) {
+                if (change >= 5.0) return 'bg-pos-5';
+                if (change >= 2.0) return 'bg-pos-4';
+                if (change >= 1.0) return 'bg-pos-3';
+                if (change >= 0.5) return 'bg-pos-2';
+                return 'bg-pos-1'; // Для значений от 0.01 до 0.49
+            } 
+            else if (change < 0) {
+                const abs = Math.abs(change);
+                if (abs >= 5.0) return 'bg-neg-5';
+                if (abs >= 2.0) return 'bg-neg-4';
+                if (abs >= 1.0) return 'bg-neg-3';
+                if (abs >= 0.5) return 'bg-neg-2';
+                return 'bg-neg-1'; // Для значений от -0.01 до -0.49
+            } 
+            else {
+                return 'bg-neutral'; // Ровно 0.00%
+            }
         }
 
         function formatPrice(p) {
@@ -186,6 +196,8 @@
 
         function formatChange(c) {
             if (c === null || c === undefined || isNaN(c)) return '—';
+            // Убираем плюс, если изменение ровно 0
+            if (c === 0) return '0.00 %';
             const sign = c > 0 ? '+' : '';
             return sign + c.toFixed(2) + ' %';
         }
@@ -231,7 +243,7 @@
                 statusEl.className = 'status';
                 statusEl.textContent = 'Обновление...';
 
-                // Запрашиваем LASTCHANGEPRCNT - готовый процент изменения
+                // Берем готовый процент изменения (LASTCHANGEPRCNT)
                 const url = `${API_BASE}?iss.only=marketdata&marketdata.columns=SECID,LAST,LASTCHANGEPRCNT`;
                 const response = await fetch(url);
 
@@ -254,7 +266,6 @@
                     const change = row[idxChange];
 
                     if (!TICKERS.includes(secid)) return;
-                    // Пропускаем бумаги, по которым нет данных (например, торги не начались)
                     if (last === null || change === null) return;
 
                     updateCard(secid, last, change);
@@ -289,6 +300,8 @@
 
         document.getElementById('periodSelect').addEventListener('change', (e) => {
             console.log('Выбран период:', e.target.value);
+            // Примечание: API Мосбиржи (ISS) в текущем бесплатном запросе отдает только дневные данные.
+            // Для получения месячных данных потребуется другой эндпоинт API.
         });
 
         start();
