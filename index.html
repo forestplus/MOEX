@@ -169,7 +169,7 @@
         // ========== КОНСТАНТЫ API ==========
         const MARKETDATA_URL = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities.json?iss.only=marketdata&marketdata.columns=SECID,LAST,LASTTOPREVPRICE';
         const CANDLES_BASE = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities';
-        const REQUEST_INTERVAL = 15000; // 15 секунд
+        const REQUEST_INTERVAL = 15000;
 
         // ========== СОСТОЯНИЕ ==========
         let currentPeriod = 'day';
@@ -177,6 +177,7 @@
         let updateTimer = null;
         let lastRequestTime = 0;
         let isLoadingHistory = false;
+        const currentChanges = {}; // тикер -> текущий % изменения
 
         // ========== ЦВЕТ ==========
         function getBgClass(change) {
@@ -213,10 +214,26 @@
 
         // ========== КЛИК — ОТКРЫТИЕ БКС ==========
         function openBcsPage(ticker) {
-            // Прямая ссылка на карточку инструмента в личном кабинете БКС.
-            // После авторизации открывает карточку бумаги с графиком и стаканом.
             const url = `https://lk.bcs.ru/catalog?popup=/catalog/instrument/${ticker}/TQBR`;
             window.open(url, '_blank');
+        }
+
+        // ========== СОРТИРОВКА ОТ ТЁМНО-ЗЕЛЁНОГО К ТЁМНО-КРАСНОМУ ==========
+        function sortCards() {
+            // Собираем пары (тикер, change), сортируем по убыванию процента.
+            // Бумаги без данных (null) уезжают в конец.
+            const entries = TICKERS.map(t => ({ ticker: t, change: currentChanges[t] }));
+
+            entries.sort((a, b) => {
+                const av = (a.change === null || a.change === undefined || isNaN(a.change)) ? -Infinity : a.change;
+                const bv = (b.change === null || b.change === undefined || isNaN(b.change)) ? -Infinity : b.change;
+                return bv - av;
+            });
+
+            entries.forEach((e, i) => {
+                const card = document.querySelector(`.card[data-ticker="${e.ticker}"]`);
+                if (card) card.style.order = i;
+            });
         }
 
         // ========== ОТРИСОВКА ==========
@@ -245,6 +262,7 @@
             if (priceEl) priceEl.textContent = formatPrice(price);
             if (changeEl) changeEl.textContent = formatChange(change);
             card.className = 'card ' + getBgClass(change);
+            currentChanges[ticker] = change;
         }
 
         // ========== ИСТОРИЯ (для недели и месяца) ==========
@@ -324,7 +342,6 @@
                     let change = null;
 
                     if (currentPeriod === 'day') {
-                        // Процент считаем из абсолютного изменения в рублях
                         if (delta !== null) {
                             const prevPrice = last - delta;
                             if (prevPrice > 0) {
@@ -332,7 +349,6 @@
                             }
                         }
                     } else {
-                        // Для недели/месяца считаем от исторической цены закрытия
                         const basis = historicalBasis[secid];
                         if (basis && basis > 0) {
                             change = ((last - basis) / basis) * 100;
@@ -342,6 +358,9 @@
                     updateCard(secid, last, change);
                     updatedCount++;
                 });
+
+                // Переставляем карточки: от тёмно-зелёного к тёмно-красному
+                sortCards();
 
                 const timeStr = new Date().toLocaleTimeString('ru-RU');
                 statusEl.className = 'status ok';
