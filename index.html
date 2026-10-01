@@ -5,25 +5,110 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Тепловая карта индекса Мосбиржи — онлайн</title>
     <style>
-        body { font-family: Arial, Helvetica, sans-serif; background: #f0f0f0; margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .container { width: 100%; max-width: 1100px; background: #fff; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; color: #333; flex-wrap: wrap; gap: 10px; }
-        .header-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-        .header-left select { padding: 4px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background: #fff; }
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            background: #fff;
+            padding: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #333;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .header-left select {
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            background: #fff;
+        }
         .status { font-size: 12px; color: #666; }
         .status.error { color: #c00; font-weight: bold; }
         .status.ok { color: #2e7d32; }
         .status.loading { color: #f57c00; }
-        .logo { font-weight: bold; font-size: 18px; color: #c00; display: flex; align-items: center; gap: 4px; }
-        .logo span { background: #c00; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
-        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; background-color: #fff; }
-        .card { padding: 8px 10px; display: flex; justify-content: space-between; align-items: stretch; min-height: 60px; color: #fff; font-size: 13px; line-height: 1.2; transition: background-color 0.3s ease; }
-        .card-left { display: flex; flex-direction: column; justify-content: space-between; flex: 1; padding-right: 8px; }
-        .card-right { display: flex; align-items: center; justify-content: flex-end; font-size: 16px; font-weight: bold; white-space: nowrap; }
+
+        .logo {
+            font-weight: bold;
+            font-size: 18px;
+            color: #c00;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .logo span {
+            background: #c00;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 2px;
+            background-color: #fff;
+        }
+
+        .card {
+            padding: 8px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch;
+            min-height: 60px;
+            color: #fff;
+            font-size: 13px;
+            line-height: 1.2;
+            transition: background-color 0.3s ease, transform 0.1s ease, filter 0.1s ease;
+            cursor: pointer;
+        }
+        .card:hover {
+            transform: scale(1.02);
+            filter: brightness(1.1);
+            z-index: 1;
+        }
+        .card-left {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            flex: 1;
+            padding-right: 8px;
+        }
+        .card-right {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            font-size: 16px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
         .name { font-weight: bold; font-size: 13px; }
         .price { font-size: 12px; opacity: 0.9; }
         .change { font-size: 15px; font-weight: bold; }
 
+        /* Цветовая палитра */
         .bg-pos-5 { background-color: #2e7d32; }
         .bg-pos-4 { background-color: #388e3c; }
         .bg-pos-3 { background-color: #43a047; }
@@ -63,6 +148,7 @@
     </div>
 
     <script>
+        // ========== СПИСОК АКЦИЙ ИНДЕКСА МОСБИРЖИ ==========
         const STOCKS = {
             "GAZP": "ГАЗПРОМ ао", "LKOH": "ЛУКОЙЛ", "ROSN": "Роснефть", "NVTK": "Новатэк ао",
             "SNGS": "Сургнфгз", "SNGSP": "Сургнфгз-п", "TATN": "Татнфт Зао", "TATNP": "Татнфт Зап",
@@ -79,17 +165,21 @@
         };
 
         const TICKERS = Object.keys(STOCKS);
-        // Запрашиваем LAST (цена) и LASTTOPREVPRICE (изменение в рублях)
+
+        // ========== КОНСТАНТЫ API ==========
+        // Запрашиваем LAST (цена) и LASTTOPREVPRICE (изменение в рублях от закрытия пред. дня)
         const MARKETDATA_URL = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities.json?iss.only=marketdata&marketdata.columns=SECID,LAST,LASTTOPREVPRICE';
         const CANDLES_BASE = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities';
-        const REQUEST_INTERVAL = 15000;
+        const REQUEST_INTERVAL = 15000; // 15 секунд
 
+        // ========== СОСТОЯНИЕ ==========
         let currentPeriod = 'day';
         let historicalBasis = {};
         let updateTimer = null;
         let lastRequestTime = 0;
         let isLoadingHistory = false;
 
+        // ========== ЦВЕТ ==========
         function getBgClass(change) {
             if (change === null || change === undefined || isNaN(change)) return 'bg-neutral';
             if (change > 0) {
@@ -109,6 +199,7 @@
             return 'bg-neutral';
         }
 
+        // ========== ФОРМАТИРОВАНИЕ ==========
         function formatPrice(p) {
             if (p === null || p === undefined || isNaN(p)) return '—';
             return p.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -116,11 +207,21 @@
 
         function formatChange(c) {
             if (c === null || c === undefined || isNaN(c)) return '—';
-            if (Math.abs(c) < 0.005) return '0.00 %';
+            if (Math.abs(c) < 0.005) return '0,00 %';
             const sign = c > 0 ? '+' : '';
             return sign + c.toFixed(2).replace('.', ',') + ' %';
         }
 
+        // ========== КЛИК — ОТКРЫТИЕ БКС ==========
+        function openBcsPage(ticker) {
+            // Universal/App Link на сайт БКС.
+            // Если приложение установлено и зарегистрировало домен — откроется приложение.
+            // Иначе — браузер с карточкой инструмента.
+            const url = `https://bcs.ru/markets/${ticker}`;
+            window.open(url, '_blank');
+        }
+
+        // ========== ОТРИСОВКА ==========
         function renderCard(container, ticker, name, price, change) {
             const card = document.createElement('div');
             card.className = 'card ' + getBgClass(change);
@@ -134,6 +235,7 @@
                     <div class="change">${formatChange(change)}</div>
                 </div>
             `;
+            card.addEventListener('click', () => openBcsPage(ticker));
             container.appendChild(card);
         }
 
@@ -145,10 +247,13 @@
             if (priceEl) priceEl.textContent = formatPrice(price);
             if (changeEl) changeEl.textContent = formatChange(change);
             card.className = 'card ' + getBgClass(change);
+            // Обработчик клика сохраняется, т.к. мы не пересоздаём элемент
         }
 
+        // ========== ИСТОРИЯ (для недели и месяца) ==========
         async function loadHistoricalBasis() {
             if (currentPeriod === 'day') { historicalBasis = {}; return; }
+
             const days = currentPeriod === 'week' ? 8 : 31;
             const from = new Date();
             from.setDate(from.getDate() - days);
@@ -161,6 +266,7 @@
             isLoadingHistory = true;
             const basis = {};
             const batchSize = 8;
+
             for (let i = 0; i < TICKERS.length; i += batchSize) {
                 const batch = TICKERS.slice(i, i + batchSize);
                 await Promise.all(batch.map(async (ticker) => {
@@ -174,13 +280,17 @@
                             const idxClose = candles.columns.indexOf('close');
                             basis[ticker] = candles.data[0][idxClose];
                         }
-                    } catch (e) { console.warn('Свечи не получены для', ticker); }
+                    } catch (e) {
+                        console.warn('Свечи не получены для', ticker);
+                    }
                 }));
             }
+
             historicalBasis = basis;
             isLoadingHistory = false;
         }
 
+        // ========== ЗАГРУЗКА КОТИРОВОК ==========
         async function fetchQuotes() {
             const statusEl = document.getElementById('status');
             const now = Date.now();
@@ -199,6 +309,7 @@
                 const marketdata = data.marketdata;
                 const rows = marketdata.data;
                 const columns = marketdata.columns;
+
                 const idxSec = columns.indexOf('SECID');
                 const idxLast = columns.indexOf('LAST');
                 const idxDelta = columns.indexOf('LASTTOPREVPRICE');
@@ -239,16 +350,19 @@
                 statusEl.className = 'status ok';
                 statusEl.textContent = `Обновлено ${updatedCount} бумаг в ${timeStr}`;
             } catch (err) {
-                console.error('Ошибка:', err);
+                console.error('Ошибка загрузки котировок:', err);
                 statusEl.className = 'status error';
                 statusEl.textContent = `Ошибка загрузки: ${err.message}`;
             }
         }
 
+        // ========== ИНИЦИАЛИЗАЦИЯ ==========
         function initGrid() {
             const grid = document.getElementById('grid');
             grid.innerHTML = '';
-            TICKERS.forEach(ticker => renderCard(grid, ticker, STOCKS[ticker], null, null));
+            TICKERS.forEach(ticker => {
+                renderCard(grid, ticker, STOCKS[ticker], null, null);
+            });
         }
 
         async function start() {
@@ -258,10 +372,11 @@
             updateTimer = setInterval(fetchQuotes, REQUEST_INTERVAL);
         }
 
+        // ========== СМЕНА ПЕРИОДА ==========
         document.getElementById('periodSelect').addEventListener('change', async (e) => {
             currentPeriod = e.target.value;
             await loadHistoricalBasis();
-            lastRequestTime = 0;
+            lastRequestTime = 0; // разрешаем немедленное обновление
             await fetchQuotes();
         });
 
