@@ -3,245 +3,309 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тепловая карта акций индекса Мосбиржи (01.10.2026)</title>
+    <title>Тепловая карта индекса Мосбиржи — онлайн</title>
     <style>
         body {
-            font-family: 'Segoe UI', Roboto, Arial, sans-serif;
-            background: #0f172a;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f0f0f0;
             margin: 0;
-            padding: 24px;
+            padding: 20px;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            background: #fff;
+            padding: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
             align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #333;
+            flex-wrap: wrap;
+            gap: 10px;
         }
-        h1 {
-            color: #f1f5f9;
-            font-weight: 400;
-            font-size: 1.8rem;
-            margin-bottom: 4px;
-            text-align: center;
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
         }
-        .subtitle {
-            color: #94a3b8;
-            font-size: 0.9rem;
-            margin-bottom: 24px;
-            text-align: center;
+        .header-left select {
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            background: #fff;
+        }
+        .status {
+            font-size: 12px;
+            color: #666;
+        }
+        .status.error { color: #c00; font-weight: bold; }
+        .status.ok { color: #2e7d32; }
+        .logo {
+            font-weight: bold;
+            font-size: 18px;
+            color: #c00;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .logo span {
+            background: #c00;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
         }
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 10px;
-            max-width: 1400px;
-            width: 100%;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 2px;
+            background-color: #fff;
         }
         .card {
-            background: #1e293b;
-            border-radius: 10px;
-            padding: 12px 10px 10px 10px;
+            padding: 8px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch;
+            min-height: 60px;
+            color: #fff;
+            font-size: 13px;
+            line-height: 1.2;
+            transition: background-color 0.3s ease;
+        }
+        .card-left {
             display: flex;
             flex-direction: column;
+            justify-content: space-between;
+            flex: 1;
+            padding-right: 8px;
+        }
+        .card-right {
+            display: flex;
             align-items: center;
-            justify-content: center;
-            text-align: center;
-            min-height: 100px;
-            transition: transform 0.1s ease;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
-            border: 1px solid #334155;
-        }
-        .card:hover {
-            transform: scale(1.02);
-            border-color: #64748b;
-        }
-        .ticker {
-            font-weight: 700;
-            font-size: 1.1rem;
-            letter-spacing: 0.5px;
-        }
-        .name {
-            font-size: 0.7rem;
-            margin: 2px 0 4px 0;
-            line-height: 1.2;
-            max-width: 100%;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            justify-content: flex-end;
+            font-size: 16px;
+            font-weight: bold;
             white-space: nowrap;
-            opacity: 0.85;
         }
-        .price {
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-        .change {
-            font-weight: 700;
-            font-size: 0.9rem;
-            margin-top: 2px;
-        }
+        .name { font-weight: bold; font-size: 13px; }
+        .price { font-size: 12px; opacity: 0.9; }
+        .change { font-size: 15px; font-weight: bold; }
 
-        /* --- ПРАВИЛЬНАЯ ЦВЕТОВАЯ ШКАЛА --- */
-        /* Рост (Зеленый): слабый -> светло-зеленый, сильный -> темно-зеленый */
-        .bg-pos-1 { background-color: #4ade80; border-color: #22c55e; color: #0f172a; } /* +0.1% - +1% */
-        .bg-pos-2 { background-color: #22c55e; border-color: #16a34a; color: #0f172a; } /* +1% - +2% */
-        .bg-pos-3 { background-color: #16a34a; border-color: #15803d; color: #f8fafc; } /* +2% - +3% */
-        .bg-pos-4 { background-color: #15803d; border-color: #14532d; color: #f8fafc; } /* +3% - +5% */
-        .bg-pos-5 { background-color: #14532d; border-color: #0f172a; color: #f8fafc; } /* > +5% */
+        /* Цветовая палитра */
+        .bg-pos-5 { background-color: #2e7d32; }
+        .bg-pos-4 { background-color: #388e3c; }
+        .bg-pos-3 { background-color: #43a047; }
+        .bg-pos-2 { background-color: #81c784; color: #1a1a1a; }
+        .bg-pos-1 { background-color: #c8e6c9; color: #1a1a1a; }
+        .bg-neg-1 { background-color: #ef9a9a; color: #1a1a1a; }
+        .bg-neg-2 { background-color: #e57373; color: #1a1a1a; }
+        .bg-neg-3 { background-color: #d32f2f; }
+        .bg-neg-4 { background-color: #c62828; }
+        .bg-neg-5 { background-color: #8e0000; }
+        .bg-neutral { background-color: #9e9e9e; }
 
-        /* Падение (Красный): слабое -> светло-красный, сильное -> темно-красный */
-        .bg-neg-1 { background-color: #f87171; border-color: #ef4444; color: #0f172a; } /* -0.1% - -1% */
-        .bg-neg-2 { background-color: #ef4444; border-color: #dc2626; color: #0f172a; } /* -1% - -2% */
-        .bg-neg-3 { background-color: #dc2626; border-color: #b91c1c; color: #f8fafc; } /* -2% - -3% */
-        .bg-neg-4 { background-color: #b91c1c; border-color: #991b1b; color: #f8fafc; } /* -3% - -5% */
-        .bg-neg-5 { background-color: #991b1b; border-color: #7f1d1d; color: #f8fafc; } /* < -5% */
-
-        /* Нейтральный (нет данных или 0%) */
-        .bg-neutral { background-color: #334155; border-color: #475569; color: #f8fafc; }
-
-        .footer {
-            margin-top: 30px;
-            color: #64748b;
-            font-size: 0.75rem;
-            text-align: center;
-            max-width: 800px;
-            line-height: 1.4;
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: repeat(2, 1fr); }
+            .card { min-height: 50px; padding: 6px 8px; }
+            .name { font-size: 11px; }
+            .price { font-size: 10px; }
+            .change { font-size: 13px; }
         }
     </style>
 </head>
 <body>
-    <h1>Тепловая карта акций индекса Мосбиржи</h1>
-    <div class="subtitle">1 октября 2026 • зелёный — рост, красный — падение • чем темнее, тем сильнее движение</div>
-    <div class="grid" id="grid"></div>
-    <div class="footer">
-        Данные: Smart-Lab, Finam, Investing.com (01.10.2026). Список бумаг: Investmint (состав на 16.09.2026).<br>
-        Схема носит информационный характер и не является инвестиционной рекомендацией.
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <span>Доходность:</span>
+                <select id="periodSelect">
+                    <option value="day">за день</option>
+                    <option value="week">за неделю</option>
+                    <option value="month">за месяц</option>
+                </select>
+                <span id="status" class="status">Загрузка данных...</span>
+            </div>
+            <div class="logo">
+                <span>ДО</span>ДОХОД
+            </div>
+        </div>
+        <div class="grid" id="grid"></div>
     </div>
 
     <script>
-        // Включить симуляцию данных для бумаг, по которым нет реальных котировок.
-        // Это нужно, чтобы увидеть, как работает цветовая шкала на всех плитках.
-        // Если вы хотите отключить симуляцию, измените значение на false.
-        const SIMULATE_MISSING = true;
+        // Список акций индекса Мосбиржи: тикер -> название
+        const STOCKS = {
+            "GAZP": "ГАЗПРОМ ао", "LKOH": "ЛУКОЙЛ", "ROSN": "Роснефть", "NVTK": "Новатэк ао",
+            "SNGS": "Сургнфгз", "SNGSP": "Сургнфгз-п", "TATN": "Татнфт Зао", "TATNP": "Татнфт Зап",
+            "SBER": "Сбербанк", "SBERP": "Сбербанк-п", "VTBR": "ВТБ ао", "T": "Т-Техно ао",
+            "MOEX": "МосБиржа", "CBOM": "МКБ ао", "SVCB": "Совкомбанк", "BSPB": "БСП ао",
+            "YDEX": "ЯНДЕКС", "OZON": "Озон", "VKCO": 'МКПАО "ВК"', "POSI": "iПозитив",
+            "HEAD": "Хэдхантер", "GMKN": "ГМКНорник", "PLZL": "Полюс", "CHMF": "СевСт-ао",
+            "NLMK": "НЛМК ао", "MAGN": "ММК", "RUAL": "РУСАЛ ао", "ALRS": "АЛРОСА ао",
+            "UGLD": "ЮГК", "ENPG": "ЭНГРУП ао", "X5": "КЦ ИКС 5", "LENT": "Лента",
+            "RAGR": "Русагро", "AFLT": "Аэрофлот", "FLOT": "Совкомфлот", "TRNFP": "Транснф ап",
+            "IRAO": "ИнтерРАОао", "MSNG": "Мосэнерго", "DOMRF": "ДОМ.РФ", "PHOR": "ФосАгро ао",
+            "MDMG": "MDMG-ао", "CNRU": "Циан", "AFKS": "Система ао", "RENI": "Ренессанс",
+            "SMLT": "Самолет", "RASP": "Распадская"
+        };
 
-        // Данные: [тикер, название, цена, изменение %]
-        const stocks = [
-            // Нефть и газ
-            ["GAZP", "Газпром", 100.94, +0.28],
-            ["LKOH", "Лукойл", 5388, +2.88],
-            ["ROSN", "Роснефть", 363.95, +1.04],
-            ["NVTK", "Новатэк", 1068.4, +0.11],
-            ["SNGS", "Сургутнефтегаз", null, null],
-            ["SNGSP", "Сургутнефтегаз ап", null, null],
-            ["TATN", "Татнефть", null, null],
-            ["TATNP", "Татнефть ап", null, null],
-            // Финансы
-            ["SBER", "Сбербанк", null, null],
-            ["SBERP", "Сбербанк ап", null, null],
-            ["VTBR", "ВТБ", null, null],
-            ["T", "Т-Технологии", 251.58, 0.00],
-            ["MOEX", "МосБиржа", 151.64, +2.77],
-            ["CBOM", "МКБ", null, null],
-            ["SVCB", "Совкомбанк", null, null],
-            ["BSPB", "Банк СПб", null, null],
-            // Технологии
-            ["YDEX", "Яндекс", null, null],
-            ["OZON", "Ozon", 2880.5, +2.47],
-            ["VKCO", "VK", null, null],
-            ["POSI", "Группа Позитив", null, null],
-            ["HEAD", "Хэдхантер", null, null],
-            // Металлы и добыча
-            ["GMKN", "Норникель", null, null],
-            ["PLZL", "Полюс", 995.6, +1.06],
-            ["CHMF", "Северсталь", null, null],
-            ["NLMK", "НЛМК", null, null],
-            ["MAGN", "ММК", null, null],
-            ["RUAL", "Русал", null, null],
-            ["ALRS", "Алроса", null, null],
-            ["UGLD", "Южуралзолото", null, null],
-            ["ENPG", "ЭН+ ГРУП", null, null],
-            // Потребительский сектор
-            ["X5", "ИКС 5", null, null],
-            ["LENT", "Лента", null, null],
-            ["RAGR", "Русагро", null, null],
-            // Транспорт
-            ["AFLT", "Аэрофлот", null, null],
-            ["FLOT", "Совкомфлот", 79.71, -0.90],
-            ["TRNFP", "Транснефть ап", null, null],
-            // Электроэнергетика
-            ["IRAO", "ИнтерРАО", null, null],
-            ["MSNG", "Мосэнерго", null, null],
-            // Недвижимость
-            ["DOMRF", "ДОМ.РФ", null, null],
-            // Химикаты
-            ["PHOR", "Фосагро", null, null],
-            // Здравоохранение
-            ["MDMG", "Медикал Груп", null, null],
-            // Прочие
-            ["CNRU", "Циан", null, null],
-            ["AFKS", "АФК Система", null, null],
-            ["RENI", "Ренессанс страхование", null, null],
-            ["SMLT", "Самолет", 229.2, -1.46],
-            ["RASP", "Распадская", 121.85, -1.14]
-        ];
+        const TICKERS = Object.keys(STOCKS);
+        const API_BASE = 'https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities.json';
 
-        // --- ЛОГИКА ЦВЕТА ---
+        let updateTimer = null;
+        let lastRequestTime = 0;
+        const REQUEST_INTERVAL = 15000; // 15 секунд
+
+        // Определение цветового класса по проценту изменения
         function getBgClass(change) {
             if (change === null || change === undefined) return 'bg-neutral';
-            
-            if (change > 0) {
-                if (change >= 5) return 'bg-pos-5';
-                if (change >= 3) return 'bg-pos-4';
-                if (change >= 2) return 'bg-pos-3';
-                if (change >= 1) return 'bg-pos-2';
-                return 'bg-pos-1';
-            } else if (change < 0) {
-                const abs = Math.abs(change);
-                if (abs >= 5) return 'bg-neg-5';
-                if (abs >= 3) return 'bg-neg-4';
-                if (abs >= 2) return 'bg-neg-3';
-                if (abs >= 1) return 'bg-neg-2';
-                return 'bg-neg-1';
-            }
-            return 'bg-neutral'; // Для 0.00%
+            if (change >= 2.0) return 'bg-pos-5';
+            if (change >= 1.0) return 'bg-pos-4';
+            if (change >= 0.5) return 'bg-pos-3';
+            if (change >= 0.1) return 'bg-pos-2';
+            if (change === 0.0) return 'bg-pos-1';
+            if (change >= -0.1) return 'bg-neg-1';
+            if (change >= -0.3) return 'bg-neg-2';
+            if (change >= -0.6) return 'bg-neg-3';
+            if (change >= -1.5) return 'bg-neg-4';
+            return 'bg-neg-5';
         }
 
+        // Форматирование цены
         function formatPrice(p) {
-            if (p === null || p === undefined) return '—';
-            return p.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + ' ₽';
+            if (p === null || p === undefined || isNaN(p)) return '—';
+            return p.toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
         }
 
+        // Форматирование процента
         function formatChange(c) {
-            if (c === null || c === undefined) return '—';
+            if (c === null || c === undefined || isNaN(c)) return '—';
             const sign = c > 0 ? '+' : '';
-            return sign + c.toFixed(2) + '%';
+            return sign + c.toFixed(2) + ' %';
         }
 
-        // --- РЕНДЕРИНГ ---
-        const grid = document.getElementById('grid');
-        
-        stocks.forEach(([ticker, name, price, change]) => {
-            // Симуляция данных для пустых значений, чтобы увидеть работу карты
-            let finalPrice = price;
-            let finalChange = change;
-            
-            if (SIMULATE_MISSING && (price === null || change === null)) {
-                // Генерируем случайную цену от 100 до 5000
-                finalPrice = Math.random() * 4900 + 100;
-                // Генерируем случайное изменение от -6% до +6%
-                finalChange = (Math.random() * 12) - 6;
-            }
-
+        // Отрисовка одной карточки
+        function renderCard(container, ticker, name, price, change) {
             const card = document.createElement('div');
-            card.className = 'card ' + getBgClass(finalChange);
-            
-            // Определяем класс для цвета текста изменения (чтобы выделить плюс/минус)
-            const changeColorClass = finalChange > 0 ? 'positive' : (finalChange < 0 ? 'negative' : '');
-            
+            card.className = 'card ' + getBgClass(change);
+            card.dataset.ticker = ticker;
+
             card.innerHTML = `
-                <div class="ticker">${ticker}</div>
-                <div class="name">${name}</div>
-                <div class="price">${formatPrice(finalPrice)}</div>
-                <div class="change ${changeColorClass}">${formatChange(finalChange)}</div>
+                <div class="card-left">
+                    <div class="name">${name}</div>
+                    <div class="price">${formatPrice(price)}</div>
+                </div>
+                <div class="card-right">
+                    <div class="change">${formatChange(change)}</div>
+                </div>
             `;
-            grid.appendChild(card);
+            container.appendChild(card);
+        }
+
+        // Обновление существующих карточек
+        function updateCard(ticker, price, change) {
+            const card = document.querySelector(`.card[data-ticker="${ticker}"]`);
+            if (!card) return;
+
+            const priceEl = card.querySelector('.price');
+            const changeEl = card.querySelector('.change');
+
+            if (priceEl) priceEl.textContent = formatPrice(price);
+            if (changeEl) changeEl.textContent = formatChange(change);
+
+            // Обновляем цвет фона
+            card.className = 'card ' + getBgClass(change);
+        }
+
+        // Основная функция загрузки данных
+        async function fetchQuotes() {
+            const statusEl = document.getElementById('status');
+            const now = Date.now();
+
+            // Защита от слишком частых запросов
+            if (now - lastRequestTime < 2000) return;
+            lastRequestTime = now;
+
+            try {
+                statusEl.className = 'status';
+                statusEl.textContent = 'Обновление...';
+
+                const url = `${API_BASE}?iss.only=marketdata&marketdata.columns=SECID,LAST,LASTTOPREVPRICE`;
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                const marketdata = data.marketdata;
+                const rows = marketdata.data;
+                const columns = marketdata.columns;
+
+                const idxSec = columns.indexOf('SECID');
+                const idxLast = columns.indexOf('LAST');
+                const idxPrev = columns.indexOf('LASTTOPREVPRICE');
+
+                const grid = document.getElementById('grid');
+                let updatedCount = 0;
+
+                rows.forEach(row => {
+                    const secid = row[idxSec];
+                    const last = row[idxLast];
+                    const prev = row[idxPrev];
+
+                    if (!TICKERS.includes(secid)) return;
+                    if (last === null || prev === null || prev === 0) return;
+
+                    const change = ((last - prev) / prev) * 100;
+                    updateCard(secid, last, change);
+                    updatedCount++;
+                });
+
+                const timeStr = new Date().toLocaleTimeString('ru-RU');
+                statusEl.className = 'status ok';
+                statusEl.textContent = `Обновлено ${updatedCount} бумаг в ${timeStr}`;
+            } catch (err) {
+                console.error('Ошибка загрузки котировок:', err);
+                statusEl.className = 'status error';
+                statusEl.textContent = `Ошибка загрузки: ${err.message}. Повтор через 15 сек.`;
+            }
+        }
+
+        // Первоначальная отрисовка скелета
+        function initGrid() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            TICKERS.forEach(ticker => {
+                renderCard(grid, ticker, STOCKS[ticker], null, null);
+            });
+        }
+
+        // Запуск
+        function start() {
+            initGrid();
+            fetchQuotes();
+
+            if (updateTimer) clearInterval(updateTimer);
+            updateTimer = setInterval(fetchQuotes, REQUEST_INTERVAL);
+        }
+
+        // Реакция на смену периода (заглушка — API ISS отдаёт только дневные данные)
+        document.getElementById('periodSelect').addEventListener('change', (e) => {
+            // Здесь можно добавить логику для других периодов, если API позволит
+            console.log('Выбран период:', e.target.value);
         });
+
+        start();
     </script>
 </body>
 </html>
