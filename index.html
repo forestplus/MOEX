@@ -227,7 +227,7 @@
  *  • Отладка:  ?debug=OZON  или  ?debug=OZON&bcs=34.22
  */
 
-const VERSION = 'v18';
+const VERSION = 'v18.1';
 const BONDS_PAGE = 'bonds.html';
 
 const MOEX_ISS = 'https://iss.moex.com/iss';
@@ -1076,7 +1076,10 @@ function renderModalLive() {
     ['week', 'month'].forEach(p => {
         if (!basisFresh(p)) return;
         const r = computeFor(item, p);
-        rows.push(rowEl(`Изменение ${PERIOD_LABEL[p]}`, formatChange(r.change), signCls(r.change)));
+        const baseInfo = r.base !== null
+            ? ` (от ${formatPrice(r.base, dec)} ₽, ${p === 'month' ? 'средневзв.' : 'закрытие'} ${humanDate(bases[p].date)})`
+            : '';
+        rows.push(rowEl(`Изменение ${PERIOD_LABEL[p]}${baseInfo}`, formatChange(r.change), signCls(r.change)));
     });
 
     const noTrades = item.numTrades === 0 || (item.open === null && item.high === null);
