@@ -190,7 +190,7 @@ const FETCH_RETRIES = 2;
 const START_RETRY_DELAY = 10000;
 const HISTORY_RETRY_DELAY = 60000;
 const MAX_BACK_DAYS = 10;
-const EXTREME_THRESHOLD = 40; // % за месяц для нижнего блока
+const EXTREME_THRESHOLD = 35; // % за месяц для нижнего блока
 const CACHE_KEY = 'moexHeatmap.snapshot.v1';
 
 const DEBUG_PARAMS = new URLSearchParams(location.search);
@@ -849,7 +849,7 @@ function debugResult(snapshot) {
         const implied = Number.isFinite(DEBUG_BCS) && price
             ? price / (1 + DEBUG_BCS / 100)
             : null;
-        if (implied) lines.push('', `БАЗА БКС для ${DEBUG_BCS}% ≈ ${implied.toFixed(2)}`);
+        if (implied) lines.push('', `БАЗА БКС для ${DEBUG_BCS}% ≈ ${implied.toFixed(implied < 10 ? 5 : 2)}`);
 
         if (debugRows && debugRows.length) {
             lines.push('', `ИСТОРИЯ ${DEBUG_TICKER} (цель ${humanDate(debugRows.target)}):`);
