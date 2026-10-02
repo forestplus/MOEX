@@ -161,7 +161,7 @@
 'use strict';
 
 /*
- * MOEX Heatmap v16
+ * MOEX Heatmap v17
  *
  * Принцип: цена, ₽-дельта и % всегда считаются от ОДНОЙ И ТОЙ ЖЕ базовой цены.
  *
@@ -176,7 +176,7 @@
  *                                    (OPEN/CLOSE/LEGAL/WAP) даёт базу БКС.
  */
 
-const VERSION = 'v16';
+const VERSION = 'v17';
 
 const MOEX_ISS = 'https://iss.moex.com/iss';
 const BOARD = 'TQBR';
@@ -480,15 +480,20 @@ function resetCard(ticker) {
     currentChanges[ticker] = null;
 }
 
+/* Порядок: рост → падение → без изменений (0,00 %) → нет данных. Нули уходят в самый конец. */
 function sortCards() {
-    const val = c => (c == null || isNaN(c) ? -Infinity : c);
+    const isNum = c => c != null && !isNaN(c);
+    const isZero = c => Math.round(c * 100) / 100 === 0; // так же, как показывается на плитке
+    const group = c => (!isNum(c) ? 2 : isZero(c) ? 1 : 0);
+
     const entries = allStocks.map(s => ({ ticker: s.ticker, change: currentChanges[s.ticker] }));
 
     entries.sort((a, b) => {
-        const av = val(a.change);
-        const bv = val(b.change);
-        if (av === bv) return 0; // два «−∞» не должны давать NaN
-        return bv > av ? 1 : -1;
+        const ga = group(a.change);
+        const gb = group(b.change);
+        if (ga !== gb) return ga - gb;
+        if (ga === 0 && a.change !== b.change) return b.change - a.change;
+        return a.ticker.localeCompare(b.ticker); // внутри «нулей» и «нет данных» — по тикеру
     });
 
     entries.forEach((entry, index) => {
