@@ -55,6 +55,7 @@
             font-size: 11px;
             line-height: 1.35;
         }
+        .block-note { font-size: 12px; color: #666; margin: 0 0 6px; }
         .block-title { font-size: 14px; font-weight: bold; color: #333; margin: 14px 0 6px; }
         .grid {
             display: grid;
@@ -74,12 +75,16 @@
             transition: background-color .3s ease, transform .1s ease, filter .1s ease;
             cursor: pointer;
         }
-        .card:hover, .card:focus-visible {
-            transform: scale(1.02);
-            filter: brightness(1.1);
-            z-index: 1;
-            outline: none;
+        .card { -webkit-tap-highlight-color: transparent; }
+        /* hover только там, где он есть: на телефоне после тапа плитка «залипала» увеличенной и светлой */
+        @media (hover: hover) {
+            .card:hover {
+                transform: scale(1.02);
+                filter: brightness(1.1);
+                z-index: 1;
+            }
         }
+        .card:focus-visible { outline: 2px solid #1565c0; outline-offset: -2px; }
         .card-left {
             display: flex;
             flex-direction: column;
@@ -146,17 +151,17 @@
         <span id="status" class="status">Загрузка данных...</span>
     </div>
     <div id="debugInfo" class="debug" hidden></div>
-    <div class="block-title">От роста к падению</div>
     <div class="grid" id="grid"></div>
-    <div class="block-title">От падения к росту</div>
-    <div class="grid" id="gridReverse"></div>
+    <div class="block-title" id="extremeTitle"></div>
+    <div class="block-note" id="extremeNote"></div>
+    <div class="grid" id="gridExtreme"></div>
 </div>
 
 <script>
 'use strict';
 
 /*
- * MOEX Heatmap v15
+ * MOEX Heatmap v16
  *
  * Принцип: цена, ₽-дельта и % всегда считаются от ОДНОЙ И ТОЙ ЖЕ базовой цены.
  *
@@ -171,7 +176,7 @@
  *                                    (OPEN/CLOSE/LEGAL/WAP) даёт базу БКС.
  */
 
-const VERSION = 'v15';
+const VERSION = 'v16';
 
 const MOEX_ISS = 'https://iss.moex.com/iss';
 const BOARD = 'TQBR';
@@ -185,6 +190,7 @@ const FETCH_RETRIES = 2;
 const START_RETRY_DELAY = 10000;
 const HISTORY_RETRY_DELAY = 60000;
 const MAX_BACK_DAYS = 10;
+const EXTREME_THRESHOLD = 40; // % за месяц для нижнего блока
 const CACHE_KEY = 'moexHeatmap.snapshot.v1';
 
 const DEBUG_PARAMS = new URLSearchParams(location.search);
@@ -213,6 +219,11 @@ let basisFailedAt = 0;
 let historyError = false;
 let isStarting = false;
 let isInitialized = false;
+
+let monthBasis = null;
+let monthLoading = false;
+let monthFailedAt = 0;
+let lastSnapshot = null;
 
 let debugRows = null;
 let debugRowsKey = null;
@@ -363,11 +374,11 @@ function formatRubDelta(delta, decimals, price) {
 
 /* ---------- color ---------- */
 
-function getBgClass(change) {
+function getBgClass(change, period = currentPeriod) {
     if (change === null || change === undefined || isNaN(change)) return 'bg-neutral';
     if (Math.round(change * 100) / 100 === 0) return 'bg-neutral';
 
-    const k = COLOR_SCALE[currentPeriod] || 1;
+    const k = COLOR_SCALE[period] || 1;
     const abs = Math.abs(change) / k;
 
     let level;
@@ -392,7 +403,7 @@ function openBcsPage(ticker) {
 
 /* ---------- cards ---------- */
 
-function renderCard(container, stock) {
+function createCard(stock) {
     const card = document.createElement('div');
     card.className = 'card bg-neutral';
     card.dataset.ticker = stock.ticker;
@@ -434,63 +445,124 @@ function renderCard(container, stock) {
             openBcsPage(stock.ticker);
         }
     });
-    container.appendChild(card);
 
-    (cardEls[stock.ticker] ||= []).push({ card, price: priceEl, change: changeEl, delta: deltaEl });
+    return { card, price: priceEl, change: changeEl, delta: deltaEl };
+}
+
+function fillCard(els, stock, result, period) {
+    els.price.textContent = formatPrice(result.price, stock.decimals);
+    els.change.textContent = formatChange(result.change);
+    els.delta.textContent = formatRubDelta(result.delta, stock.decimals, result.price);
+    els.card.className = 'card ' + getBgClass(result.change, period);
+}
+
+function renderCard(container, stock) {
+    const els = createCard(stock);
+    container.appendChild(els.card);
+    cardEls[stock.ticker] = els;
 }
 
 function updateCard(stock, result) {
-    const list = cardEls[stock.ticker];
-    if (!list) return;
+    const els = cardEls[stock.ticker];
+    if (!els) return;
 
-    const price = formatPrice(result.price, stock.decimals);
-    const change = formatChange(result.change);
-    const delta = formatRubDelta(result.delta, stock.decimals, result.price);
-    const cls = 'card ' + getBgClass(result.change);
-
-    list.forEach(els => {
-        els.price.textContent = price;
-        els.change.textContent = change;
-        els.delta.textContent = delta;
-        els.card.className = cls;
-    });
-
+    fillCard(els, stock, result, currentPeriod);
     currentChanges[stock.ticker] = result.change;
 }
 
 function resetCard(ticker) {
-    const list = cardEls[ticker];
-    if (!list) return;
+    const els = cardEls[ticker];
+    if (!els) return;
 
-    list.forEach(els => {
-        els.change.textContent = '—';
-        els.delta.textContent = '—';
-        els.card.className = 'card bg-neutral';
-    });
+    els.change.textContent = '—';
+    els.delta.textContent = '—';
+    els.card.className = 'card bg-neutral';
     currentChanges[ticker] = null;
 }
 
-/* Два блока: [0] — от роста к падению, [1] — от падения к росту. Карточки без данных всегда в конце. */
 function sortCards() {
-    const valid = c => c != null && !isNaN(c);
+    const val = c => (c == null || isNaN(c) ? -Infinity : c);
     const entries = allStocks.map(s => ({ ticker: s.ticker, change: currentChanges[s.ticker] }));
 
-    const order = dir => (a, b) => {
-        const av = valid(a.change);
-        const bv = valid(b.change);
-        if (!av && !bv) return 0;
-        if (!av) return 1;
-        if (!bv) return -1;
-        return dir * (b.change - a.change);
-    };
-
-    const setOrder = (list, gridIndex) => list.forEach((entry, index) => {
-        const els = cardEls[entry.ticker];
-        if (els && els[gridIndex]) els[gridIndex].card.style.order = index;
+    entries.sort((a, b) => {
+        const av = val(a.change);
+        const bv = val(b.change);
+        if (av === bv) return 0; // два «−∞» не должны давать NaN
+        return bv > av ? 1 : -1;
     });
 
-    setOrder([...entries].sort(order(1)), 0);   // по убыванию
-    setOrder([...entries].sort(order(-1)), 1);  // по возрастанию
+    entries.forEach((entry, index) => {
+        const els = cardEls[entry.ticker];
+        if (els) els.card.style.order = index;
+    });
+}
+
+/* ---------- нижний блок: бумаги с изменением за месяц > EXTREME_THRESHOLD % ---------- */
+
+function renderExtremes(snapshot) {
+    const grid = document.getElementById('gridExtreme');
+    const note = document.getElementById('extremeNote');
+    const title = document.getElementById('extremeTitle');
+    title.textContent = `Изменение за месяц более ${EXTREME_THRESHOLD} % (от красного к зелёному)`;
+
+    if (!monthBasisFresh()) {
+        grid.replaceChildren();
+        note.textContent = monthLoading || !monthFailedAt
+            ? 'Загрузка данных за месяц...'
+            : 'Не удалось загрузить данные за месяц. Нажмите «Обновить».';
+        return;
+    }
+
+    const rows = [];
+    allStocks.forEach(stock => {
+        const item = snapshot.get(stock.ticker);
+        if (!item) return;
+        const result = makeResult(currentPrice(item), monthBasis.map[stock.ticker] ?? null);
+        if (result.change !== null && Math.abs(result.change) > EXTREME_THRESHOLD) {
+            rows.push({ stock, result });
+        }
+    });
+
+    rows.sort((a, b) => a.result.change - b.result.change); // от красного к зелёному
+
+    note.textContent = rows.length
+        ? `Найдено: ${rows.length}. База месяца: ${humanDate(monthBasis.date)}`
+        : 'Сейчас нет бумаг с таким изменением.';
+
+    grid.replaceChildren(...rows.map(({ stock, result }) => {
+        const els = createCard(stock);
+        fillCard(els, stock, result, 'month');
+        return els.card;
+    }));
+}
+
+function monthKey() {
+    return `month:${moscowDateStr(new Date())}`;
+}
+
+function monthBasisFresh() {
+    return !!monthBasis && monthBasis.key === monthKey();
+}
+
+async function ensureMonthBasis() {
+    if (monthBasisFresh() || monthLoading) return;
+    if (Date.now() - monthFailedAt < HISTORY_RETRY_DELAY && monthFailedAt) return;
+
+    monthLoading = true;
+    try {
+        const loaded = await loadBasis('month', null); // null — не отменяется сменой периода
+        if (loaded) {
+            monthBasis = loaded;
+            monthFailedAt = 0;
+        } else {
+            monthFailedAt = Date.now();
+        }
+    } catch (e) {
+        console.error(e);
+        monthFailedAt = Date.now();
+    } finally {
+        monthLoading = false;
+    }
 }
 
 /* ---------- snapshot ---------- */
@@ -683,7 +755,7 @@ async function loadBasis(period, token) {
     for (let i = 0; i <= MAX_BACK_DAYS; i++) {
         const dateStr = shiftDateStr(startDate, { days: -i });
         const r = await fetchHistoryDay(dateStr, field);
-        if (token !== periodToken) return null;
+        if (token !== null && token !== periodToken) return null;
         if (r && Object.keys(r.map).length) {
             const result = { period, key, date: dateStr, kind: field, map: r.map, kinds: r.kinds };
             basisCache[key] = result;
@@ -818,6 +890,14 @@ function applySnapshot(snapshot) {
 
     sortCards();
     debugResult(snapshot);
+
+    lastSnapshot = snapshot;
+    renderExtremes(snapshot);
+    if (!monthBasisFresh()) {
+        ensureMonthBasis().then(() => {
+            if (lastSnapshot) renderExtremes(lastSnapshot);
+        });
+    }
     return updated;
 }
 
@@ -956,11 +1036,9 @@ async function start() {
 
     allStocks = stocks;
     Object.keys(cardEls).forEach(k => delete cardEls[k]);
-    ['grid', 'gridReverse'].forEach(id => {
-        const container = document.getElementById(id);
-        container.innerHTML = '';
-        allStocks.forEach(stock => renderCard(container, stock));
-    });
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    allStocks.forEach(stock => renderCard(grid, stock));
 
     isInitialized = true;
     isStarting = false;
@@ -998,6 +1076,7 @@ document.getElementById('refreshBtn').addEventListener('click', () => {
         return;
     }
     basisFailedAt = 0;
+    monthFailedAt = 0;
     fetchQuotes(true);
 });
 
