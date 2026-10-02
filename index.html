@@ -176,7 +176,7 @@ const HISTORY_PATH = `${MOEX_ISS}/history/engines/stock/markets/shares/boards/${
 
 const REQUEST_INTERVAL = 15000;
 const MIN_REQUEST_GAP = 2000;
-const FETCH_TIMEOUT = 15000;
+const FETCH_TIMEOUT = 25000;
 const FETCH_RETRIES = 2;
 const START_RETRY_DELAY = 10000;
 const HISTORY_RETRY_DELAY = 60000;
@@ -194,7 +194,7 @@ const COLOR_SCALE = { day: 1, week: 2.5, month: 5 };
 const EMPTY_BASIS = { period: null, key: null, date: null, kind: null, map: {}, kinds: {} };
 
 let allStocks = [];
-let currentPeriod = 'day';
+let currentPeriod = document.getElementById('periodSelect').value || 'day'; // Safari восстанавливает select после перезагрузки
 let basis = EMPTY_BASIS;
 const basisCache = {};
 const currentChanges = {};
