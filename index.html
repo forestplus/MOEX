@@ -152,7 +152,7 @@
 'use strict';
 
 /*
- * MOEX Heatmap v12
+ * MOEX Heatmap v13
  *
  * Принцип: цена, ₽-дельта и % всегда считаются от ОДНОЙ И ТОЙ ЖЕ базовой цены.
  *
@@ -167,7 +167,7 @@
  *                                    (OPEN/CLOSE/LEGAL/WAP) даёт базу БКС.
  */
 
-const VERSION = 'v12';
+const VERSION = 'v13';
 
 const MOEX_ISS = 'https://iss.moex.com/iss';
 const BOARD = 'TQBR';
@@ -480,7 +480,7 @@ async function fetchSnapshot() {
     const url =
         `${BOARD_PATH}/securities.json?iss.meta=off&iss.only=securities,marketdata` +
         `&securities.columns=SECID,SHORTNAME,SECTYPE,DECIMALS,PREVPRICE,PREVLEGALCLOSEPRICE` +
-        `&marketdata.columns=SECID,LAST,MARKETPRICE,TIME`;
+        `&marketdata.columns=SECID,LAST,MARKETPRICE,NUMTRADES`;
 
     const data = await fetchJson(url);
     const sec = data.securities;
@@ -511,7 +511,8 @@ async function fetchSnapshot() {
             prevPrice: num(row[si.PREVPRICE]),
             prevLegal: num(row[si.PREVLEGALCLOSEPRICE]),
             last: null,
-            marketPrice: null
+            marketPrice: null,
+            numTrades: null
         });
     });
 
@@ -520,12 +521,21 @@ async function fetchSnapshot() {
         if (!item) return;
         item.last = num(row[mi.LAST]);
         item.marketPrice = num(row[mi.MARKETPRICE]);
+        item.numTrades = num(row[mi.NUMTRADES]);
     });
 
     return snapshot;
 }
 
+/*
+ * Если сегодня сделок ещё не было (NUMTRADES = 0), LAST/MARKETPRICE в ISS — устаревшие
+ * (MARKETPRICE — расчётная цена прошлых дней), поэтому берём PREVPRICE: изменение 0 %, как у БКС.
+ */
 function currentPrice(item) {
+    const noTradesToday = item.numTrades === 0;
+    if (noTradesToday) {
+        return item.prevPrice ?? item.prevLegal ?? item.last ?? item.marketPrice ?? null;
+    }
     return item.last ?? item.marketPrice ?? item.prevPrice ?? item.prevLegal ?? null;
 }
 
