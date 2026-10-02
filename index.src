@@ -1,0 +1,2253 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тепловая карта акций Мосбиржи — онлайн</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: #fff;
+            padding: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.1);
+        }
+        .nav { display: flex; gap: 8px; margin-bottom: 10px; font-size: 14px; }
+        .nav a {
+            padding: 4px 14px; border: 1px solid #ccc; border-radius: 16px;
+            color: #333; text-decoration: none; background: #fff;
+        }
+        .nav a.active { background: #2e7d32; color: #fff; border-color: #2e7d32; }
+        .nav a.logout { margin-left: auto; color: #777; }
+        .header button.toggle.active { background: #1565c0; border-color: #1565c0; color: #fff; }
+        .tabs { display: flex; gap: 6px; margin-top: 12px; }
+        .tab {
+            flex: 1; padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px;
+            background: #fff; font-size: 14px; cursor: pointer; color: #333;
+        }
+        .tab.active { background: #1565c0; border-color: #1565c0; color: #fff; }
+        .row.head span:first-child, .row.head span:last-child { font-weight: bold; color: #333; }
+        .sub-h { font-size: 12px; font-weight: bold; color: #555; margin: 10px 0 2px; }
+        .upcoming { border: 2px solid #43a047; background: #f1f8e9; border-radius: 8px; padding: 8px 10px; }
+        .estimate { border: 2px dashed #f9a825; background: #fffde7; border-radius: 8px; padding: 8px 10px; }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #333;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .header select, .header button, .header input {
+            padding: 4px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            background: #fff;
+        }
+        .header select, .header button { cursor: pointer; }
+        .header input { width: 150px; }
+        .header button:hover { background: #f5f5f5; }
+        .status { font-size: 12px; color: #666; }
+        .status.error { color: #c00; font-weight: bold; }
+        .status.ok { color: #2e7d32; }
+        .status.warn { color: #b26a00; }
+        .status.loading { color: #f57c00; }
+
+        .summary {
+            margin: 0 0 10px; padding: 8px 10px; background: #fafafa;
+            border: 1px solid #eee; border-radius: 4px; font-size: 12px; color: #333; line-height: 1.5;
+        }
+        .summary .pos, .sheet .pos { color: #2e7d32; font-weight: bold; }
+        .summary .neg, .sheet .neg { color: #c62828; font-weight: bold; }
+        .breadth { display: flex; height: 6px; margin: 4px 0; border-radius: 3px; overflow: hidden; background: #ddd; }
+        .breadth span { display: block; height: 100%; }
+
+        .debug {
+            white-space: pre-wrap;
+            margin-bottom: 8px;
+            padding: 6px 8px;
+            background: #f7f7f7;
+            border: 1px solid #e5e5e5;
+            border-radius: 4px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 2px;
+            background: #fff;
+        }
+        .card {
+            padding: 6px 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch;
+            min-height: 58px;
+            color: #fff;
+            font-size: 12px;
+            line-height: 1.2;
+            transition: background-color .3s ease, transform .1s ease, filter .1s ease;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        @media (hover: hover) {
+            .card:hover { transform: scale(1.02); filter: brightness(1.1); z-index: 1; }
+        }
+        .card:focus-visible { outline: 2px solid #1565c0; outline-offset: -2px; }
+        .card-left {
+            display: flex; flex-direction: column; justify-content: space-between;
+            flex: 1; min-width: 0; padding-right: 6px; overflow: hidden;
+        }
+        .card-right {
+            display: flex; flex-direction: column; justify-content: space-between;
+            align-items: flex-end; text-align: right; white-space: nowrap;
+        }
+        .name { font-weight: bold; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .price { font-size: 11px; opacity: .95; font-variant-numeric: tabular-nums; }
+        .change { font-size: 13px; font-weight: bold; font-variant-numeric: tabular-nums; }
+        .delta { font-size: 10px; opacity: .9; font-variant-numeric: tabular-nums; }
+
+        .block-title { font-size: 14px; font-weight: bold; color: #333; margin: 18px 0 4px; }
+        .block-note { font-size: 12px; color: #666; margin: 0 0 6px; }
+
+        .bg-pos-5 { background-color: #2e7d32; }
+        .bg-pos-4 { background-color: #388e3c; }
+        .bg-pos-3 { background-color: #43a047; }
+        .bg-pos-2 { background-color: #81c784; color: #1a1a1a; }
+        .bg-pos-1 { background-color: #c8e6c9; color: #1a1a1a; }
+        .bg-neg-1 { background-color: #ef9a9a; color: #1a1a1a; }
+        .bg-neg-2 { background-color: #e57373; color: #1a1a1a; }
+        .bg-neg-3 { background-color: #d32f2f; }
+        .bg-neg-4 { background-color: #c62828; }
+        .bg-neg-5 { background-color: #8e0000; }
+        .bg-neutral { background-color: #9e9e9e; color: #fff; }
+
+        /* карточка бумаги */
+        .modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,.55);
+            display: flex; align-items: flex-end; justify-content: center; z-index: 100;
+        }
+        .modal[hidden] { display: none; }
+        .sheet {
+            background: #fff; width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto;
+            border-radius: 14px 14px 0 0; padding: 14px 16px 28px; -webkit-overflow-scrolling: touch;
+            color: #222;
+        }
+        @media (min-width: 700px) { .modal { align-items: center; } .sheet { border-radius: 14px; } }
+        .sheet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+        .sheet-title { font-size: 17px; font-weight: bold; }
+        .sheet-sub { font-size: 12px; color: #777; margin-top: 2px; }
+        .sheet-close {
+            border: none; background: #eee; border-radius: 50%; width: 34px; height: 34px;
+            font-size: 18px; cursor: pointer; flex: none;
+        }
+        .sec { margin-top: 14px; }
+        .sec h4 { margin: 0 0 6px; font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: .3px; }
+        .row {
+            display: flex; justify-content: space-between; gap: 12px; padding: 5px 0;
+            border-bottom: 1px solid #f0f0f0; font-size: 13px;
+        }
+        .row span:first-child { color: #666; }
+        .row span:last-child { font-weight: bold; text-align: right; font-variant-numeric: tabular-nums; }
+        .hist-box { border: 2px solid #f9a825; background: #fffde7; border-radius: 8px; padding: 8px 10px; }
+        .note { font-size: 11px; color: #777; margin-top: 6px; line-height: 1.4; }
+        .forecast-form { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .forecast-form input, .forecast-form select, .forecast-form button, .btn {
+            padding: 6px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; background: #fff;
+        }
+        .forecast-form input { width: 110px; }
+        .btn { display: inline-block; text-decoration: none; color: #1565c0; cursor: pointer; margin: 4px 6px 0 0; }
+        .btn.primary { background: #1565c0; color: #fff; border-color: #1565c0; }
+
+        @media (max-width: 1000px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 768px) {
+            body { padding: 8px; }
+            .grid { grid-template-columns: repeat(3, 1fr); }
+            .card { min-height: 52px; padding: 5px 6px; }
+            .name { font-size: 10px; }
+            .price { font-size: 9px; }
+            .change { font-size: 12px; }
+            .delta { font-size: 9px; }
+        }
+        @media (max-width: 480px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="nav">
+        <a href="#" class="active">Акции</a>
+        <a href="bonds.html" id="bondsLink">Облигации</a>
+        <a href="#" id="logoutLink" class="logout">Выйти</a>
+    </div>
+    <div class="header">
+        <span>Доходность:</span>
+        <select id="periodSelect">
+            <option value="day">за день</option>
+            <option value="week">за неделю</option>
+            <option value="month">за месяц</option>
+        </select>
+        <button id="refreshBtn" title="Обновить сейчас">↻ Обновить</button>
+        <button id="divDateBtn" class="toggle" title="Сначала те, у кого ближайшая дата дивидендов">Ближайшие дивиденды</button>
+        <button id="divYieldBtn" class="toggle" title="От максимальной дивидендной доходности к минимальной">Див. доходность</button>
+        <input id="searchInput" type="search" placeholder="Поиск: тикер или имя" autocomplete="off">
+        <span id="status" class="status">Загрузка данных...</span>
+        <span id="divStatus" class="status"></span>
+    </div>
+    <div id="summary" class="summary" hidden></div>
+    <div id="debugInfo" class="debug" hidden></div>
+    <div class="grid" id="grid"></div>
+    <div id="blocks"></div>
+</div>
+
+<div id="modal" class="modal" hidden>
+    <div class="sheet" role="dialog" aria-modal="true">
+        <div class="sheet-head">
+            <div>
+                <div class="sheet-title" id="modalTitle"></div>
+                <div class="sheet-sub" id="modalSub"></div>
+            </div>
+            <button class="sheet-close" id="modalClose" aria-label="Закрыть">✕</button>
+        </div>
+        <div class="tabs">
+            <button class="tab active" id="tabSummary">Сводка</button>
+            <button class="tab" id="tabDiv">Дивиденды</button>
+        </div>
+        <div id="paneSummary">
+            <div class="sec" id="modalLive"></div>
+            <div class="sec" id="modalHist"></div>
+            <div class="sec" id="modalForecast"></div>
+            <div class="sec" id="modalLinks"></div>
+        </div>
+        <div id="paneDiv" hidden>
+            <div class="sec" id="modalDivTab"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+'use strict';
+
+/*
+ * MOEX Heatmap v19 (акции)
+ *
+ *  • Главная сетка: выбранный период (день / неделя / месяц), все акции TQBR.
+ *  • Нули (0,00 %) уходят в конец списка.
+ *  • Нижние блоки: изменение за день > 7 %, за неделю > 15 %, за месяц > 35 % (константы EXTREME_BLOCKS).
+ *  • Сводка рынка: IMOEX, ширина рынка, оборот, топ-10 по обороту.
+ *  • Тап по плитке — карточка бумаги: день, исторические min/max, дивиденды, свой прогноз.
+ *  • Отладка:  ?debug=OZON  или  ?debug=OZON&bcs=34.22
+ */
+
+const VERSION = 'v19';
+const BONDS_PAGE = 'bonds.html';
+
+const MOEX_ISS = 'https://iss.moex.com/iss';
+const BOARD = 'TQBR';
+const BOARD_PATH = `${MOEX_ISS}/engines/stock/markets/shares/boards/${BOARD}`;
+const HISTORY_PATH = `${MOEX_ISS}/history/engines/stock/markets/shares/boards/${BOARD}`;
+
+const REQUEST_INTERVAL = 15000;
+const MIN_REQUEST_GAP = 2000;
+const FETCH_TIMEOUT = 25000;
+const FETCH_RETRIES = 2;
+const START_RETRY_DELAY = 10000;
+const HISTORY_RETRY_DELAY = 60000;
+const MAX_BACK_DAYS = 10;
+const HIST_BATCH = 6;
+const HIST_TTL = 12 * 3600 * 1000;
+const TOP_TURNOVER_COUNT = 10;
+const CACHE_KEY = 'moexHeatmap.snapshot.v2';
+const DIV_CACHE_KEY = 'moexHeatmap.div.v1';
+const DIV_TTL = 24 * 3600 * 1000;
+const DIV_CONCURRENCY = 8;
+
+/* Кандидаты на разворот: формальный отбор по цифрам (не прогноз). */
+const REVERSAL = {
+    baseDate: '2022-02-23',      // точка отсчёта
+    minDrop: 30,                 // падение к цене на baseDate не меньше, %
+    minNewLowMonths: 3,          // сколько месяцев обновлялся абсолютный минимум после марта 2022
+    maxMonthsSinceLow: 12,       // последний минимум не старше, месяцев
+    minAvgTurnover: 50e6,        // средний дневной оборот, ₽
+    maxCandidates: 150,
+    concurrency: 8,
+    cacheKey: 'moexHeatmap.rev.v1',
+    baseKey: 'moexHeatmap.base2022.v1',
+    ttl: 12 * 3600 * 1000
+};
+
+const EXTREME_BLOCKS = [
+    { key: 'day',   period: 'day',   threshold: 5,  label: 'за день' },
+    { key: 'week',  period: 'week',  threshold: 15, label: 'за неделю' },
+    { key: 'month', period: 'month', threshold: 35, label: 'за месяц' }
+];
+const PERIOD_LABEL = { day: 'за день', week: 'за неделю', month: 'за месяц' };
+
+const DEBUG_PARAMS = new URLSearchParams(location.search);
+const DEBUG = DEBUG_PARAMS.has('debug');
+const DEBUG_TICKER = (DEBUG_PARAMS.get('debug') || 'OZON').toUpperCase();
+const DEBUG_BCS = parseFloat(String(DEBUG_PARAMS.get('bcs') || '').replace(',', '.'));
+
+const ALLOWED_SECTYPES = new Set([1, 2]);
+const COLOR_SCALE = { day: 1, week: 2.5, month: 5 };
+
+let allStocks = [];
+const stockByTicker = {};
+let currentPeriod = document.getElementById('periodSelect').value || 'day'; // Safari восстанавливает select
+const bases = { week: null, month: null };
+const basisPromises = { week: null, month: null };
+const basisFailedAt = { week: 0, month: 0 };
+const currentChanges = {};
+const cardEls = {};
+const blockEls = {};
+let topEls = null;
+
+let updateTimer = null;
+let retryTimer = null;
+let lastRequestTime = 0;
+let activeToken = null;
+let periodToken = 0;
+let isStarting = false;
+let isInitialized = false;
+let lastSnapshot = null;
+let imoex = null;
+let searchQuery = '';
+
+let modalTicker = null;
+const histStats = {};
+const histPromises = {};
+const histProgress = {};
+const histErrors = {};
+const divData = {};
+const divPromises = {};
+
+let sortMode = 'change';          // 'change' | 'divDate' | 'divYield'
+let divAllLoaded = false;
+let divAllPromise = null;
+const divProgress = { done: 0, total: 0 };
+let modalTab = 'summary';
+let revEls = null;
+const revState = { status: 'idle', scheduled: false, analysis: null, progress: { done: 0, total: 0 }, error: null };
+
+let debugRows = null;
+let debugRowsKey = null;
+
+/* ---------- network ---------- */
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+async function fetchWithTimeout(url, timeout) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+        return await fetch(url, { cache: 'no-store', signal: controller.signal });
+    } catch (e) {
+        if (e && e.name === 'AbortError') throw new Error('MOEX не ответил вовремя');
+        throw new Error('нет связи с MOEX (сеть или блокировка)');
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+async function fetchJson(url, { timeout = FETCH_TIMEOUT, retries = FETCH_RETRIES } = {}) {
+    let lastErr;
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const response = await fetchWithTimeout(url, timeout);
+            if (!response.ok) {
+                const err = new Error(`HTTP ${response.status}`);
+                err.status = response.status;
+                throw err;
+            }
+            try {
+                return await response.json();
+            } catch (_) {
+                throw new Error('MOEX вернул некорректный ответ');
+            }
+        } catch (e) {
+            lastErr = e;
+            const clientErr = e.status >= 400 && e.status < 500 && e.status !== 429;
+            if (clientErr || attempt === retries) break;
+            await sleep(1000 * attempt);
+        }
+    }
+    throw lastErr;
+}
+
+/* ---------- utilities ---------- */
+
+function num(v) {
+    if (v === null || v === undefined || v === '') return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+}
+
+function setStatus(cls, text) {
+    const box = document.getElementById('status');
+    box.className = 'status' + (cls ? ' ' + cls : '');
+    box.textContent = text;
+}
+
+function showProgress(label) {
+    const t0 = Date.now();
+    const tick = () => setStatus('loading', `${label}... ${Math.round((Date.now() - t0) / 1000)} с`);
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+}
+
+function moscowDateStr(date) {
+    return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Moscow' }).format(date);
+}
+
+/* Календарный сдвиг без переполнения: 31 окт − 1 мес = 30 сен. */
+function shiftDateStr(dateStr, { days = 0, months = 0 } = {}) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    let dt;
+    if (months) {
+        const total = y * 12 + (m - 1) + months;
+        const ny = Math.floor(total / 12);
+        const nm = total % 12;
+        const lastDay = new Date(Date.UTC(ny, nm + 1, 0)).getUTCDate();
+        dt = new Date(Date.UTC(ny, nm, Math.min(d, lastDay)));
+    } else {
+        dt = new Date(Date.UTC(y, m - 1, d));
+    }
+    if (days) dt.setUTCDate(dt.getUTCDate() + days);
+    return dt.toISOString().slice(0, 10);
+}
+
+function humanDate(dateStr) {
+    if (!dateStr) return '—';
+    const [y, m, d] = String(dateStr).slice(0, 10).split('-');
+    return `${d}.${m}.${y}`;
+}
+
+function isValidStock(name, sectype) {
+    if (!ALLOWED_SECTYPES.has(Number(sectype))) return false;
+    const n = (name || '').toUpperCase();
+    if (n.includes('ETF')) return false;
+    if (n.includes('ПИФ')) return false;
+    return true;
+}
+
+function readJson(key) {
+    try { return JSON.parse(localStorage.getItem(key)); } catch (_) { return null; }
+}
+
+function writeJson(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) { /* квота / приватный режим */ }
+}
+
+function mk(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = text;
+    return e;
+}
+
+/* ---------- formatting ---------- */
+
+const nfCache = {};
+
+function nf(decimals) {
+    if (!nfCache[decimals]) {
+        nfCache[decimals] = new Intl.NumberFormat('ru-RU', {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals
+        });
+    }
+    return nfCache[decimals];
+}
+
+function defaultDecimals(price) {
+    const a = Math.abs(price);
+    if (a < 1) return 4;
+    if (a < 10) return 3;
+    return 2;
+}
+
+function formatPrice(price, decimals) {
+    if (price === null || price === undefined || isNaN(price)) return '—';
+    const dec = Number.isInteger(decimals) ? decimals : defaultDecimals(price);
+    return nf(dec).format(price);
+}
+
+function formatChange(change) {
+    if (change === null || change === undefined || isNaN(change)) return '—';
+    const rounded = Math.round(change * 100) / 100;
+    if (rounded === 0) return '0,00 %';
+    const sign = rounded > 0 ? '+' : '−';
+    return sign + nf(2).format(Math.abs(rounded)) + ' %';
+}
+
+function formatRubDelta(delta, decimals, price) {
+    if (delta === null || delta === undefined || isNaN(delta)) return '—';
+    const dec = Number.isInteger(decimals) ? decimals : defaultDecimals(price ?? delta);
+    const factor = Math.pow(10, dec);
+    const rounded = Math.round(delta * factor) / factor;
+    if (rounded === 0) return nf(dec).format(0) + ' ₽';
+    const sign = rounded > 0 ? '+' : '−';
+    return sign + nf(dec).format(Math.abs(rounded)) + ' ₽';
+}
+
+function formatMoney(v) {
+    if (v === null || v === undefined || isNaN(v)) return '—';
+    if (v >= 1e12) return nf(2).format(v / 1e12) + ' трлн ₽';
+    if (v >= 1e9) return nf(2).format(v / 1e9) + ' млрд ₽';
+    if (v >= 1e6) return nf(1).format(v / 1e6) + ' млн ₽';
+    return nf(0).format(v) + ' ₽';
+}
+
+function formatInt(v) {
+    if (v === null || v === undefined || isNaN(v)) return '—';
+    return nf(0).format(v);
+}
+
+function signCls(v) {
+    if (v === null || v === undefined || isNaN(v)) return '';
+    const r = Math.round(v * 100) / 100;
+    return r > 0 ? 'pos' : r < 0 ? 'neg' : '';
+}
+
+/* ---------- color ---------- */
+
+function getBgClass(change, period = currentPeriod) {
+    if (change === null || change === undefined || isNaN(change)) return 'bg-neutral';
+    if (Math.round(change * 100) / 100 === 0) return 'bg-neutral';
+
+    const k = COLOR_SCALE[period] || 1;
+    const abs = Math.abs(change) / k;
+
+    let level;
+    if (abs >= 5) level = 5;
+    else if (abs >= 2) level = 4;
+    else if (abs >= 1) level = 3;
+    else if (abs >= 0.5) level = 2;
+    else level = 1;
+
+    return (change > 0 ? 'bg-pos-' : 'bg-neg-') + level;
+}
+
+/* ---------- BCS ---------- */
+
+function bcsUrl(ticker) {
+    return `https://lk.bcs.ru/catalog?popup=/catalog/instrument/${encodeURIComponent(ticker)}/TQBR`;
+}
+
+function openBcsPage(ticker) {
+    window.open(bcsUrl(ticker), '_blank', 'noopener');
+}
+
+/* ---------- cards ---------- */
+
+function createCard(stock) {
+    const card = mk('div', 'card bg-neutral');
+    card.dataset.ticker = stock.ticker;
+    card.dataset.search = `${stock.name} ${stock.ticker}`.toLowerCase();
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+
+    const left = mk('div', 'card-left');
+    const nameEl = mk('div', 'name', stock.name);
+    nameEl.title = `${stock.name} (${stock.ticker})`;
+    const priceEl = mk('div', 'price', '—');
+    left.append(nameEl, priceEl);
+
+    const right = mk('div', 'card-right');
+    const changeEl = mk('div', 'change', '—');
+    const deltaEl = mk('div', 'delta', '—');
+    right.append(changeEl, deltaEl);
+    card.append(left, right);
+
+    card.addEventListener('click', () => openStock(stock.ticker));
+    card.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openStock(stock.ticker);
+        }
+    });
+
+    return { card, price: priceEl, change: changeEl, delta: deltaEl };
+}
+
+function fillCard(els, stock, result, period) {
+    els.price.textContent = formatPrice(result.price, stock.decimals);
+    els.change.textContent = formatChange(result.change);
+    els.delta.textContent = formatRubDelta(result.delta, stock.decimals, result.price);
+    els.card.className = 'card ' + getBgClass(result.change, period);
+}
+
+function renderCard(container, stock) {
+    const els = createCard(stock);
+    container.appendChild(els.card);
+    cardEls[stock.ticker] = els;
+}
+
+function updateCard(stock, result) {
+    const els = cardEls[stock.ticker];
+    if (!els) return;
+    fillCard(els, stock, result, currentPeriod);
+    currentChanges[stock.ticker] = result.change;
+}
+
+function resetCard(ticker) {
+    const els = cardEls[ticker];
+    if (!els) return;
+    els.change.textContent = '—';
+    els.delta.textContent = '—';
+    els.card.className = 'card bg-neutral';
+    currentChanges[ticker] = null;
+}
+
+/* Порядок: рост → падение → без изменений (0,00 %) → нет данных. Нули уходят в самый конец.
+   При включённой дивидендной сортировке порядок задаётся датой / доходностью дивидендов. */
+function sortCards() {
+    const isNum = c => c != null && !isNaN(c);
+    const isZero = c => Math.round(c * 100) / 100 === 0;
+    const group = c => (!isNum(c) ? 2 : isZero(c) ? 1 : 0);
+
+    const entries = allStocks.map(s => ({ ticker: s.ticker, change: currentChanges[s.ticker] }));
+
+    if (sortMode !== 'change' && divAllLoaded) {
+        entries.forEach(e => { e.div = divSummary(e.ticker); });
+        if (sortMode === 'divDate') {
+            const key = e => {
+                const d = e.div;
+                if (d && d.upcoming) return { g: 0, d: String(d.upcoming.date).slice(0, 10) };
+                if (d && d.est) return { g: 1, d: d.est.date };
+                return { g: 2, d: '' };
+            };
+            entries.sort((a, b) => {
+                const ka = key(a);
+                const kb = key(b);
+                if (ka.g !== kb.g) return ka.g - kb.g;
+                if (ka.d !== kb.d) return ka.d.localeCompare(kb.d);
+                return a.ticker.localeCompare(b.ticker);
+            });
+        } else {
+            const y = e => (e.div && e.div.yieldTtm > 0 ? e.div.yieldTtm : null);
+            entries.sort((a, b) => {
+                const ya = y(a);
+                const yb = y(b);
+                if (ya === null && yb === null) return a.ticker.localeCompare(b.ticker);
+                if (ya === null) return 1;
+                if (yb === null) return -1;
+                if (ya !== yb) return yb - ya;
+                return a.ticker.localeCompare(b.ticker);
+            });
+        }
+    } else {
+        entries.sort((a, b) => {
+            const ga = group(a.change);
+            const gb = group(b.change);
+            if (ga !== gb) return ga - gb;
+            if (ga === 0 && a.change !== b.change) return b.change - a.change;
+            return a.ticker.localeCompare(b.ticker);
+        });
+    }
+
+    entries.forEach((entry, index) => {
+        const els = cardEls[entry.ticker];
+        if (els) els.card.style.order = index;
+    });
+}
+
+function applySearch() {
+    allStocks.forEach(stock => {
+        const els = cardEls[stock.ticker];
+        if (!els) return;
+        const match = !searchQuery || els.card.dataset.search.includes(searchQuery);
+        els.card.style.display = match ? '' : 'none';
+    });
+}
+
+/* ---------- snapshot ---------- */
+
+async function fetchSnapshot() {
+    const url =
+        `${BOARD_PATH}/securities.json?iss.meta=off&iss.only=securities,marketdata` +
+        `&securities.columns=SECID,SHORTNAME,SECNAME,SECTYPE,DECIMALS,PREVPRICE,PREVLEGALCLOSEPRICE,LOTSIZE,ISIN` +
+        `&marketdata.columns=SECID,LAST,MARKETPRICE,OPEN,LOW,HIGH,VOLTODAY,VALTODAY,NUMTRADES,WAPRICE,BID,OFFER,ISSUECAPITALIZATION`;
+
+    const data = await fetchJson(url);
+    const sec = data.securities;
+    const md = data.marketdata;
+
+    if (!sec || !Array.isArray(sec.data) || !sec.data.length) {
+        throw new Error('MOEX вернул пустой список бумаг');
+    }
+    if (!md || !Array.isArray(md.data)) {
+        throw new Error('MOEX вернул пустые котировки');
+    }
+
+    const idx = cols => Object.fromEntries(cols.map((c, i) => [c, i]));
+    const si = idx(sec.columns);
+    const mi = idx(md.columns);
+
+    const snapshot = new Map();
+
+    sec.data.forEach(row => {
+        const secid = row[si.SECID];
+        if (!secid) return;
+
+        snapshot.set(secid, {
+            ticker: secid,
+            name: row[si.SHORTNAME] || secid,
+            secname: row[si.SECNAME] || null,
+            sectype: row[si.SECTYPE],
+            decimals: num(row[si.DECIMALS]),
+            prevPrice: num(row[si.PREVPRICE]),
+            prevLegal: num(row[si.PREVLEGALCLOSEPRICE]),
+            lotSize: num(row[si.LOTSIZE]),
+            isin: row[si.ISIN] || null,
+            last: null, marketPrice: null, open: null, low: null, high: null,
+            volToday: null, valToday: null, numTrades: null, waPrice: null,
+            bid: null, offer: null, cap: null
+        });
+    });
+
+    md.data.forEach(row => {
+        const item = snapshot.get(row[mi.SECID]);
+        if (!item) return;
+        item.last = num(row[mi.LAST]);
+        item.marketPrice = num(row[mi.MARKETPRICE]);
+        item.open = num(row[mi.OPEN]);
+        item.low = num(row[mi.LOW]);
+        item.high = num(row[mi.HIGH]);
+        item.volToday = num(row[mi.VOLTODAY]);
+        item.valToday = num(row[mi.VALTODAY]);
+        item.numTrades = num(row[mi.NUMTRADES]);
+        item.waPrice = num(row[mi.WAPRICE]);
+        item.bid = num(row[mi.BID]);
+        item.offer = num(row[mi.OFFER]);
+        item.cap = num(row[mi.ISSUECAPITALIZATION]);
+    });
+
+    return snapshot;
+}
+
+async function fetchIndex() {
+    const data = await fetchJson(
+        `${MOEX_ISS}/engines/stock/markets/index/securities/IMOEX.json?iss.meta=off&iss.only=marketdata`,
+        { retries: 1, timeout: 10000 }
+    );
+    const md = data.marketdata;
+    if (!md || !Array.isArray(md.data) || !md.data.length) return null;
+    const col = name => md.columns.indexOf(name);
+    const row = md.data.find(r => r[col('SECID')] === 'IMOEX') || md.data[0];
+    const value = num(row[col('CURRENTVALUE')]) ?? num(row[col('LASTVALUE')]);
+    const pct = num(row[col('LASTCHANGEPRC')]);
+    return value === null ? null : { value, pct };
+}
+
+/*
+ * LAST — живая цена последней сделки (включая утреннюю сессию).
+ * MARKETPRICE — расчётная цена прошлых дней, поэтому только в самую последнюю очередь.
+ */
+function currentPrice(item) {
+    return item.last ?? item.prevPrice ?? item.prevLegal ?? item.marketPrice ?? null;
+}
+
+function saveSnapshotCache(snapshot) {
+    writeJson(CACHE_KEY, { time: Date.now(), items: Array.from(snapshot.values()) });
+}
+
+function loadSnapshotCache() {
+    const obj = readJson(CACHE_KEY);
+    if (!obj || !Array.isArray(obj.items) || !obj.items.length) return null;
+    return { time: obj.time, snapshot: new Map(obj.items.map(i => [i.ticker, i])) };
+}
+
+/* ---------- calculation ---------- */
+
+function makeResult(price, base) {
+    if (price === null || base === null || base === undefined || base <= 0) {
+        return { price, base: null, delta: null, change: null };
+    }
+    const delta = price - base;
+    return { price, base, delta, change: (delta / base) * 100 };
+}
+
+function basisKey(period) {
+    return `${period}:${moscowDateStr(new Date())}`;
+}
+
+function basisFresh(period) {
+    if (period === 'day') return true;
+    const b = bases[period];
+    return !!b && b.key === basisKey(period);
+}
+
+function computeFor(item, period) {
+    const price = currentPrice(item);
+    if (price === null) return { price: null, base: null, delta: null, change: null };
+
+    if (period === 'day') return makeResult(price, item.prevPrice ?? item.prevLegal);
+    if (!basisFresh(period)) return makeResult(price, null);
+    return makeResult(price, bases[period].map[item.ticker] ?? null);
+}
+
+/* ---------- history ---------- */
+
+async function fetchHistoryDay(dateStr, preferredField = 'CLOSE') {
+    const pageUrl = start =>
+        `${HISTORY_PATH}/securities.json?date=${dateStr}&start=${start}` +
+        `&iss.meta=off&iss.only=history,history.cursor` +
+        `&history.columns=SECID,TRADEDATE,CLOSE,LEGALCLOSEPRICE,WAPRICE`;
+
+    const map = {};
+    const kinds = {};
+
+    const parse = data => {
+        const h = data.history;
+        if (!h || !Array.isArray(h.data)) return 0;
+
+        const iSec = h.columns.indexOf('SECID');
+        const iClose = h.columns.indexOf('CLOSE');
+        const iLegal = h.columns.indexOf('LEGALCLOSEPRICE');
+        const iWap = h.columns.indexOf('WAPRICE');
+
+        h.data.forEach(row => {
+            const secid = row[iSec];
+            const close = num(row[iClose]);
+            const legal = num(row[iLegal]);
+            const wap = num(row[iWap]);
+
+            let value = null;
+            let kind = null;
+
+            if (preferredField === 'WAPRICE' && wap !== null && wap > 0) {
+                value = wap; kind = 'WAPRICE';
+            } else if (close !== null && close > 0) {
+                value = close; kind = 'CLOSE';
+            } else if (legal !== null && legal > 0) {
+                value = legal; kind = 'LEGALCLOSEPRICE';
+            }
+
+            if (secid && value !== null) {
+                map[secid] = value;
+                kinds[secid] = kind;
+            }
+        });
+
+        return h.data.length;
+    };
+
+    const first = await fetchJson(pageUrl(0));
+    const rowsOnFirst = parse(first);
+    if (rowsOnFirst === 0) return null; // нерабочий день
+
+    const cursor = first['history.cursor'];
+    if (cursor && cursor.data && cursor.data.length) {
+        const ci = cursor.columns;
+        const total = num(cursor.data[0][ci.indexOf('TOTAL')]) || rowsOnFirst;
+        const pageSize = num(cursor.data[0][ci.indexOf('PAGESIZE')]) || rowsOnFirst;
+        const pages = [];
+        for (let start = pageSize; start < total; start += pageSize) {
+            pages.push(fetchJson(pageUrl(start)));
+        }
+        (await Promise.all(pages)).forEach(parse);
+    }
+
+    return { map, kinds };
+}
+
+async function loadBasis(period) {
+    const today = moscowDateStr(new Date());
+
+    let startDate;
+    let field;
+    if (period === 'month') {
+        // последний торговый день ДО даты «месяц назад»
+        startDate = shiftDateStr(shiftDateStr(today, { months: -1 }), { days: -1 });
+        field = 'WAPRICE';
+    } else {
+        // ближайший торговый день на дату «неделя назад» или раньше
+        startDate = shiftDateStr(today, { days: -7 });
+        field = 'CLOSE';
+    }
+
+    for (let i = 0; i <= MAX_BACK_DAYS; i++) {
+        const dateStr = shiftDateStr(startDate, { days: -i });
+        const r = await fetchHistoryDay(dateStr, field);
+        if (r && Object.keys(r.map).length) {
+            return { period, key: `${period}:${today}`, date: dateStr, kind: field, map: r.map, kinds: r.kinds };
+        }
+    }
+    return null;
+}
+
+function canTryBasis(period, force) {
+    return force || !basisFailedAt[period] || Date.now() - basisFailedAt[period] > HISTORY_RETRY_DELAY;
+}
+
+function ensureBasis(period) {
+    if (period === 'day' || basisFresh(period)) return Promise.resolve(true);
+    if (basisPromises[period]) return basisPromises[period];
+
+    basisPromises[period] = (async () => {
+        try {
+            const loaded = await loadBasis(period);
+            if (loaded) {
+                bases[period] = loaded;
+                basisFailedAt[period] = 0;
+                return true;
+            }
+            basisFailedAt[period] = Date.now();
+            return false;
+        } catch (e) {
+            console.error(e);
+            basisFailedAt[period] = Date.now();
+            return false;
+        } finally {
+            basisPromises[period] = null;
+        }
+    })();
+
+    return basisPromises[period];
+}
+
+/* Недельная и месячная базы нужны нижним блокам всегда, независимо от выбранного периода. */
+function kickBackgroundBases() {
+    ['week', 'month'].forEach(period => {
+        if (basisFresh(period) || basisPromises[period] || !canTryBasis(period, false)) return;
+        ensureBasis(period).then(() => {
+            if (lastSnapshot) applySnapshot(lastSnapshot);
+        });
+    });
+}
+
+/* ---------- блоки внизу ---------- */
+
+function initBlocks() {
+    const container = document.getElementById('blocks');
+
+    EXTREME_BLOCKS.forEach(cfg => {
+        const title = mk('div', 'block-title');
+        const note = mk('div', 'block-note');
+        const grid = mk('div', 'grid');
+        container.append(title, note, grid);
+        blockEls[cfg.key] = { title, note, grid };
+    });
+
+    const title = mk('div', 'block-title', `Топ-${TOP_TURNOVER_COUNT} по обороту сегодня`);
+    const note = mk('div', 'block-note');
+    const grid = mk('div', 'grid');
+    container.append(title, note, grid);
+    topEls = { title, note, grid };
+
+    const rTitle = mk('div', 'block-title');
+    const rNote = mk('div', 'block-note');
+    const rGrid = mk('div', 'grid');
+    container.append(rTitle, rNote, rGrid);
+    revEls = { title: rTitle, note: rNote, grid: rGrid };
+}
+
+function renderExtremeBlock(cfg, snapshot) {
+    const els = blockEls[cfg.key];
+    els.title.textContent = `Изменение ${cfg.label} более ${cfg.threshold} % (от красного к зелёному)`;
+
+    if (!basisFresh(cfg.period)) {
+        els.grid.replaceChildren();
+        els.note.textContent = basisPromises[cfg.period] || !basisFailedAt[cfg.period]
+            ? 'Загрузка исторических данных...'
+            : 'Не удалось загрузить исторические данные. Нажмите «Обновить».';
+        return;
+    }
+
+    const rows = [];
+    allStocks.forEach(stock => {
+        const item = snapshot.get(stock.ticker);
+        if (!item) return;
+        const result = computeFor(item, cfg.period);
+        if (result.change !== null && Math.abs(result.change) > cfg.threshold) {
+            rows.push({ stock, result });
+        }
+    });
+
+    rows.sort((a, b) => a.result.change - b.result.change); // от красного к зелёному
+
+    const baseNote = cfg.period === 'day' ? 'база: вчерашнее закрытие' : `база: ${humanDate(bases[cfg.period].date)}`;
+    els.note.textContent = rows.length ? `Найдено: ${rows.length}. ${baseNote}` : `Сейчас нет таких бумаг (${baseNote}).`;
+
+    els.grid.replaceChildren(...rows.map(({ stock, result }) => {
+        const c = createCard(stock);
+        fillCard(c, stock, result, cfg.period);
+        return c.card;
+    }));
+}
+
+function renderTopTurnover(snapshot) {
+    const rows = [];
+    allStocks.forEach(stock => {
+        const item = snapshot.get(stock.ticker);
+        if (item && item.valToday > 0) rows.push({ stock, item });
+    });
+    rows.sort((a, b) => b.item.valToday - a.item.valToday);
+    const top = rows.slice(0, TOP_TURNOVER_COUNT);
+
+    topEls.title.textContent = `Топ-${TOP_TURNOVER_COUNT} по обороту сегодня (цвет — изменение ${PERIOD_LABEL[currentPeriod]})`;
+    topEls.note.textContent = top.length
+        ? top.map(r => `${r.stock.ticker} ${formatMoney(r.item.valToday)}`).join(' · ')
+        : 'Сегодня торгов ещё не было.';
+
+    topEls.grid.replaceChildren(...top.map(({ stock, item }) => {
+        const c = createCard(stock);
+        fillCard(c, stock, computeFor(item, currentPeriod), currentPeriod);
+        return c.card;
+    }));
+}
+
+function renderSummary(snapshot) {
+    const box = document.getElementById('summary');
+    if (!allStocks.length) {
+        box.hidden = true;
+        return;
+    }
+    box.hidden = false;
+
+    let up = 0;
+    let down = 0;
+    let flat = 0;
+    const values = [];
+    let turnover = 0;
+
+    allStocks.forEach(stock => {
+        const c = currentChanges[stock.ticker];
+        if (c !== null && c !== undefined && !isNaN(c)) {
+            values.push(c);
+            const r = Math.round(c * 100) / 100;
+            if (r > 0) up++;
+            else if (r < 0) down++;
+            else flat++;
+        }
+        const item = snapshot.get(stock.ticker);
+        if (item && item.valToday > 0) turnover += item.valToday;
+    });
+
+    values.sort((a, b) => a - b);
+    const median = values.length
+        ? (values.length % 2 ? values[(values.length - 1) / 2] : (values[values.length / 2 - 1] + values[values.length / 2]) / 2)
+        : null;
+    const total = up + down + flat;
+
+    const lines = [];
+
+    if (imoex) {
+        const l = mk('div');
+        l.append('Индекс МосБиржи: ');
+        l.append(mk('b', null, nf(2).format(imoex.value)));
+        if (imoex.pct !== null) l.append(' ', mk('span', signCls(imoex.pct), formatChange(imoex.pct)));
+        lines.push(l);
+    }
+
+    const breadthLine = mk('div');
+    breadthLine.append(`Ширина рынка ${PERIOD_LABEL[currentPeriod]}: `);
+    breadthLine.append(mk('span', 'pos', `растут ${up}`), ' · ', mk('span', 'neg', `падают ${down}`), ` · без изм. ${flat}`);
+    lines.push(breadthLine);
+
+    const bar = mk('div', 'breadth');
+    if (total) {
+        const parts = [[up, '#43a047'], [flat, '#9e9e9e'], [down, '#c62828']];
+        parts.forEach(([n, color]) => {
+            const s = mk('span');
+            s.style.width = `${(n / total) * 100}%`;
+            s.style.background = color;
+            bar.append(s);
+        });
+    }
+    lines.push(bar);
+
+    const stat = mk('div');
+    stat.append(`Оборот сегодня: ${formatMoney(turnover)}`);
+    if (median !== null) stat.append(' · медиана: ', mk('span', signCls(median), formatChange(median)));
+    lines.push(stat);
+
+    box.replaceChildren(...lines);
+}
+
+/* ---------- карточка бумаги ---------- */
+
+function modalItem() {
+    return lastSnapshot && modalTicker ? lastSnapshot.get(modalTicker) : null;
+}
+
+function rowEl(label, value, cls) {
+    const r = mk('div', 'row');
+    r.append(mk('span', null, label), mk('span', cls || null, value));
+    return r;
+}
+
+function openStock(ticker) {
+    const stock = stockByTicker[ticker];
+    if (!stock) return;
+
+    modalTicker = ticker;
+    document.getElementById('modal').hidden = false;
+    document.body.style.overflow = 'hidden';
+
+    const item = modalItem();
+    document.getElementById('modalTitle').textContent = `${stock.name} (${ticker})`;
+    document.getElementById('modalSub').textContent = (item && item.secname) || '';
+
+    setModalTab('summary');
+    renderModalLive();
+    renderModalHist();
+    renderModalDivTab();
+    renderModalForecast();
+    renderModalLinks();
+
+    loadHistoryStats(ticker).then(() => { if (modalTicker === ticker) renderModalHist(); });
+    loadDividends(ticker).then(() => {
+        if (modalTicker === ticker) {
+            renderModalDivTab();
+            renderModalLive();
+        }
+    });
+}
+
+function setModalTab(tab) {
+    modalTab = tab;
+    document.getElementById('paneSummary').hidden = tab !== 'summary';
+    document.getElementById('paneDiv').hidden = tab !== 'div';
+    document.getElementById('tabSummary').className = 'tab' + (tab === 'summary' ? ' active' : '');
+    document.getElementById('tabDiv').className = 'tab' + (tab === 'div' ? ' active' : '');
+}
+
+function closeModal() {
+    modalTicker = null;
+    document.getElementById('modal').hidden = true;
+    document.body.style.overflow = '';
+}
+
+function renderModalLive() {
+    const box = document.getElementById('modalLive');
+    const item = modalItem();
+    const stock = modalTicker && stockByTicker[modalTicker];
+    if (!item || !stock) {
+        box.replaceChildren(mk('div', 'note', 'Нет данных.'));
+        return;
+    }
+
+    const dec = stock.decimals;
+    const day = computeFor(item, 'day');
+    const price = day.price;
+    const rows = [mk('h4', null, 'Сегодня')];
+
+    rows.push(rowEl('Цена сейчас', `${formatPrice(price, dec)} ₽`));
+    rows.push(rowEl('Изменение за день, %', formatChange(day.change), signCls(day.change)));
+    rows.push(rowEl('Изменение за день, ₽', formatRubDelta(day.delta, dec, price), signCls(day.delta)));
+    rows.push(rowEl('Цена открытия', item.open !== null ? `${formatPrice(item.open, dec)} ₽` : '—'));
+    rows.push(rowEl('Закрытие предыдущего дня', item.prevPrice !== null ? `${formatPrice(item.prevPrice, dec)} ₽` : '—'));
+    if (item.prevLegal !== null) {
+        rows.push(rowEl('Официальная цена закрытия пред. дня', `${formatPrice(item.prevLegal, dec)} ₽`));
+    }
+    rows.push(rowEl('Минимум за день', item.low !== null ? `${formatPrice(item.low, dec)} ₽` : '—'));
+    rows.push(rowEl('Максимум за день', item.high !== null ? `${formatPrice(item.high, dec)} ₽` : '—'));
+
+    if (item.low !== null && item.high !== null && item.high > item.low && price !== null) {
+        const pos = ((price - item.low) / (item.high - item.low)) * 100;
+        rows.push(rowEl('Положение в диапазоне дня', `${nf(0).format(Math.max(0, Math.min(100, pos)))} % (0 — минимум, 100 — максимум)`));
+    }
+
+    rows.push(rowEl('Объём торгов, шт.', formatInt(item.volToday)));
+    rows.push(rowEl('Объём торгов, ₽', formatMoney(item.valToday)));
+    rows.push(rowEl('Сделок', formatInt(item.numTrades)));
+    if (item.waPrice !== null) rows.push(rowEl('Средневзвешенная цена', `${formatPrice(item.waPrice, dec)} ₽`));
+    if (item.bid !== null || item.offer !== null) {
+        rows.push(rowEl('Покупка / продажа (стакан)', `${formatPrice(item.bid, dec)} / ${formatPrice(item.offer, dec)}`));
+    }
+    if (item.cap !== null) rows.push(rowEl('Капитализация', formatMoney(item.cap)));
+    if (item.lotSize !== null) rows.push(rowEl('Размер лота', `${formatInt(item.lotSize)} шт.`));
+
+    const ds = divSummary(modalTicker);
+    if (ds && ds.yieldTtm !== null) {
+        rows.push(rowEl('Дивидендная доходность (12 мес.)', ds.ttm > 0 ? formatPct1(ds.yieldTtm) : 'выплат не было'));
+    }
+
+    ['week', 'month'].forEach(p => {
+        if (!basisFresh(p)) return;
+        const r = computeFor(item, p);
+        const baseInfo = r.base !== null
+            ? ` (от ${formatPrice(r.base, dec)} ₽, ${p === 'month' ? 'средневзв.' : 'закрытие'} ${humanDate(bases[p].date)})`
+            : '';
+        rows.push(rowEl(`Изменение ${PERIOD_LABEL[p]}${baseInfo}`, formatChange(r.change), signCls(r.change)));
+    });
+
+    const noTrades = item.numTrades === 0 || (item.open === null && item.high === null);
+    rows.push(mk('div', 'note',
+        (noTrades ? 'Сегодня сделок ещё не было — открытие, минимум и максимум появятся после первых сделок. ' : '') +
+        'Данные MOEX идут с задержкой около 15 минут. «Закрытие» сегодняшнего дня появится после окончания торгов, до этого ориентир — закрытие предыдущего дня.'));
+
+    box.replaceChildren(...rows);
+}
+
+function loadHistoryStats(ticker) {
+    if (histStats[ticker]) return Promise.resolve(histStats[ticker]);
+
+    const cached = readJson(`moexHeatmap.hist.${ticker}`);
+    if (cached && Date.now() - cached.t < HIST_TTL) {
+        histStats[ticker] = cached;
+        return Promise.resolve(cached);
+    }
+    if (histPromises[ticker]) return histPromises[ticker];
+
+    histPromises[ticker] = (async () => {
+        try {
+            const url = start =>
+                `${HISTORY_PATH}/securities/${encodeURIComponent(ticker)}.json` +
+                `?iss.meta=off&iss.only=history,history.cursor&history.columns=TRADEDATE,LOW,HIGH&start=${start}`;
+            const acc = { t: Date.now(), min: null, minDate: null, max: null, maxDate: null,
+                          w52min: null, w52minDate: null, w52max: null, w52maxDate: null, rows: 0 };
+            const cutoff = shiftDateStr(moscowDateStr(new Date()), { days: -365 });
+
+            const eat = data => {
+                const h = data.history;
+                if (!h || !Array.isArray(h.data)) return 0;
+                const iD = h.columns.indexOf('TRADEDATE');
+                const iL = h.columns.indexOf('LOW');
+                const iH = h.columns.indexOf('HIGH');
+                h.data.forEach(r => {
+                    const d = r[iD];
+                    const lo = num(r[iL]);
+                    const hi = num(r[iH]);
+                    if (lo !== null && lo > 0 && (acc.min === null || lo < acc.min)) { acc.min = lo; acc.minDate = d; }
+                    if (hi !== null && hi > 0 && (acc.max === null || hi > acc.max)) { acc.max = hi; acc.maxDate = d; }
+                    if (d >= cutoff) {
+                        if (lo !== null && lo > 0 && (acc.w52min === null || lo < acc.w52min)) { acc.w52min = lo; acc.w52minDate = d; }
+                        if (hi !== null && hi > 0 && (acc.w52max === null || hi > acc.w52max)) { acc.w52max = hi; acc.w52maxDate = d; }
+                    }
+                });
+                return h.data.length;
+            };
+
+            const first = await fetchJson(url(0));
+            const n = eat(first);
+            const cur = first['history.cursor'];
+            let total = n;
+            let pageSize = n;
+            if (cur && cur.data && cur.data.length) {
+                total = num(cur.data[0][cur.columns.indexOf('TOTAL')]) || n;
+                pageSize = num(cur.data[0][cur.columns.indexOf('PAGESIZE')]) || n;
+            }
+            histProgress[ticker] = { done: n, total };
+
+            const starts = [];
+            for (let s = pageSize; pageSize > 0 && s < total; s += pageSize) starts.push(s);
+            for (let i = 0; i < starts.length; i += HIST_BATCH) {
+                const pages = await Promise.all(starts.slice(i, i + HIST_BATCH).map(s => fetchJson(url(s))));
+                pages.forEach(p => { histProgress[ticker].done += eat(p); });
+                if (modalTicker === ticker) renderModalHist();
+            }
+
+            acc.rows = total;
+            histStats[ticker] = acc;
+            writeJson(`moexHeatmap.hist.${ticker}`, acc);
+            delete histErrors[ticker];
+            return acc;
+        } catch (e) {
+            console.error(e);
+            histErrors[ticker] = e.message;
+            return null;
+        } finally {
+            histPromises[ticker] = null;
+        }
+    })();
+
+    return histPromises[ticker];
+}
+
+function renderModalHist() {
+    const box = document.getElementById('modalHist');
+    if (!modalTicker) return;
+    const ticker = modalTicker;
+    const stock = stockByTicker[ticker];
+    const item = modalItem();
+    const price = item ? currentPrice(item) : null;
+    const dec = stock ? stock.decimals : null;
+    const st = histStats[ticker];
+
+    const hist = mk('div', 'hist-box');
+    hist.append(mk('h4', null, 'Исторические минимум и максимум'));
+
+    if (st && st.max !== null) {
+        const fromMax = price !== null ? (price / st.max - 1) * 100 : null;
+        const fromMin = price !== null ? (price / st.min - 1) * 100 : null;
+        hist.append(rowEl(`Максимум за всё время (${humanDate(st.maxDate)})`, `${formatPrice(st.max, dec)} ₽`));
+        if (fromMax !== null) hist.append(rowEl('Сейчас относительно максимума', formatChange(fromMax), signCls(fromMax)));
+        hist.append(rowEl(`Минимум за всё время (${humanDate(st.minDate)})`, `${formatPrice(st.min, dec)} ₽`));
+        if (fromMin !== null) hist.append(rowEl('Сейчас относительно минимума', formatChange(fromMin), signCls(fromMin)));
+        if (st.w52max !== null) {
+            hist.append(rowEl('Максимум за 52 недели', `${formatPrice(st.w52max, dec)} ₽ (${humanDate(st.w52maxDate)})`));
+            hist.append(rowEl('Минимум за 52 недели', `${formatPrice(st.w52min, dec)} ₽ (${humanDate(st.w52minDate)})`));
+        }
+        hist.append(mk('div', 'note',
+            `По дневным данным MOEX (доска ${BOARD}, ${formatInt(st.rows)} торговых дней), без поправки на сплиты и консолидации. ` +
+            'Учитываются внутридневные минимум и максимум.'));
+    } else if (histErrors[ticker]) {
+        hist.append(mk('div', 'note', `Не удалось загрузить историю: ${histErrors[ticker]}`));
+    } else {
+        const p = histProgress[ticker];
+        hist.append(mk('div', 'note', p ? `Загрузка истории... ${formatInt(p.done)} из ${formatInt(p.total)} дней` : 'Загрузка истории...'));
+    }
+
+    box.replaceChildren(hist);
+}
+
+function loadDividends(ticker) {
+    if (divData[ticker]) return Promise.resolve(divData[ticker]);
+    if (divPromises[ticker]) return divPromises[ticker];
+
+    divPromises[ticker] = (async () => {
+        try {
+            const data = await fetchJson(
+                `${MOEX_ISS}/securities/${encodeURIComponent(ticker)}/dividends.json?iss.meta=off`,
+                { retries: 1, timeout: 15000 }
+            );
+            const d = data.dividends;
+            const rows = [];
+            if (d && Array.isArray(d.data)) {
+                const iDate = d.columns.indexOf('registryclosedate');
+                const iVal = d.columns.indexOf('value');
+                const iCur = d.columns.indexOf('currencyid');
+                d.data.forEach(r => {
+                    const value = num(r[iVal]);
+                    if (value !== null) rows.push({ date: r[iDate], value, cur: r[iCur] || 'RUB' });
+                });
+            }
+            rows.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+            divData[ticker] = { rows };
+        } catch (e) {
+            console.error(e);
+            divData[ticker] = { rows: [], error: e.message };
+        } finally {
+            divPromises[ticker] = null;
+        }
+        return divData[ticker];
+    })();
+
+    return divPromises[ticker];
+}
+
+function formatPct1(v) {
+    return v === null || v === undefined || isNaN(v) ? '—' : nf(1).format(v) + ' %';
+}
+
+function shortDate(dateStr) {
+    if (!dateStr) return '—';
+    const [y, m, d] = String(dateStr).slice(0, 10).split('-');
+    return `${d}.${m}.${y.slice(2)}`;
+}
+
+function daysUntil(dateStr) {
+    const a = Date.parse(moscowDateStr(new Date()));
+    const b = Date.parse(String(dateStr).slice(0, 10));
+    return Math.round((b - a) / 86400000);
+}
+
+function manualDivs(ticker) {
+    const a = readJson(`moexHeatmap.divmanual.${ticker}`);
+    return Array.isArray(a) ? a : [];
+}
+
+/* Сводка по дивидендам бумаги: данные MOEX + будущие выплаты, внесённые вручную. */
+function divSummary(ticker) {
+    const dv = divData[ticker];
+    if (!dv || dv.error) return null;
+
+    const item = lastSnapshot && lastSnapshot.get(ticker);
+    const price = item ? currentPrice(item) : null;
+    const today = moscowDateStr(new Date());
+    const rub = r => r.cur === 'SUR' || r.cur === 'RUB';
+    const dateOf = r => String(r.date).slice(0, 10);
+
+    const all = dv.rows.map(r => ({ date: dateOf(r), value: r.value, cur: r.cur, manual: false }))
+        .concat(manualDivs(ticker).map(r => ({ date: String(r.date).slice(0, 10), value: r.value, cur: 'RUB', manual: true, note: r.note })));
+
+    const future = all.filter(r => r.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+    const past = all.filter(r => r.date < today).sort((a, b) => b.date.localeCompare(a.date));
+
+    const cutoff = shiftDateStr(today, { days: -365 });
+    const ttmRows = past.filter(r => r.date >= cutoff && rub(r));
+    const ttm = ttmRows.reduce((s, r) => s + r.value, 0);
+    const yieldTtm = price ? (ttm > 0 ? (ttm / price) * 100 : 0) : null;
+
+    let est = null;
+    if (!future.length) {
+        const lookback = shiftDateStr(today, { days: -400 });
+        const cands = past.filter(r => r.date >= lookback && rub(r))
+            .map(r => ({ date: shiftDateStr(r.date, { months: 12 }), value: r.value }))
+            .filter(r => r.date >= today)
+            .sort((a, b) => a.date.localeCompare(b.date));
+        est = cands[0] || null;
+    }
+
+    return { price, future, past, upcoming: future[0] || null, est, ttm, ttmCount: ttmRows.length, yieldTtm, all };
+}
+
+function runPool(items, worker, size) {
+    let i = 0;
+    const runners = Array.from({ length: Math.min(size, items.length) }, async () => {
+        while (i < items.length) {
+            const item = items[i++];
+            await worker(item);
+        }
+    });
+    return Promise.all(runners);
+}
+
+function setDivStatus(cls, text) {
+    const box = document.getElementById('divStatus');
+    box.className = 'status' + (cls ? ' ' + cls : '');
+    box.textContent = text;
+}
+
+/* Дивиденды по всем бумагам — одним проходом (около 260 запросов), результат кэшируется на сутки. */
+function ensureAllDividends() {
+    if (divAllLoaded) return Promise.resolve(true);
+    if (divAllPromise) return divAllPromise;
+
+    divAllPromise = (async () => {
+        try {
+            const cached = readJson(DIV_CACHE_KEY);
+            if (cached && cached.data && Date.now() - cached.t < DIV_TTL) {
+                Object.keys(cached.data).forEach(t => { if (!divData[t]) divData[t] = { rows: cached.data[t] }; });
+            }
+
+            const todo = allStocks.map(s => s.ticker).filter(t => !divData[t] || divData[t].error);
+            divProgress.done = 0;
+            divProgress.total = todo.length;
+
+            if (todo.length) {
+                setDivStatus('loading', `Загрузка дивидендов: 0 / ${todo.length}`);
+                await runPool(todo, async t => {
+                    await loadDividends(t);
+                    divProgress.done++;
+                    if (divProgress.done % 5 === 0 || divProgress.done === divProgress.total) {
+                        setDivStatus('loading', `Загрузка дивидендов: ${divProgress.done} / ${divProgress.total}`);
+                    }
+                }, DIV_CONCURRENCY);
+            }
+
+            const data = {};
+            let failed = 0;
+            allStocks.forEach(s => {
+                const dv = divData[s.ticker];
+                if (dv && !dv.error) data[s.ticker] = dv.rows;
+                else failed++;
+            });
+            writeJson(DIV_CACHE_KEY, { t: Date.now(), data });
+
+            divAllLoaded = true;
+            setDivStatus(failed ? 'warn' : 'ok',
+                failed ? `Дивиденды загружены, без данных: ${failed}` : 'Дивиденды загружены');
+            return true;
+        } catch (e) {
+            console.error(e);
+            setDivStatus('error', `Не удалось загрузить дивиденды: ${e.message}`);
+            return false;
+        } finally {
+            divAllPromise = null;
+        }
+    })();
+
+    return divAllPromise;
+}
+
+function updateSortButtons() {
+    document.getElementById('divDateBtn').className = 'toggle' + (sortMode === 'divDate' ? ' active' : '');
+    document.getElementById('divYieldBtn').className = 'toggle' + (sortMode === 'divYield' ? ' active' : '');
+}
+
+function setSortMode(mode) {
+    sortMode = sortMode === mode ? 'change' : mode;
+    updateSortButtons();
+
+    if (sortMode === 'change') {
+        setDivStatus('', '');
+        if (lastSnapshot) applySnapshot(lastSnapshot);
+        return;
+    }
+
+    ensureAllDividends().then(() => {
+        if (lastSnapshot) applySnapshot(lastSnapshot);
+    });
+}
+
+/* В режиме дивидендной сортировки вместо ₽-изменения на плитке показываем дату / доходность. */
+function applyDivMetric() {
+    if (sortMode === 'change' || !divAllLoaded) return;
+    allStocks.forEach(stock => {
+        const els = cardEls[stock.ticker];
+        if (!els) return;
+        const d = divSummary(stock.ticker);
+        let text = '—';
+        if (d) {
+            if (sortMode === 'divDate') {
+                text = d.upcoming ? shortDate(d.upcoming.date) : d.est ? `≈${shortDate(d.est.date)}` : 'нет дат';
+            } else {
+                text = d.yieldTtm > 0 ? `Див. ${formatPct1(d.yieldTtm)}` : 'без дивид.';
+            }
+        }
+        els.delta.textContent = text;
+    });
+}
+
+function renderModalDivTab() {
+    const box = document.getElementById('modalDivTab');
+    if (!modalTicker) return;
+    const ticker = modalTicker;
+    const stock = stockByTicker[ticker];
+    const dv = divData[ticker];
+    const parts = [];
+
+    if (!dv) {
+        box.replaceChildren(mk('div', 'note', 'Загрузка дивидендов...'));
+        return;
+    }
+    if (dv.error) {
+        box.replaceChildren(mk('div', 'note', `Не удалось загрузить дивиденды: ${dv.error}`));
+        return;
+    }
+
+    const d = divSummary(ticker);
+    const price = d.price;
+
+    // --- ближайшая выплата
+    if (d.upcoming) {
+        const u = d.upcoming;
+        const box1 = mk('div', 'upcoming');
+        box1.append(mk('h4', null, `Ближайшая выплата${u.manual ? ' (внесена вручную)' : ''}`));
+        box1.append(rowEl('Закрытие реестра', `${humanDate(u.date)} (через ${daysUntil(u.date)} дн.)`));
+        box1.append(rowEl('Размер', `${nf(2).format(u.value)} ₽`));
+        if (price) box1.append(rowEl('Доходность к текущей цене', formatPct1((u.value / price) * 100), 'pos'));
+        if (u.note) box1.append(rowEl('Заметка', u.note));
+        parts.push(box1);
+        if (d.future.length > 1) {
+            d.future.slice(1, 4).forEach(r => parts.push(rowEl(`Далее: ${humanDate(r.date)}`, `${nf(2).format(r.value)} ₽`)));
+        }
+    } else if (d.est) {
+        const box2 = mk('div', 'estimate');
+        box2.append(mk('h4', null, 'Ожидаемая выплата (оценка, не официально)'));
+        box2.append(rowEl('Ориентировочная дата', `≈ ${humanDate(d.est.date)} (через ${daysUntil(d.est.date)} дн.)`));
+        box2.append(rowEl('Ориентировочный размер', `${nf(2).format(d.est.value)} ₽ (как в прошлом году)`));
+        if (price) box2.append(rowEl('Доходность к текущей цене', `≈ ${formatPct1((d.est.value / price) * 100)}`));
+        box2.append(mk('div', 'note',
+            'Это не данные эмитента: дата и сумма взяты по прошлогодней выплате. В данных MOEX объявленных будущих дивидендов нет.'));
+        parts.push(box2);
+    } else {
+        parts.push(mk('div', 'note',
+            'Объявленных будущих дивидендов в данных MOEX нет, а по истории выплат оценить следующую нельзя. Если дивиденд объявлен, внесите его ниже.'));
+    }
+
+    // --- итоги
+    const sum = [mk('h4', null, 'Итоги')];
+    sum.push(rowEl('Текущая цена', price !== null ? `${formatPrice(price, stock ? stock.decimals : null)} ₽` : '—'));
+    sum.push(rowEl('Выплаты за 12 месяцев', d.ttm > 0 ? `${nf(2).format(d.ttm)} ₽ (${d.ttmCount} шт.)` : 'не было'));
+    sum.push(rowEl('Дивидендная доходность (12 мес.)', d.ttm > 0 ? formatPct1(d.yieldTtm) : '0 %', d.ttm > 0 ? 'pos' : ''));
+
+    const byYear = {};
+    d.past.filter(r => r.cur === 'SUR' || r.cur === 'RUB').forEach(r => {
+        const y = r.date.slice(0, 4);
+        byYear[y] = byYear[y] || { sum: 0, n: 0 };
+        byYear[y].sum += r.value;
+        byYear[y].n++;
+    });
+    const years = Object.keys(byYear).sort((a, b) => b.localeCompare(a));
+    const thisYear = moscowDateStr(new Date()).slice(0, 4);
+    const fullYears = years.filter(y => y < thisYear).slice(0, 3);
+    if (fullYears.length && price) {
+        const avg = fullYears.reduce((s, y) => s + byYear[y].sum, 0) / fullYears.length;
+        sum.push(rowEl(`Среднегодовая выплата (${fullYears.length} ${fullYears.length === 1 ? 'год' : 'года'})`,
+            `${nf(2).format(avg)} ₽ (≈ ${formatPct1((avg / price) * 100)} к цене)`));
+    }
+    let streak = 0;
+    for (let y = Number(thisYear); y >= Number(thisYear) - 30; y--) {
+        if (byYear[String(y)]) streak++;
+        else if (y === Number(thisYear)) continue;
+        else break;
+    }
+    if (streak) sum.push(rowEl('Лет подряд с выплатами', String(streak)));
+    parts.push(...sum);
+
+    // --- по годам
+    if (years.length) {
+        parts.push(mk('div', 'sub-h', 'По годам'));
+        years.slice(0, 10).forEach(y => {
+            const yy = byYear[y];
+            parts.push(rowEl(`${y} (${yy.n} шт.)`,
+                `${nf(2).format(yy.sum)} ₽${price ? ' · ' + formatPct1((yy.sum / price) * 100) : ''}`));
+        });
+        parts.push(mk('div', 'note', 'Доходность по годам посчитана к текущей цене, а не к цене на тот момент.'));
+    }
+
+    // --- все выплаты
+    if (d.past.length) {
+        parts.push(mk('div', 'sub-h', `Все выплаты (${d.past.length}), от новых к старым`));
+        d.past.slice(0, 40).forEach(r => {
+            const cur = r.cur === 'SUR' || r.cur === 'RUB' ? '₽' : r.cur;
+            const yld = price && (r.cur === 'SUR' || r.cur === 'RUB') ? ` · ${formatPct1((r.value / price) * 100)}` : '';
+            parts.push(rowEl(`${humanDate(r.date)}${r.manual ? ' (вручную)' : ''}`, `${nf(2).format(r.value)} ${cur}${yld}`));
+        });
+        if (d.past.length > 40) parts.push(mk('div', 'note', `Показаны 40 последних из ${d.past.length}.`));
+    }
+
+    // --- ручной ввод будущего дивиденда
+    const manual = manualDivs(ticker);
+    parts.push(mk('div', 'sub-h', 'Внести объявленный дивиденд'));
+    if (manual.length) {
+        manual.forEach((r, idx) => {
+            const line = rowEl(`${humanDate(r.date)}${r.note ? ' · ' + r.note : ''}`, `${nf(2).format(r.value)} ₽`);
+            const del = mk('button', 'btn', 'Удалить');
+            del.addEventListener('click', () => {
+                const arr = manualDivs(ticker);
+                arr.splice(idx, 1);
+                writeJson(`moexHeatmap.divmanual.${ticker}`, arr);
+                renderModalDivTab();
+                if (lastSnapshot) applySnapshot(lastSnapshot);
+            });
+            parts.push(line, del);
+        });
+    }
+    const form = mk('div', 'forecast-form');
+    const fDate = mk('input');
+    fDate.type = 'date';
+    const fVal = mk('input');
+    fVal.type = 'number';
+    fVal.step = 'any';
+    fVal.placeholder = 'Сумма, ₽';
+    const fNote = mk('input');
+    fNote.type = 'text';
+    fNote.placeholder = 'Заметка';
+    const add = mk('button', null, 'Добавить');
+    add.addEventListener('click', () => {
+        const v = parseFloat(String(fVal.value).replace(',', '.'));
+        if (!fDate.value || !Number.isFinite(v) || v <= 0) return;
+        const arr = manualDivs(ticker);
+        arr.push({ date: fDate.value, value: v, note: fNote.value || '' });
+        writeJson(`moexHeatmap.divmanual.${ticker}`, arr);
+        renderModalDivTab();
+        if (lastSnapshot) applySnapshot(lastSnapshot);
+    });
+    form.append(fDate, fVal, fNote, add);
+    parts.push(form);
+
+    // --- где смотреть объявленные
+    const mkLink = (text, href) => {
+        const a = mk('a', 'btn', text);
+        a.href = href;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        return a;
+    };
+    parts.push(mk('div', 'sub-h', 'Где смотреть объявленные и прогнозные дивиденды'));
+    parts.push(mkLink('Дивиденды на Доход.ру', `https://www.dohod.ru/ik/analytics/dividend/${encodeURIComponent(ticker.toLowerCase())}`));
+    parts.push(mkLink('Дивиденды на Smart-lab', `https://smart-lab.ru/q/${encodeURIComponent(ticker)}/dividend/`));
+    parts.push(mk('div', 'note',
+        'Открытые данные MOEX содержат закрытые реестры; ближайшие и прогнозные выплаты они, как правило, не включают. Ссылки на внешние сайты не проверялись автоматически.'));
+
+    box.replaceChildren(...parts);
+}
+
+/* Прогнозы аналитиков через бесплатный API недоступны — храним собственный прогноз пользователя. */
+function renderModalForecast() {
+    const box = document.getElementById('modalForecast');
+    if (!modalTicker) return;
+    const ticker = modalTicker;
+    const key = `moexHeatmap.forecast.${ticker}`;
+    const saved = readJson(key);
+    const item = modalItem();
+    const price = item ? currentPrice(item) : null;
+
+    const parts = [mk('h4', null, 'Прогноз цены (вручную)')];
+
+    if (saved && saved.target) {
+        const upside = price ? (saved.target / price - 1) * 100 : null;
+        parts.push(rowEl(`Целевая цена${saved.source ? ' · ' + saved.source : ''}`, `${nf(2).format(saved.target)} ₽`));
+        if (saved.date) parts.push(rowEl('Срок', humanDate(saved.date)));
+        if (upside !== null) parts.push(rowEl('Потенциал к текущей цене', formatChange(upside), signCls(upside)));
+    } else {
+        parts.push(mk('div', 'note',
+            'Целевые цены БКС и Т-Банка недоступны через открытый API, а страница работает без сервера. ' +
+            'Откройте прогнозы по ссылкам ниже и при желании внесите цель сюда — потенциал посчитается сам.'));
+    }
+
+    const form = mk('div', 'forecast-form');
+    const target = mk('input');
+    target.type = 'number';
+    target.step = 'any';
+    target.placeholder = 'Цель, ₽';
+    target.value = saved && saved.target ? String(saved.target) : '';
+    const date = mk('input');
+    date.type = 'date';
+    date.value = (saved && saved.date) || '';
+    const source = mk('select');
+    ['БКС', 'Т-Банк', 'Другое'].forEach(s => {
+        const o = mk('option', null, s);
+        o.value = s;
+        source.append(o);
+    });
+    source.value = (saved && saved.source) || 'БКС';
+    const save = mk('button', null, 'Сохранить');
+    save.addEventListener('click', () => {
+        const t = parseFloat(String(target.value).replace(',', '.'));
+        if (!Number.isFinite(t) || t <= 0) return;
+        writeJson(key, { target: t, date: date.value || null, source: source.value });
+        if (modalTicker === ticker) renderModalForecast();
+    });
+    const del = mk('button', null, 'Удалить');
+    del.addEventListener('click', () => {
+        try { localStorage.removeItem(key); } catch (_) { /* ignore */ }
+        if (modalTicker === ticker) renderModalForecast();
+    });
+    form.append(target, date, source, save, del);
+    parts.push(form);
+
+    box.replaceChildren(...parts);
+}
+
+function renderModalLinks() {
+    const box = document.getElementById('modalLinks');
+    if (!modalTicker) return;
+    const t = modalTicker;
+    const mkLink = (text, href, cls) => {
+        const a = mk('a', 'btn' + (cls ? ' ' + cls : ''), text);
+        a.href = href;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        return a;
+    };
+    box.replaceChildren(
+        mk('h4', null, 'Открыть и посмотреть прогнозы'),
+        mkLink('Карточка в БКС (вкладка «Прогнозы»)', bcsUrl(t), 'primary'),
+        mkLink('Т-Инвестиции', `https://www.tbank.ru/invest/stocks/${encodeURIComponent(t)}/`)
+    );
+}
+
+/* ---------- кандидаты на разворот ---------- */
+
+function monthsBetween(isoA, isoB) {
+    const [ya, ma] = String(isoA).slice(0, 7).split('-').map(Number);
+    const [yb, mb] = String(isoB).slice(0, 7).split('-').map(Number);
+    return (yb * 12 + mb) - (ya * 12 + ma);
+}
+
+/* Месячные свечи с марта 2022: сколько раз обновлялся минимум, когда был последний, средний дневной оборот. */
+async function analyzeMonthly(ticker) {
+    const today = moscowDateStr(new Date());
+    const url =
+        `${BOARD_PATH}/securities/${encodeURIComponent(ticker)}/candles.json` +
+        `?from=2022-03-01&till=${today}&interval=31&iss.meta=off&iss.only=candles` +
+        `&candles.columns=begin,high,low,close,value`;
+    const data = await fetchJson(url, { retries: 1, timeout: 20000 });
+    const c = data.candles;
+    if (!c || !Array.isArray(c.data)) return null;
+
+    const iB = c.columns.indexOf('begin');
+    const iL = c.columns.indexOf('low');
+    const iV = c.columns.indexOf('value');
+    const rows = c.data
+        .map(r => ({ begin: String(r[iB]).slice(0, 10), low: num(r[iL]), value: num(r[iV]) }))
+        .filter(r => r.low !== null && r.low > 0);
+    if (rows.length < 6) return null;
+
+    let runMin = rows[0].low;
+    let lowBegin = rows[0].begin;
+    let count = 0;
+    for (let i = 1; i < rows.length; i++) {
+        if (rows[i].low < runMin) {
+            runMin = rows[i].low;
+            lowBegin = rows[i].begin;
+            count++;
+        }
+    }
+
+    const curMonth = today.slice(0, 7);
+    const complete = rows.filter(r => r.begin.slice(0, 7) !== curMonth && r.value !== null).slice(-3);
+    const avgTurnover = complete.length ? complete.reduce((s, r) => s + r.value, 0) / (complete.length * 21) : null;
+
+    return { newLowMonths: count, absLow: runMin, lowBegin, avgTurnover };
+}
+
+async function loadReversal() {
+    if (revState.status === 'loading' || revState.status === 'done') return;
+    revState.status = 'loading';
+    revState.error = null;
+    renderReversal();
+
+    try {
+        const cached = readJson(REVERSAL.cacheKey);
+        if (cached && cached.analysis && Date.now() - cached.t < REVERSAL.ttl) {
+            revState.analysis = cached.analysis;
+            revState.status = 'done';
+            renderReversal();
+            return;
+        }
+
+        let baseMap = readJson(REVERSAL.baseKey);
+        if (!baseMap || !Object.keys(baseMap).length) {
+            const r = await fetchHistoryDay(REVERSAL.baseDate, 'CLOSE');
+            if (!r) throw new Error(`нет данных MOEX за ${humanDate(REVERSAL.baseDate)}`);
+            baseMap = r.map;
+            writeJson(REVERSAL.baseKey, baseMap);
+        }
+
+        const candidates = [];
+        allStocks.forEach(stock => {
+            const item = lastSnapshot && lastSnapshot.get(stock.ticker);
+            const base = baseMap[stock.ticker];
+            const price = item ? currentPrice(item) : null;
+            if (!base || !price) return;
+            const drop = (price / base - 1) * 100;
+            if (drop <= -REVERSAL.minDrop) candidates.push({ ticker: stock.ticker, drop, base });
+        });
+        candidates.sort((a, b) => a.drop - b.drop);
+        const list = candidates.slice(0, REVERSAL.maxCandidates);
+
+        revState.progress = { done: 0, total: list.length };
+        const analysis = {};
+        await runPool(list, async cand => {
+            try {
+                const a = await analyzeMonthly(cand.ticker);
+                if (a) analysis[cand.ticker] = { ...a, base: cand.base };
+            } catch (e) {
+                console.error(cand.ticker, e);
+            }
+            revState.progress.done++;
+            if (revState.progress.done % 5 === 0) renderReversal();
+        }, REVERSAL.concurrency);
+
+        revState.analysis = analysis;
+        writeJson(REVERSAL.cacheKey, { t: Date.now(), analysis });
+        revState.status = 'done';
+    } catch (e) {
+        console.error(e);
+        revState.status = 'error';
+        revState.error = e.message;
+    }
+    renderReversal();
+}
+
+function kickReversal() {
+    if (revState.scheduled || revState.status !== 'idle') return;
+    revState.scheduled = true;
+    setTimeout(loadReversal, 3000); // сначала основные данные, потом тяжёлый анализ
+}
+
+function renderReversal() {
+    if (!revEls) return;
+    const crit =
+        `Критерии: падение к цене на ${humanDate(REVERSAL.baseDate)} не меньше ${REVERSAL.minDrop} %, ` +
+        `новых минимумов с марта 2022 (по месяцам) не меньше ${REVERSAL.minNewLowMonths}, последний минимум не старше ${REVERSAL.maxMonthsSinceLow} мес., ` +
+        `средний дневной оборот не меньше ${formatMoney(REVERSAL.minAvgTurnover)}. ` +
+        'Это формальный отбор по цифрам, а не прогноз роста и не инвестсовет: падение может продолжиться.';
+
+    revEls.title.textContent = `Кандидаты на разворот: падение с ${humanDate(REVERSAL.baseDate)} и новые минимумы (по % падения)`;
+
+    if (revState.status === 'idle') {
+        revEls.note.textContent = 'Анализ начнётся после загрузки котировок...';
+        revEls.grid.replaceChildren();
+        return;
+    }
+    if (revState.status === 'loading') {
+        const p = revState.progress;
+        revEls.note.textContent = p.total ? `Анализ истории: ${p.done} / ${p.total}...` : 'Загрузка данных за 2022 год...';
+        revEls.grid.replaceChildren();
+        return;
+    }
+    if (revState.status === 'error') {
+        revEls.note.textContent = `Не удалось выполнить анализ: ${revState.error}. Нажмите «Обновить».`;
+        revEls.grid.replaceChildren();
+        return;
+    }
+
+    const today = moscowDateStr(new Date());
+    const rows = [];
+    allStocks.forEach(stock => {
+        const a = revState.analysis && revState.analysis[stock.ticker];
+        const item = lastSnapshot && lastSnapshot.get(stock.ticker);
+        if (!a || !item) return;
+        const price = currentPrice(item);
+        if (!price || !a.base) return;
+        const drop = (price / a.base - 1) * 100;
+        if (drop > -REVERSAL.minDrop) return;
+        if (a.newLowMonths < REVERSAL.minNewLowMonths) return;
+        if (monthsBetween(a.lowBegin, today) > REVERSAL.maxMonthsSinceLow) return;
+        if (a.avgTurnover === null || a.avgTurnover < REVERSAL.minAvgTurnover) return;
+        rows.push({ stock, a, price, drop });
+    });
+    rows.sort((x, y) => x.drop - y.drop); // самые большие падения — первыми
+
+    revEls.note.textContent = (rows.length ? `Найдено: ${rows.length}. ` : 'Сейчас под критерии никто не подходит. ') + crit;
+
+    revEls.grid.replaceChildren(...rows.map(({ stock, a, price, drop }) => {
+        const c = createCard(stock);
+        c.price.textContent = formatPrice(price, stock.decimals);
+        c.change.textContent = formatChange(drop);
+        c.delta.textContent = `мин. ×${a.newLowMonths}`;
+        c.card.className = 'card ' + getBgClass(drop, 'month');
+        c.card.title = `Падение к ${humanDate(REVERSAL.baseDate)}: ${formatChange(drop)}; ` +
+            `новых минимумов (мес.): ${a.newLowMonths}; средний дневной оборот ≈ ${formatMoney(a.avgTurnover)}`;
+        return c.card;
+    }));
+}
+
+/* ---------- debug ---------- */
+
+function setDebugText(text) {
+    const box = document.getElementById('debugInfo');
+    if (!box) return;
+    box.hidden = !DEBUG;
+    if (DEBUG) box.textContent = text;
+}
+
+async function loadDebugRows() {
+    if (!DEBUG || currentPeriod === 'day') {
+        debugRows = null;
+        debugRowsKey = null;
+        return;
+    }
+    const today = moscowDateStr(new Date());
+    const key = `${currentPeriod}:${today}`;
+    if (debugRowsKey === key) return;
+    debugRowsKey = key;
+
+    const target = currentPeriod === 'month'
+        ? shiftDateStr(today, { months: -1 })
+        : shiftDateStr(today, { days: -7 });
+    const from = shiftDateStr(target, { days: -7 });
+    const till = shiftDateStr(target, { days: 2 });
+
+    try {
+        const url =
+            `${HISTORY_PATH}/securities/${encodeURIComponent(DEBUG_TICKER)}.json` +
+            `?from=${from}&till=${till}&iss.meta=off&iss.only=history` +
+            `&history.columns=TRADEDATE,OPEN,CLOSE,LEGALCLOSEPRICE,WAPRICE`;
+        const data = await fetchJson(url, { retries: 1 });
+        const h = data.history;
+        debugRows = (h && h.data ? h.data : []).map(r => ({
+            date: r[0], OPEN: num(r[1]), CLOSE: num(r[2]), LEGAL: num(r[3]), WAP: num(r[4])
+        }));
+        debugRows.target = target;
+    } catch (e) {
+        debugRows = null;
+        debugRowsKey = null;
+        console.error(e);
+    }
+}
+
+function debugResult(snapshot) {
+    if (!DEBUG) return;
+
+    const item = snapshot.get(DEBUG_TICKER);
+    if (!item) {
+        setDebugText(`DEBUG ${DEBUG_TICKER}: бумага не найдена в snapshot`);
+        return;
+    }
+
+    const result = computeFor(item, currentPeriod);
+    const basis = bases[currentPeriod] || {};
+    const lines = [
+        `DEBUG ${DEBUG_TICKER} · ${currentPeriod} · ${VERSION}`,
+        `CURRENT: ${result.price ?? '—'}`,
+        `BASE:    ${result.base ?? '—'}`,
+        `DELTA:   ${result.delta ?? '—'}`,
+        `PCT:     ${result.change == null ? '—' : result.change.toFixed(6) + ' %'}`
+    ];
+
+    if (currentPeriod === 'day') {
+        lines.push(`PREVPRICE: ${item.prevPrice ?? '—'}`);
+        lines.push(`PREVLEGALCLOSEPRICE: ${item.prevLegal ?? '—'}`);
+        lines.push('', 'DAY = (CURRENT − PREVPRICE) / PREVPRICE × 100');
+    } else {
+        lines.push(`BASIS DATE: ${basis.date ? humanDate(basis.date) : '—'}`);
+        lines.push(`BASIS TYPE: ${(basis.kinds && basis.kinds[DEBUG_TICKER]) || basis.kind || '—'}`);
+        lines.push('');
+        lines.push(currentPeriod === 'month'
+            ? `MONTH = (CURRENT − WAPRICE[${basis.date || '—'}]) / WAPRICE × 100`
+            : `WEEK = (CURRENT − CLOSE[${basis.date || '—'}]) / CLOSE × 100`);
+
+        const price = result.price;
+        const implied = Number.isFinite(DEBUG_BCS) && price ? price / (1 + DEBUG_BCS / 100) : null;
+        if (implied) lines.push('', `БАЗА БКС для ${DEBUG_BCS}% ≈ ${implied.toFixed(implied < 10 ? 5 : 2)}`);
+
+        if (debugRows && debugRows.length) {
+            lines.push('', `ИСТОРИЯ ${DEBUG_TICKER} (цель ${humanDate(debugRows.target)}):`);
+            debugRows.forEach(r => {
+                const marks = [];
+                if (implied) {
+                    ['OPEN', 'CLOSE', 'LEGAL', 'WAP'].forEach(f => {
+                        if (r[f] && Math.abs(r[f] / implied - 1) < 0.002) marks.push(f);
+                    });
+                }
+                lines.push(
+                    `${r.date} O ${r.OPEN ?? '—'} C ${r.CLOSE ?? '—'} ` +
+                    `L ${r.LEGAL ?? '—'} W ${r.WAP ?? '—'}` +
+                    (marks.length ? `  <== ≈БКС (${marks.join(',')})` : '')
+                );
+            });
+        }
+    }
+
+    setDebugText(lines.join('\n'));
+}
+
+/* ---------- quotes ---------- */
+
+function applySnapshot(snapshot) {
+    lastSnapshot = snapshot;
+    let updated = 0;
+
+    allStocks.forEach(stock => {
+        const item = snapshot.get(stock.ticker);
+        if (!item) return;
+
+        const result = computeFor(item, currentPeriod);
+        if (result.price === null) return;
+
+        updateCard(stock, result);
+        if (result.change !== null) updated++;
+    });
+
+    sortCards();
+    debugResult(snapshot);
+
+    EXTREME_BLOCKS.forEach(cfg => renderExtremeBlock(cfg, snapshot));
+    renderTopTurnover(snapshot);
+    renderSummary(snapshot);
+    applyDivMetric();
+    renderReversal();
+    if (modalTicker) renderModalLive();
+
+    kickBackgroundBases();
+    kickReversal();
+    return updated;
+}
+
+function okStatusText(updated) {
+    let text = `Обновлено ${updated} акций в ${new Date().toLocaleTimeString('ru-RU')} ` +
+        `(MOEX, задержка ~15 мин) · ${VERSION}`;
+    const b = bases[currentPeriod];
+    if (currentPeriod === 'month' && b) {
+        text += `. Месяц: WAPRICE за ${humanDate(b.date)}`;
+    } else if (currentPeriod === 'week' && b) {
+        text += `. База: закрытие ${humanDate(b.date)}`;
+    }
+    return text;
+}
+
+async function fetchQuotes(force = false) {
+    if (!isInitialized) return;
+
+    const now = Date.now();
+    if (!force && now - lastRequestTime < MIN_REQUEST_GAP) return;
+
+    const token = periodToken;
+    if (activeToken === token) return;
+
+    activeToken = token;
+    lastRequestTime = now;
+
+    try {
+        setStatus('loading', 'Обновление...');
+
+        if (currentPeriod !== 'day' && !basisFresh(currentPeriod) && canTryBasis(currentPeriod, force)) {
+            setStatus('loading', 'Загрузка исторической базы...');
+            await ensureBasis(currentPeriod);
+            if (token !== periodToken) return;
+        }
+
+        const [snapshot, index] = await Promise.all([fetchSnapshot(), fetchIndex().catch(() => null)]);
+        if (token !== periodToken) return;
+
+        imoex = index;
+        saveSnapshotCache(snapshot);
+        const updated = applySnapshot(snapshot);
+
+        if (DEBUG && currentPeriod !== 'day') {
+            loadDebugRows().then(() => {
+                if (token === periodToken) debugResult(snapshot);
+            });
+        }
+
+        if (currentPeriod !== 'day' && !basisFresh(currentPeriod)) {
+            setStatus('error', 'Не удалось загрузить историю — показаны только цены. Нажмите «Обновить».');
+        } else {
+            setStatus('ok', okStatusText(updated));
+        }
+    } catch (err) {
+        console.error(err);
+        if (token === periodToken) {
+            setStatus('error', `Ошибка загрузки котировок: ${err.message}`);
+        }
+    } finally {
+        if (activeToken === token) activeToken = null;
+    }
+}
+
+/* ---------- timer ---------- */
+
+function startTimer() {
+    stopTimer();
+    updateTimer = setInterval(() => fetchQuotes(), REQUEST_INTERVAL);
+}
+
+function stopTimer() {
+    if (updateTimer) clearInterval(updateTimer);
+    updateTimer = null;
+}
+
+/* ---------- start ---------- */
+
+async function start() {
+    if (isStarting || isInitialized) return;
+    isStarting = true;
+    clearTimeout(retryTimer);
+
+    const stopProgress = showProgress('Загрузка списка акций');
+    let snapshot = null;
+    let cacheTime = null;
+    let netErr = null;
+
+    try {
+        snapshot = await fetchSnapshot();
+        saveSnapshotCache(snapshot);
+    } catch (err) {
+        console.error(err);
+        netErr = err;
+        const cached = loadSnapshotCache();
+        if (cached) {
+            snapshot = cached.snapshot;
+            cacheTime = cached.time;
+        }
+    } finally {
+        stopProgress();
+    }
+
+    const stocks = [];
+    if (snapshot) {
+        snapshot.forEach(item => {
+            if (!isValidStock(item.name, item.sectype)) return;
+            if (currentPrice(item) === null) return;
+            stocks.push({ ticker: item.ticker, name: item.name, decimals: item.decimals });
+        });
+        stocks.sort((a, b) => a.ticker.localeCompare(b.ticker));
+        if (!stocks.length && !netErr) netErr = new Error('фильтр не пропустил ни одной акции');
+    }
+
+    if (!stocks.length) {
+        setStatus('error',
+            `Ошибка загрузки: ${netErr ? netErr.message : 'нет данных'}. ` +
+            `Повтор через ${START_RETRY_DELAY / 1000} с или нажмите «Обновить».`);
+        isStarting = false;
+        retryTimer = setTimeout(start, START_RETRY_DELAY);
+        return;
+    }
+
+    allStocks = stocks;
+    Object.keys(cardEls).forEach(k => delete cardEls[k]);
+    allStocks.forEach(s => { stockByTicker[s.ticker] = s; });
+
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    allStocks.forEach(stock => renderCard(grid, stock));
+    applySearch();
+
+    isInitialized = true;
+    isStarting = false;
+
+    const updated = applySnapshot(snapshot);
+    fetchIndex().then(i => { imoex = i; if (lastSnapshot) renderSummary(lastSnapshot); }).catch(() => {});
+
+    if (cacheTime) {
+        const t = new Date(cacheTime).toLocaleString('ru-RU');
+        setStatus('warn', `MOEX недоступен (${netErr.message}). Показаны данные из кэша от ${t}. Идёт повтор...`);
+    } else if (currentPeriod === 'day') {
+        setStatus('ok', okStatusText(updated));
+    } else {
+        fetchQuotes(true); // период успели сменить во время первой загрузки
+    }
+
+    startTimer();
+}
+
+/* ---------- events ---------- */
+
+document.getElementById('bondsLink').href = BONDS_PAGE;
+
+document.getElementById('periodSelect').addEventListener('change', e => {
+    currentPeriod = e.target.value;
+    periodToken++;
+    basisFailedAt.week = 0;
+    basisFailedAt.month = 0;
+
+    allStocks.forEach(stock => resetCard(stock.ticker));
+    fetchQuotes(true);
+});
+
+document.getElementById('refreshBtn').addEventListener('click', () => {
+    if (!isInitialized) {
+        start();
+        return;
+    }
+    basisFailedAt.week = 0;
+    basisFailedAt.month = 0;
+    if (revState.status === 'error') {
+        revState.status = 'idle';
+        revState.scheduled = false;
+    }
+    fetchQuotes(true);
+});
+
+document.getElementById('divDateBtn').addEventListener('click', () => setSortMode('divDate'));
+document.getElementById('divYieldBtn').addEventListener('click', () => setSortMode('divYield'));
+document.getElementById('tabSummary').addEventListener('click', () => setModalTab('summary'));
+document.getElementById('tabDiv').addEventListener('click', () => setModalTab('div'));
+document.getElementById('logoutLink').addEventListener('click', e => {
+    e.preventDefault();
+    try { sessionStorage.removeItem('mx_k'); } catch (_) { /* ignore */ }
+    location.reload();
+});
+
+document.getElementById('searchInput').addEventListener('input', e => {
+    searchQuery = String(e.target.value || '').trim().toLowerCase();
+    applySearch();
+});
+
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal')) closeModal();
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && modalTicker) closeModal();
+});
+
+/* Не долбим MOEX из фоновой вкладки; при возврате сразу обновляемся. */
+document.addEventListener('visibilitychange', () => {
+    if (!isInitialized) return;
+    if (document.hidden) {
+        stopTimer();
+    } else {
+        fetchQuotes(true);
+        startTimer();
+    }
+});
+
+initBlocks();
+start();
+</script>
+</body>
+</html>
