@@ -55,6 +55,7 @@
             font-size: 11px;
             line-height: 1.35;
         }
+        .block-title { font-size: 14px; font-weight: bold; color: #333; margin: 14px 0 6px; }
         .grid {
             display: grid;
             grid-template-columns: repeat(6, 1fr);
@@ -145,14 +146,17 @@
         <span id="status" class="status">Загрузка данных...</span>
     </div>
     <div id="debugInfo" class="debug" hidden></div>
+    <div class="block-title">От роста к падению</div>
     <div class="grid" id="grid"></div>
+    <div class="block-title">От падения к росту</div>
+    <div class="grid" id="gridReverse"></div>
 </div>
 
 <script>
 'use strict';
 
 /*
- * MOEX Heatmap v14
+ * MOEX Heatmap v15
  *
  * Принцип: цена, ₽-дельта и % всегда считаются от ОДНОЙ И ТОЙ ЖЕ базовой цены.
  *
@@ -167,7 +171,7 @@
  *                                    (OPEN/CLOSE/LEGAL/WAP) даёт базу БКС.
  */
 
-const VERSION = 'v14';
+const VERSION = 'v15';
 
 const MOEX_ISS = 'https://iss.moex.com/iss';
 const BOARD = 'TQBR';
@@ -432,46 +436,61 @@ function renderCard(container, stock) {
     });
     container.appendChild(card);
 
-    cardEls[stock.ticker] = { card, price: priceEl, change: changeEl, delta: deltaEl };
+    (cardEls[stock.ticker] ||= []).push({ card, price: priceEl, change: changeEl, delta: deltaEl });
 }
 
 function updateCard(stock, result) {
-    const els = cardEls[stock.ticker];
-    if (!els) return;
+    const list = cardEls[stock.ticker];
+    if (!list) return;
 
-    els.price.textContent = formatPrice(result.price, stock.decimals);
-    els.change.textContent = formatChange(result.change);
-    els.delta.textContent = formatRubDelta(result.delta, stock.decimals, result.price);
-    els.card.className = 'card ' + getBgClass(result.change);
+    const price = formatPrice(result.price, stock.decimals);
+    const change = formatChange(result.change);
+    const delta = formatRubDelta(result.delta, stock.decimals, result.price);
+    const cls = 'card ' + getBgClass(result.change);
+
+    list.forEach(els => {
+        els.price.textContent = price;
+        els.change.textContent = change;
+        els.delta.textContent = delta;
+        els.card.className = cls;
+    });
 
     currentChanges[stock.ticker] = result.change;
 }
 
 function resetCard(ticker) {
-    const els = cardEls[ticker];
-    if (!els) return;
+    const list = cardEls[ticker];
+    if (!list) return;
 
-    els.change.textContent = '—';
-    els.delta.textContent = '—';
-    els.card.className = 'card bg-neutral';
+    list.forEach(els => {
+        els.change.textContent = '—';
+        els.delta.textContent = '—';
+        els.card.className = 'card bg-neutral';
+    });
     currentChanges[ticker] = null;
 }
 
+/* Два блока: [0] — от роста к падению, [1] — от падения к росту. Карточки без данных всегда в конце. */
 function sortCards() {
-    const val = c => (c == null || isNaN(c) ? -Infinity : c);
+    const valid = c => c != null && !isNaN(c);
     const entries = allStocks.map(s => ({ ticker: s.ticker, change: currentChanges[s.ticker] }));
 
-    entries.sort((a, b) => {
-        const av = val(a.change);
-        const bv = val(b.change);
-        if (av === bv) return 0; // два «−∞» не должны давать NaN
-        return bv > av ? 1 : -1;
+    const order = dir => (a, b) => {
+        const av = valid(a.change);
+        const bv = valid(b.change);
+        if (!av && !bv) return 0;
+        if (!av) return 1;
+        if (!bv) return -1;
+        return dir * (b.change - a.change);
+    };
+
+    const setOrder = (list, gridIndex) => list.forEach((entry, index) => {
+        const els = cardEls[entry.ticker];
+        if (els && els[gridIndex]) els[gridIndex].card.style.order = index;
     });
 
-    entries.forEach((entry, index) => {
-        const els = cardEls[entry.ticker];
-        if (els) els.card.style.order = index;
-    });
+    setOrder([...entries].sort(order(1)), 0);   // по убыванию
+    setOrder([...entries].sort(order(-1)), 1);  // по возрастанию
 }
 
 /* ---------- snapshot ---------- */
@@ -936,9 +955,12 @@ async function start() {
     }
 
     allStocks = stocks;
-    const grid = document.getElementById('grid');
-    grid.innerHTML = '';
-    allStocks.forEach(stock => renderCard(grid, stock));
+    Object.keys(cardEls).forEach(k => delete cardEls[k]);
+    ['grid', 'gridReverse'].forEach(id => {
+        const container = document.getElementById(id);
+        container.innerHTML = '';
+        allStocks.forEach(stock => renderCard(container, stock));
+    });
 
     isInitialized = true;
     isStarting = false;
