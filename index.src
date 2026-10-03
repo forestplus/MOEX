@@ -172,6 +172,35 @@
         .btn { display: inline-block; text-decoration: none; color: #1565c0; cursor: pointer; margin: 4px 6px 0 0; }
         .btn.primary { background: #1565c0; color: #fff; border-color: #1565c0; }
 
+        /* ---- свечной график ---- */
+        .cp { margin-top: 6px; background: #fff; }
+        .cp-head, .cp-tools { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+        .cp-btn {
+            padding: 5px 9px; border: 1px solid #ccc; border-radius: 6px; background: #fff;
+            font-size: 13px; cursor: pointer; color: #333; min-width: 34px;
+        }
+        .cp-btn.active { background: #1565c0; border-color: #1565c0; color: #fff; }
+        .cp-stage { position: relative; width: 100%; height: 300px; background: #fff; border: 1px solid #e5e5e5; border-radius: 6px; overflow: hidden; }
+        .cp-canvas { display: block; width: 100%; height: 100%; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+        .cp-tip {
+            position: absolute; top: 8px; z-index: 5; width: 172px; padding: 6px 8px; pointer-events: none;
+            background: rgba(255,255,255,.86); border: 1px solid rgba(0,0,0,.18); border-radius: 6px;
+            font-size: 11px; line-height: 1.45; color: #222; box-shadow: 0 2px 8px rgba(0,0,0,.12);
+        }
+        .cp-tip[hidden] { display: none; }
+        .cp-tip b { display: block; margin-bottom: 2px; }
+        .cp-tip .r { display: flex; justify-content: space-between; gap: 8px; }
+        .cp-tip .up { color: #2e7d32; font-weight: bold; }
+        .cp-tip .down { color: #c62828; font-weight: bold; }
+        .cp.cp-full {
+            position: fixed; inset: 0; z-index: 300; margin: 0; padding: 10px; display: flex; flex-direction: column;
+        }
+        .cp.cp-full .cp-stage { flex: 1; height: auto; min-height: 0; }
+
+        table.dt { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+        table.dt th { text-align: right; color: #555; font-weight: bold; padding: 4px 3px; border-bottom: 1px solid #ddd; }
+        table.dt th:first-child, table.dt td:first-child { text-align: left; }
+        table.dt td { text-align: right; padding: 4px 3px; border-bottom: 1px solid #f0f0f0; font-variant-numeric: tabular-nums; }
         @media (max-width: 1000px) { .grid { grid-template-columns: repeat(4, 1fr); } }
         @media (max-width: 768px) {
             body { padding: 8px; }
@@ -190,6 +219,7 @@
     <div class="nav">
         <a href="#" class="active">Акции</a>
         <a href="bonds.html" id="bondsLink">Облигации</a>
+        <a href="news.html" id="newsLink">Новости</a>
         <a href="#" id="logoutLink" class="logout">Выйти</a>
     </div>
     <div class="header">
@@ -234,6 +264,7 @@
         <div id="paneDiv" hidden>
             <div class="sec" id="modalDivTab"></div>
         </div>
+        <div class="sec" id="modalChart"></div>
     </div>
 </div>
 
@@ -241,7 +272,7 @@
 'use strict';
 
 /*
- * MOEX Heatmap v19 (акции)
+ * MOEX Heatmap v20 (акции)
  *
  *  • Главная сетка: выбранный период (день / неделя / месяц), все акции TQBR.
  *  • Нули (0,00 %) уходят в конец списка.
@@ -251,8 +282,9 @@
  *  • Отладка:  ?debug=OZON  или  ?debug=OZON&bcs=34.22
  */
 
-const VERSION = 'v19';
+const VERSION = 'v20';
 const BONDS_PAGE = 'bonds.html';
+const NEWS_PAGE = 'news.html';
 
 const MOEX_ISS = 'https://iss.moex.com/iss';
 const BOARD = 'TQBR';
@@ -338,6 +370,7 @@ let divAllLoaded = false;
 let divAllPromise = null;
 const divProgress = { done: 0, total: 0 };
 let modalTab = 'summary';
+let chartPanel = null;
 let revEls = null;
 const revState = { status: 'idle', scheduled: false, analysis: null, progress: { done: 0, total: 0 }, error: null };
 
@@ -693,7 +726,7 @@ async function fetchSnapshot() {
         throw new Error('MOEX вернул пустые котировки');
     }
 
-    const idx = cols => Object.fromEntries(cols.map((c, i) => [c, i]));
+    const idx = cols => Object.fromEntries(cols.map((c, i) => [String(c).toUpperCase(), i]));
     const si = idx(sec.columns);
     const mi = idx(md.columns);
 
@@ -746,10 +779,10 @@ async function fetchIndex() {
     );
     const md = data.marketdata;
     if (!md || !Array.isArray(md.data) || !md.data.length) return null;
-    const col = name => md.columns.indexOf(name);
-    const row = md.data.find(r => r[col('SECID')] === 'IMOEX') || md.data[0];
-    const value = num(row[col('CURRENTVALUE')]) ?? num(row[col('LASTVALUE')]);
-    const pct = num(row[col('LASTCHANGEPRC')]);
+    const ix = name => col(md.columns, name);
+    const row = md.data.find(r => r[ix('SECID')] === 'IMOEX') || md.data[0];
+    const value = num(row[ix('CURRENTVALUE')]) ?? num(row[ix('LASTVALUE')]);
+    const pct = num(row[ix('LASTCHANGEPRC')]);
     return value === null ? null : { value, pct };
 }
 
@@ -815,10 +848,10 @@ async function fetchHistoryDay(dateStr, preferredField = 'CLOSE') {
         const h = data.history;
         if (!h || !Array.isArray(h.data)) return 0;
 
-        const iSec = h.columns.indexOf('SECID');
-        const iClose = h.columns.indexOf('CLOSE');
-        const iLegal = h.columns.indexOf('LEGALCLOSEPRICE');
-        const iWap = h.columns.indexOf('WAPRICE');
+        const iSec = col(h.columns, 'SECID');
+        const iClose = col(h.columns, 'CLOSE');
+        const iLegal = col(h.columns, 'LEGALCLOSEPRICE');
+        const iWap = col(h.columns, 'WAPRICE');
 
         h.data.forEach(row => {
             const secid = row[iSec];
@@ -853,8 +886,8 @@ async function fetchHistoryDay(dateStr, preferredField = 'CLOSE') {
     const cursor = first['history.cursor'];
     if (cursor && cursor.data && cursor.data.length) {
         const ci = cursor.columns;
-        const total = num(cursor.data[0][ci.indexOf('TOTAL')]) || rowsOnFirst;
-        const pageSize = num(cursor.data[0][ci.indexOf('PAGESIZE')]) || rowsOnFirst;
+        const total = num(cursor.data[0][col(ci, 'TOTAL')]) || rowsOnFirst;
+        const pageSize = num(cursor.data[0][col(ci, 'PAGESIZE')]) || rowsOnFirst;
         const pages = [];
         for (let start = pageSize; start < total; start += pageSize) {
             pages.push(fetchJson(pageUrl(start)));
@@ -1079,6 +1112,627 @@ function renderSummary(snapshot) {
     box.replaceChildren(...lines);
 }
 
+/* ====== СВЕЧНОЙ ГРАФИК (общий код акций и облигаций) ====== */
+
+/* Поиск колонки без учёта регистра: MOEX отдаёт имена то строчными, то заглавными. */
+function col(columns, name) {
+    const n = String(name).toLowerCase();
+    return (columns || []).findIndex(c => String(c).toLowerCase() === n);
+}
+
+/* ISS умеет свечи 1 / 10 / 60 мин, день, неделя, месяц. 5 и 15 минут собираем из минутных. */
+const CHART_TF = [
+    { key: '1m',  label: '1м',      kind: 'intra',  agg: 1,  days: 1 },
+    { key: '5m',  label: '5м',      kind: 'intra',  agg: 5,  days: 2 },
+    { key: '15m', label: '15м',     kind: 'intra',  agg: 15, days: 3 },
+    { key: '1h',  label: '1ч',      kind: 'native', interval: 60 },
+    { key: '1d',  label: 'День',    kind: 'native', interval: 24 },
+    { key: '1w',  label: 'Неделя',  kind: 'native', interval: 7 },
+    { key: '1M',  label: 'Месяц',   kind: 'native', interval: 31 }
+];
+const CHART_TF_MAP = Object.fromEntries(CHART_TF.map(t => [t.key, t]));
+const CHART_DEFAULT_VISIBLE = { '1m': 120, '5m': 90, '15m': 80, '1h': 80, '1d': 90, '1w': 104, '1M': 60 };
+const tradesCache = {};
+
+async function fetchCandlePages(base, query) {
+    const out = [];
+    let start = 0;
+    for (let page = 0; page < 14; page++) {
+        const url = `${base}/candles.json?${query}&start=${start}&iss.meta=off&iss.only=candles` +
+            `&candles.columns=begin,open,close,high,low,value,volume`;
+        const data = await fetchJson(url, { retries: 2, timeout: 20000 });
+        const c = data.candles;
+        if (!c || !Array.isArray(c.data)) break;
+        const iB = col(c.columns, 'begin');
+        const iO = col(c.columns, 'open');
+        const iC = col(c.columns, 'close');
+        const iH = col(c.columns, 'high');
+        const iL = col(c.columns, 'low');
+        const iV = col(c.columns, 'volume');
+        const iVal = col(c.columns, 'value');
+        c.data.forEach(r => {
+            const o = num(r[iO]);
+            const cl = num(r[iC]);
+            const h = num(r[iH]);
+            const l = num(r[iL]);
+            if (o === null || cl === null || h === null || l === null) return;
+            out.push({ t: String(r[iB]).replace('T', ' '), o, c: cl, h, l, v: num(r[iV]), val: num(r[iVal]) });
+        });
+        if (c.data.length < 500) break; // ISS отдаёт максимум 500 свечей за запрос
+        start += c.data.length;
+    }
+    return out;
+}
+
+function aggregateCandles(rows, agg) {
+    const out = [];
+    let cur = null;
+    let curKey = null;
+    rows.forEach(r => {
+        const day = r.t.slice(0, 10);
+        const mins = Number(r.t.slice(11, 13)) * 60 + Number(r.t.slice(14, 16));
+        const bucket = Math.floor(mins / agg);
+        const key = `${day}#${bucket}`;
+        if (key !== curKey) {
+            const bm = bucket * agg;
+            const hh = String(Math.floor(bm / 60)).padStart(2, '0');
+            const mm = String(bm % 60).padStart(2, '0');
+            cur = { t: `${day} ${hh}:${mm}:00`, o: r.o, c: r.c, h: r.h, l: r.l, v: r.v || 0, val: r.val || 0 };
+            out.push(cur);
+            curKey = key;
+        } else {
+            cur.h = Math.max(cur.h, r.h);
+            cur.l = Math.min(cur.l, r.l);
+            cur.c = r.c;
+            cur.v += r.v || 0;
+            cur.val += r.val || 0;
+        }
+    });
+    return out;
+}
+
+async function loadChartData(cfg, tf) {
+    const today = moscowDateStr(new Date());
+    const enc = encodeURIComponent;
+
+    if (tf.kind === 'intra') {
+        const chunks = [];
+        let found = 0;
+        for (let i = 0; i < 10 && found < tf.days; i++) {
+            const d = shiftDateStr(today, { days: -i });
+            const rows = await fetchCandlePages(cfg.candlesBase,
+                `interval=1&from=${enc(d + ' 00:00:00')}&till=${enc(d + ' 23:59:59')}`);
+            if (rows.length) {
+                chunks.unshift(rows);
+                found++;
+            }
+        }
+        let rows = chunks.flat();
+        if (tf.agg > 1) rows = aggregateCandles(rows, tf.agg);
+        const what = tf.agg > 1 ? `Свечи ${tf.agg} мин собраны из минутных` : 'Минутные свечи';
+        return { candles: rows, note: `${what}: ${found} торг. дн. (последние). Время московское.` };
+    }
+
+    let from;
+    let span;
+    if (tf.key === '1h') { from = shiftDateStr(today, { days: -30 }); span = '30 дней'; }
+    else if (tf.key === '1d') { from = shiftDateStr(today, { months: -36 }); span = '3 года'; }
+    else if (tf.key === '1w') { from = shiftDateStr(today, { months: -120 }); span = '10 лет'; }
+    else { from = '1990-01-01'; span = 'вся история'; }
+
+    const rows = await fetchCandlePages(cfg.candlesBase,
+        `interval=${tf.interval}&from=${from}&till=${enc(today + ' 23:59:59')}`);
+    return { candles: rows, note: `Свечи MOEX (${span}). Время московское.` };
+}
+
+/* Число сделок ISS отдаёт только в дневных итогах — подтягиваем для дневных, недельных и месячных свечей (последние 2 года). */
+async function fetchTradesMap(cfg) {
+    if (tradesCache[cfg.historyBase]) return tradesCache[cfg.historyBase];
+
+    const from = shiftDateStr(moscowDateStr(new Date()), { months: -24 });
+    const url = start =>
+        `${cfg.historyBase}.json?iss.meta=off&iss.only=history,history.cursor` +
+        `&history.columns=TRADEDATE,NUMTRADES&from=${from}&start=${start}`;
+    const map = {};
+    const eat = data => {
+        const h = data.history;
+        if (!h || !Array.isArray(h.data)) return 0;
+        const iD = col(h.columns, 'TRADEDATE');
+        const iN = col(h.columns, 'NUMTRADES');
+        h.data.forEach(r => { const n = num(r[iN]); if (n !== null) map[String(r[iD]).slice(0, 10)] = n; });
+        return h.data.length;
+    };
+
+    const first = await fetchJson(url(0), { retries: 1 });
+    const n = eat(first);
+    const cur = first['history.cursor'];
+    let total = n;
+    let pageSize = n;
+    if (cur && cur.data && cur.data.length) {
+        total = num(cur.data[0][col(cur.columns, 'TOTAL')]) || n;
+        pageSize = num(cur.data[0][col(cur.columns, 'PAGESIZE')]) || n;
+    }
+    const starts = [];
+    for (let s = pageSize; pageSize > 0 && s < total; s += pageSize) starts.push(s);
+    for (let i = 0; i < starts.length; i += 6) {
+        const pages = await Promise.all(starts.slice(i, i + 6).map(s => fetchJson(url(s), { retries: 1 }).catch(() => null)));
+        pages.forEach(p => { if (p) eat(p); });
+    }
+    const res = { map, from };
+    tradesCache[cfg.historyBase] = res;
+    return res;
+}
+
+function chartDec(price, cfg) {
+    if (cfg && Number.isInteger(cfg.decimals)) return cfg.decimals;
+    const a = Math.abs(price);
+    return a < 1 ? 4 : a < 10 ? 3 : 2;
+}
+
+function formatVolume(v) {
+    if (v === null || v === undefined || isNaN(v)) return '—';
+    if (v >= 1e9) return nf(2).format(v / 1e9) + ' млрд';
+    if (v >= 1e6) return nf(2).format(v / 1e6) + ' млн';
+    return nf(0).format(v);
+}
+
+function chartTimeLabel(t, key, prevT) {
+    const day = t.slice(0, 10);
+    if (key === '1m' || key === '5m' || key === '15m') {
+        const hm = t.slice(11, 16);
+        return !prevT || prevT.slice(0, 10) !== day ? `${t.slice(8, 10)}.${t.slice(5, 7)} ${hm}` : hm;
+    }
+    if (key === '1h') return `${t.slice(8, 10)}.${t.slice(5, 7)} ${t.slice(11, 16)}`;
+    if (key === '1M') return `${t.slice(5, 7)}.${t.slice(0, 4)}`;
+    return `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(2, 4)}`;
+}
+
+function chartTipTitle(t, key) {
+    const d = `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}`;
+    if (key === '1m' || key === '5m' || key === '15m' || key === '1h') return `${d} ${t.slice(11, 16)}`;
+    if (key === '1w') return `Неделя с ${d}`;
+    if (key === '1M') return `Месяц ${t.slice(5, 7)}.${t.slice(0, 4)}`;
+    return d;
+}
+
+function createCandleChart(stage, cfg) {
+    const canvas = document.createElement('canvas');
+    canvas.className = 'cp-canvas';
+    const tip = mk('div', 'cp-tip');
+    tip.hidden = true;
+    stage.append(canvas, tip);
+
+    const M = { l: 6, r: 62, t: 10, b: 22 };
+    const UP = '#2e7d32';
+    const DOWN = '#c62828';
+    const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : f => setTimeout(f, 0);
+
+    let data = [];
+    let tfKey = '1d';
+    let visible = 80;
+    let end = 0;
+    let hover = -1;
+    let drag = null;
+    let pinch = null;
+    let pending = false;
+
+    function dims() {
+        const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
+        const w = stage.clientWidth || 320;
+        const h = stage.clientHeight || 280;
+        const pw = Math.round(w * dpr);
+        const ph = Math.round(h * dpr);
+        if (canvas.width !== pw || canvas.height !== ph) {
+            canvas.width = pw;
+            canvas.height = ph;
+        }
+        return { w, h, dpr };
+    }
+
+    function clampView() {
+        const n = data.length;
+        visible = Math.max(8, Math.min(visible, Math.max(n + 6, 16)));
+        const lo = visible - 4;
+        const hi = n + 4;
+        end = Math.min(Math.max(end, Math.min(lo, hi)), hi);
+    }
+
+    function schedule() {
+        if (pending) return;
+        pending = true;
+        raf(() => { pending = false; draw(); });
+    }
+
+    function geometry() {
+        const { w, h, dpr } = dims();
+        const volH = Math.round((h - M.t - M.b) * 0.2);
+        const priceH = h - M.t - M.b - volH - 6;
+        const plotW = w - M.l - M.r;
+        return { w, h, dpr, volH, priceH, plotW, bw: plotW / visible, start: end - visible };
+    }
+
+    function draw() {
+        const g = geometry();
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(g.dpr, 0, 0, g.dpr, 0, 0);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, g.w, g.h);
+
+        const n = data.length;
+        if (!n) {
+            ctx.fillStyle = '#888';
+            ctx.font = '13px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Нет данных для графика', g.w / 2, g.h / 2);
+            return;
+        }
+
+        const i0 = Math.max(0, Math.floor(g.start));
+        const i1 = Math.min(n - 1, Math.ceil(end) - 1);
+        let lo = Infinity;
+        let hi = -Infinity;
+        let vmax = 0;
+        for (let i = i0; i <= i1; i++) {
+            const d = data[i];
+            if (d.l < lo) lo = d.l;
+            if (d.h > hi) hi = d.h;
+            if (d.v > vmax) vmax = d.v;
+        }
+        if (!isFinite(lo) || !isFinite(hi)) return;
+        const pad = ((hi - lo) || Math.abs(hi) * 0.01 || 1) * 0.07;
+        lo -= pad;
+        hi += pad;
+
+        const py = p => M.t + ((hi - p) / (hi - lo)) * g.priceH;
+        const vy = v => M.t + g.priceH + 6 + g.volH - (vmax ? (v / vmax) * g.volH : 0);
+        const px = i => M.l + (i + 0.5 - g.start) * g.bw;
+        const dec = chartDec(data[Math.min(n - 1, i1)].c, cfg);
+
+        // сетка и подписи цены
+        ctx.font = '11px Arial';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.lineWidth = 1;
+        for (let k = 0; k <= 4; k++) {
+            const p = lo + ((hi - lo) * k) / 4;
+            const y = Math.round(py(p)) + 0.5;
+            ctx.strokeStyle = '#eee';
+            ctx.beginPath(); ctx.moveTo(M.l, y); ctx.lineTo(g.w - M.r, y); ctx.stroke();
+            ctx.fillStyle = '#666';
+            ctx.fillText(nf(dec).format(p), g.w - M.r + 4, y);
+        }
+
+        // свечи и объёмы
+        const body = Math.max(1, Math.min(g.bw * 0.72, 22));
+        for (let i = i0; i <= i1; i++) {
+            const d = data[i];
+            const x = px(i);
+            const up = d.c >= d.o;
+            ctx.strokeStyle = ctx.fillStyle = up ? UP : DOWN;
+            ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, py(d.h)); ctx.lineTo(Math.round(x) + 0.5, py(d.l)); ctx.stroke();
+            const y1 = py(Math.max(d.o, d.c));
+            const y2 = py(Math.min(d.o, d.c));
+            ctx.fillRect(x - body / 2, y1, body, Math.max(1, y2 - y1));
+            if (d.v) {
+                ctx.globalAlpha = 0.45;
+                ctx.fillRect(x - body / 2, vy(d.v), body, M.t + g.priceH + 6 + g.volH - vy(d.v));
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // ось времени
+        ctx.fillStyle = '#666';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        const step = Math.max(1, Math.ceil(84 / g.bw));
+        for (let i = i0 - (i0 % step); i <= i1; i += step) {
+            if (i < 0) continue;
+            const x = px(i);
+            if (x < M.l + 20 || x > g.w - M.r - 20) continue;
+            ctx.fillText(chartTimeLabel(data[i].t, tfKey, i > 0 ? data[i - 1].t : null), x, g.h - M.b + 5);
+        }
+
+        // перекрестие
+        if (hover >= 0 && hover < n) {
+            const d = data[hover];
+            const x = Math.round(px(hover)) + 0.5;
+            ctx.strokeStyle = 'rgba(0,0,0,.35)';
+            ctx.setLineDash([4, 3]);
+            ctx.beginPath(); ctx.moveTo(x, M.t); ctx.lineTo(x, g.h - M.b); ctx.stroke();
+            const y = Math.round(py(d.c)) + 0.5;
+            ctx.beginPath(); ctx.moveTo(M.l, y); ctx.lineTo(g.w - M.r, y); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = d.c >= d.o ? UP : DOWN;
+            ctx.fillRect(g.w - M.r, y - 8, M.r - 2, 16);
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(nf(dec).format(d.c), g.w - M.r + 3, y);
+        }
+    }
+
+    function showTip(i, xPix) {
+        if (i < 0 || i >= data.length) { tip.hidden = true; return; }
+        const d = data[i];
+        const dec = chartDec(d.c, cfg);
+        const ch = d.o ? ((d.c / d.o - 1) * 100) : null;
+        const line = (a, b, cls) => {
+            const r = mk('div', 'r');
+            r.append(mk('span', null, a), mk('span', cls || null, b));
+            return r;
+        };
+        const rows = [
+            mk('b', null, chartTipTitle(d.t, tfKey)),
+            line('Открытие', nf(dec).format(d.o)),
+            line('Закрытие', nf(dec).format(d.c), d.c >= d.o ? 'up' : 'down'),
+            line('Минимум', nf(dec).format(d.l)),
+            line('Максимум', nf(dec).format(d.h)),
+            line('Объём', d.v ? `${formatVolume(d.v)} шт.` : '—'),
+            line('Сделок', d.n !== undefined && d.n !== null ? nf(0).format(d.n) : '—')
+        ];
+        if (ch !== null) rows.push(line('Изменение', (ch >= 0 ? '+' : '−') + nf(2).format(Math.abs(ch)) + ' %', ch >= 0 ? 'up' : 'down'));
+        tip.replaceChildren(...rows);
+        const sw = stage.clientWidth || 320;
+        tip.style.left = (xPix > sw / 2 ? 8 : Math.max(8, sw - 180)) + 'px';
+        tip.hidden = false;
+    }
+
+    function idxAtX(xPix) {
+        const g = geometry();
+        return Math.floor(g.start + (xPix - M.l) / g.bw);
+    }
+
+    function relX(clientX) {
+        const r = canvas.getBoundingClientRect();
+        return clientX - r.left;
+    }
+
+    function zoomAt(factor, xPix) {
+        const g = geometry();
+        const frac = Math.max(0, Math.min(1, (xPix - M.l) / g.plotW));
+        const anchor = g.start + frac * visible;
+        visible = visible * factor;
+        const n = data.length;
+        visible = Math.max(8, Math.min(visible, Math.max(n + 6, 16)));
+        end = anchor - frac * visible + visible;
+        clampView();
+        schedule();
+    }
+
+    function panBy(dxPix) {
+        const g = geometry();
+        end -= dxPix / g.bw;
+        clampView();
+        schedule();
+    }
+
+    // мышь
+    canvas.addEventListener('mousemove', e => {
+        const x = relX(e.clientX);
+        if (drag && drag.mouse) {
+            panBy(x - drag.x);
+            drag.x = x;
+            drag.moved = true;
+            return;
+        }
+        hover = idxAtX(x);
+        showTip(hover, x);
+        schedule();
+    });
+    canvas.addEventListener('mouseleave', () => { hover = -1; tip.hidden = true; drag = null; schedule(); });
+    canvas.addEventListener('mousedown', e => { drag = { mouse: true, x: relX(e.clientX), moved: false }; });
+    canvas.addEventListener('mouseup', () => { drag = null; });
+    canvas.addEventListener('wheel', e => {
+        if (e.preventDefault) e.preventDefault();
+        zoomAt(e.deltaY < 0 ? 0.85 : 1 / 0.85, relX(e.clientX));
+    }, { passive: false });
+
+    // касания: один палец — сдвиг (горизонтально) или тап = подсказка; два пальца — масштаб
+    const dist = ts => Math.hypot(ts[0].clientX - ts[1].clientX, ts[0].clientY - ts[1].clientY);
+    canvas.addEventListener('touchstart', e => {
+        if (e.touches.length === 2) {
+            pinch = { d: dist(e.touches), v: visible };
+            drag = null;
+        } else if (e.touches.length === 1) {
+            const t = e.touches[0];
+            drag = { x: t.clientX, y: t.clientY, sx: t.clientX, sy: t.clientY, moved: false };
+        }
+    }, { passive: true });
+    canvas.addEventListener('touchmove', e => {
+        if (e.touches.length === 2 && pinch) {
+            const g = geometry();
+            const mid = relX((e.touches[0].clientX + e.touches[1].clientX) / 2);
+            const target = Math.max(8, pinch.v * (pinch.d / Math.max(1, dist(e.touches))));
+            zoomAt(target / visible, mid);
+            if (e.preventDefault) e.preventDefault();
+            return;
+        }
+        if (drag && e.touches.length === 1) {
+            const t = e.touches[0];
+            const dx = t.clientX - drag.x;
+            const horizontal = Math.abs(t.clientX - drag.sx) > Math.abs(t.clientY - drag.sy);
+            if (Math.abs(t.clientX - drag.sx) > 6 || Math.abs(t.clientY - drag.sy) > 6) drag.moved = true;
+            if (horizontal) {
+                panBy(dx);
+                tip.hidden = true;
+                hover = -1;
+                if (e.preventDefault) e.preventDefault();
+            }
+            drag.x = t.clientX;
+            drag.y = t.clientY;
+        }
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => {
+        if (drag && !drag.moved) {
+            const x = relX(drag.sx);
+            hover = idxAtX(x);
+            showTip(hover, x);
+            schedule();
+        }
+        drag = null;
+        pinch = null;
+    });
+
+    let ro = null;
+    const onResize = () => schedule();
+    if (typeof ResizeObserver !== 'undefined') {
+        ro = new ResizeObserver(onResize);
+        ro.observe(stage);
+    } else if (typeof window !== 'undefined' && window.addEventListener) {
+        window.addEventListener('resize', onResize);
+    }
+
+    return {
+        setData(candles, key) {
+            data = candles || [];
+            tfKey = key;
+            hover = -1;
+            tip.hidden = true;
+            visible = Math.min(Math.max(data.length, 10), CHART_DEFAULT_VISIBLE[key] || 80);
+            end = data.length + 2;
+            clampView();
+            schedule();
+        },
+        redraw: schedule,
+        zoom(factor) { zoomAt(factor, M.l + geometry().plotW / 2); },
+        reset() {
+            visible = Math.min(Math.max(data.length, 10), CHART_DEFAULT_VISIBLE[tfKey] || 80);
+            end = data.length + 2;
+            clampView();
+            schedule();
+        },
+        hoverAt(i) { hover = i; showTip(i, 0); schedule(); }, // для тестов и программного вызова
+        view() { return { visible, end, n: data.length }; },
+        destroy() {
+            if (ro) ro.disconnect();
+            else if (typeof window !== 'undefined' && window.removeEventListener) window.removeEventListener('resize', onResize);
+        }
+    };
+}
+
+/* Панель: кнопки таймфреймов, масштаб, полный экран, график, сноска. cfg: { candlesBase, historyBase, decimals } */
+function makeChartPanel(cfg) {
+    const root = mk('div', 'cp');
+    const head = mk('div', 'cp-head');
+    const tools = mk('div', 'cp-tools');
+    const stage = mk('div', 'cp-stage');
+    const note = mk('div', 'note', '');
+
+    const tfBtns = {};
+    CHART_TF.forEach(tf => {
+        const b = mk('button', 'cp-btn', tf.label);
+        b.addEventListener('click', () => select(tf.key));
+        tfBtns[tf.key] = b;
+        head.append(b);
+    });
+
+    const bMinus = mk('button', 'cp-btn', '−');
+    const bPlus = mk('button', 'cp-btn', '+');
+    const bReset = mk('button', 'cp-btn', '⟲');
+    const bFull = mk('button', 'cp-btn', '⛶');
+    bMinus.title = 'Уменьшить';
+    bPlus.title = 'Увеличить';
+    bReset.title = 'Сбросить масштаб';
+    bFull.title = 'На весь экран';
+    tools.append(bMinus, bPlus, bReset, bFull);
+    root.append(head, tools, stage, note);
+
+    const chart = createCandleChart(stage, cfg);
+    const cache = {};
+    let token = 0;
+    let full = false;
+    let destroyed = false;
+
+    bMinus.addEventListener('click', () => chart.zoom(1.3));
+    bPlus.addEventListener('click', () => chart.zoom(1 / 1.3));
+    bReset.addEventListener('click', () => chart.reset());
+
+    function setFull(on) {
+        full = on;
+        root.className = 'cp' + (on ? ' cp-full' : '');
+        bFull.textContent = on ? '✕' : '⛶';
+        bFull.title = on ? 'Свернуть' : 'На весь экран';
+        try {
+            if (on && root.requestFullscreen) root.requestFullscreen().catch(() => {});
+            else if (!on && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+        } catch (_) { /* на iPhone Fullscreen API нет — работает режим «поверх страницы» */ }
+        chart.redraw();
+    }
+    bFull.addEventListener('click', () => setFull(!full));
+
+    const onKey = e => {
+        if (e.key === 'Escape' && full) {
+            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+            setFull(false);
+        }
+    };
+    document.addEventListener('keydown', onKey, true);
+
+    async function attachTrades(key, candles) {
+        if (!cfg.historyBase || (key !== '1d' && key !== '1w' && key !== '1M')) return;
+        try {
+            const res = await fetchTradesMap(cfg);
+            if (destroyed || !res) return;
+            const dates = Object.keys(res.map).sort();
+            candles.forEach((c, i) => {
+                const d0 = c.t.slice(0, 10);
+                if (d0 < res.from) return;
+                if (key === '1d') {
+                    if (res.map[d0] !== undefined) c.n = res.map[d0];
+                    return;
+                }
+                const d1 = i + 1 < candles.length ? candles[i + 1].t.slice(0, 10) : '9999-12-31';
+                let sum = 0;
+                let any = false;
+                dates.forEach(d => { if (d >= d0 && d < d1) { sum += res.map[d]; any = true; } });
+                if (any) c.n = sum;
+            });
+            chart.redraw();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function select(key) {
+        Object.keys(tfBtns).forEach(k => { tfBtns[k].className = 'cp-btn' + (k === key ? ' active' : ''); });
+        const my = ++token;
+        note.textContent = 'Загрузка свечей...';
+        try {
+            let res = cache[key];
+            if (!res || Date.now() - res.t > 60000) {
+                res = await loadChartData(cfg, CHART_TF_MAP[key]);
+                res.t = Date.now();
+                cache[key] = res;
+            }
+            if (my !== token || destroyed) return;
+            chart.setData(res.candles, key);
+            note.textContent = res.candles.length
+                ? `${res.note} Свечей: ${res.candles.length}. Колесо / щипок — масштаб, перетаскивание — сдвиг, наведение или тап — подробности.` +
+                  (key === '1d' || key === '1w' || key === '1M' ? ' Число сделок — только за последние 2 года.' : ' Число сделок для этого таймфрейма MOEX не публикует.')
+                : 'Свечей за этот период нет (возможно, торги не проводились).';
+            attachTrades(key, res.candles);
+        } catch (e) {
+            console.error(e);
+            if (my === token) note.textContent = `Не удалось загрузить свечи: ${e.message}`;
+        }
+    }
+
+    select('1d');
+
+    return {
+        el: root,
+        select,
+        chart,
+        destroy() {
+            destroyed = true;
+            document.removeEventListener('keydown', onKey, true);
+            chart.destroy();
+            try { if (full && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); } catch (_) { /* ignore */ }
+        }
+    };
+}
+
+
 /* ---------- карточка бумаги ---------- */
 
 function modalItem() {
@@ -1110,6 +1764,7 @@ function openStock(ticker) {
     renderModalForecast();
     renderModalLinks();
 
+    mountChart(ticker);
     loadHistoryStats(ticker).then(() => { if (modalTicker === ticker) renderModalHist(); });
     loadDividends(ticker).then(() => {
         if (modalTicker === ticker) {
@@ -1127,7 +1782,24 @@ function setModalTab(tab) {
     document.getElementById('tabDiv').className = 'tab' + (tab === 'div' ? ' active' : '');
 }
 
+function mountChart(ticker) {
+    if (chartPanel) chartPanel.destroy();
+    const stock = stockByTicker[ticker];
+    const enc = encodeURIComponent(ticker);
+    chartPanel = makeChartPanel({
+        candlesBase: `${BOARD_PATH}/securities/${enc}`,
+        historyBase: `${HISTORY_PATH}/securities/${enc}`,
+        decimals: stock ? stock.decimals : null
+    });
+    document.getElementById('modalChart').replaceChildren(mk('h4', null, 'График (японские свечи)'), chartPanel.el);
+}
+
 function closeModal() {
+    if (chartPanel) {
+        chartPanel.destroy();
+        chartPanel = null;
+    }
+    document.getElementById('modalChart').replaceChildren();
     modalTicker = null;
     document.getElementById('modal').hidden = true;
     document.body.style.overflow = '';
@@ -1195,10 +1867,100 @@ function renderModalLive() {
     box.replaceChildren(...rows);
 }
 
+/* ---------- история цен: экстремумы ---------- */
+
+const splitsCache = {};
+
+/* Сплиты и консолидации: /statistics/engines/stock/splits/<тикер>. До сплита цены в истории MOEX — в старом масштабе. */
+async function loadSplits(ticker) {
+    if (splitsCache[ticker]) return splitsCache[ticker];
+    const key = `moexHeatmap.splits.${ticker}`;
+    const cached = readJson(key);
+    if (cached && Date.now() - cached.t < 24 * 3600 * 1000) {
+        splitsCache[ticker] = { list: cached.list, ok: true };
+        return splitsCache[ticker];
+    }
+
+    const list = [];
+    try {
+        const data = await fetchJson(`${MOEX_ISS}/statistics/engines/stock/splits/${encodeURIComponent(ticker)}.json?iss.meta=off`,
+            { retries: 1, timeout: 15000 });
+        Object.keys(data).forEach(k => {
+            const b = data[k];
+            if (!b || !Array.isArray(b.columns) || !Array.isArray(b.data)) return;
+            const iS = col(b.columns, 'secid');
+            const iD = col(b.columns, 'tradedate');
+            const iB = col(b.columns, 'before');
+            const iA = col(b.columns, 'after');
+            if (iD < 0 || iB < 0 || iA < 0) return;
+            b.data.forEach(r => {
+                if (iS >= 0 && String(r[iS]).toUpperCase() !== ticker.toUpperCase()) return;
+                const before = num(r[iB]);
+                const after = num(r[iA]);
+                if (before && after && r[iD]) list.push({ date: String(r[iD]).slice(0, 10), before, after });
+            });
+        });
+        writeJson(key, { t: Date.now(), list });
+        splitsCache[ticker] = { list, ok: true };
+    } catch (e) {
+        console.error('splits', e);
+        return { list: [], ok: false };
+    }
+    return splitsCache[ticker];
+}
+
+/* Коэффициент сплита проверяется по данным: цена до × коэффициент должна стыковаться с ценой после. */
+function buildSplitFactors(rows, splits) {
+    const applied = [];
+    const skipped = [];
+    (splits || []).slice().sort((a, b) => a.date.localeCompare(b.date)).forEach(s => {
+        const f0 = s.before / s.after;
+        if (!isFinite(f0) || f0 <= 0 || Math.abs(f0 - 1) < 1e-9) return;
+        const iA = rows.findIndex(r => r.d >= s.date);
+        if (iA <= 0) return; // до сплита данных нет — корректировать нечего
+        const cb = rows[iA - 1].cl;
+        const ca = rows[iA].cl;
+        if (!(cb > 0) || !(ca > 0)) {
+            applied.push({ date: s.date, f: f0, flipped: false, unverified: true });
+            return;
+        }
+        const err = f => Math.abs(Math.log((cb * f) / ca));
+        const f = err(f0) <= err(1 / f0) ? f0 : 1 / f0;
+        if (err(f) > Math.log(2.5)) {
+            skipped.push({ date: s.date, f: f0 });
+            return;
+        }
+        applied.push({ date: s.date, f, flipped: f !== f0 });
+    });
+    return { applied, skipped };
+}
+
+function splitFactorAt(applied, dateStr) {
+    let m = 1;
+    applied.forEach(s => { if (dateStr < s.date) m *= s.f; });
+    return m;
+}
+
+function extremesOf(rows, fromDate) {
+    const res = { min: null, minD: null, max: null, maxD: null };
+    rows.forEach(r => {
+        if (fromDate && r.d < fromDate) return;
+        if (r.lo > 0 && (res.min === null || r.lo < res.min)) { res.min = r.lo; res.minD = r.d; }
+        if (r.hi > 0 && (res.max === null || r.hi > res.max)) { res.max = r.hi; res.maxD = r.d; }
+    });
+    return res;
+}
+
+/*
+ * Исторические минимум и максимум.
+ *  1. Дневная история с from=1990-01-01 (все страницы; упавшие страницы перезапрашиваются).
+ *  2. Поправка на сплиты/консолидации (с проверкой по ценам).
+ *  3. Перекрёстная проверка по месячным свечам: если месячный максимум выше дневного — дневная история неполная, берём месячный.
+ */
 function loadHistoryStats(ticker) {
     if (histStats[ticker]) return Promise.resolve(histStats[ticker]);
 
-    const cached = readJson(`moexHeatmap.hist.${ticker}`);
+    const cached = readJson(`moexHeatmap.hist2.${ticker}`);
     if (cached && Date.now() - cached.t < HIST_TTL) {
         histStats[ticker] = cached;
         return Promise.resolve(cached);
@@ -1207,29 +1969,22 @@ function loadHistoryStats(ticker) {
 
     histPromises[ticker] = (async () => {
         try {
+            const enc = encodeURIComponent(ticker);
             const url = start =>
-                `${HISTORY_PATH}/securities/${encodeURIComponent(ticker)}.json` +
-                `?iss.meta=off&iss.only=history,history.cursor&history.columns=TRADEDATE,LOW,HIGH&start=${start}`;
-            const acc = { t: Date.now(), min: null, minDate: null, max: null, maxDate: null,
-                          w52min: null, w52minDate: null, w52max: null, w52maxDate: null, rows: 0 };
-            const cutoff = shiftDateStr(moscowDateStr(new Date()), { days: -365 });
+                `${HISTORY_PATH}/securities/${enc}.json?iss.meta=off&iss.only=history,history.cursor` +
+                `&history.columns=TRADEDATE,LOW,HIGH,CLOSE&from=1990-01-01&start=${start}`;
 
+            const rows = [];
             const eat = data => {
                 const h = data.history;
                 if (!h || !Array.isArray(h.data)) return 0;
-                const iD = h.columns.indexOf('TRADEDATE');
-                const iL = h.columns.indexOf('LOW');
-                const iH = h.columns.indexOf('HIGH');
+                const iD = col(h.columns, 'TRADEDATE');
+                const iL = col(h.columns, 'LOW');
+                const iH = col(h.columns, 'HIGH');
+                const iC = col(h.columns, 'CLOSE');
                 h.data.forEach(r => {
-                    const d = r[iD];
-                    const lo = num(r[iL]);
-                    const hi = num(r[iH]);
-                    if (lo !== null && lo > 0 && (acc.min === null || lo < acc.min)) { acc.min = lo; acc.minDate = d; }
-                    if (hi !== null && hi > 0 && (acc.max === null || hi > acc.max)) { acc.max = hi; acc.maxDate = d; }
-                    if (d >= cutoff) {
-                        if (lo !== null && lo > 0 && (acc.w52min === null || lo < acc.w52min)) { acc.w52min = lo; acc.w52minDate = d; }
-                        if (hi !== null && hi > 0 && (acc.w52max === null || hi > acc.w52max)) { acc.w52max = hi; acc.w52maxDate = d; }
-                    }
+                    if (!r[iD]) return;
+                    rows.push({ d: String(r[iD]).slice(0, 10), lo: num(r[iL]), hi: num(r[iH]), cl: num(r[iC]) });
                 });
                 return h.data.length;
             };
@@ -1240,22 +1995,120 @@ function loadHistoryStats(ticker) {
             let total = n;
             let pageSize = n;
             if (cur && cur.data && cur.data.length) {
-                total = num(cur.data[0][cur.columns.indexOf('TOTAL')]) || n;
-                pageSize = num(cur.data[0][cur.columns.indexOf('PAGESIZE')]) || n;
+                total = num(cur.data[0][col(cur.columns, 'TOTAL')]) || n;
+                pageSize = num(cur.data[0][col(cur.columns, 'PAGESIZE')]) || n;
             }
             histProgress[ticker] = { done: n, total };
 
             const starts = [];
             for (let s = pageSize; pageSize > 0 && s < total; s += pageSize) starts.push(s);
+            const failed = [];
             for (let i = 0; i < starts.length; i += HIST_BATCH) {
-                const pages = await Promise.all(starts.slice(i, i + HIST_BATCH).map(s => fetchJson(url(s))));
-                pages.forEach(p => { histProgress[ticker].done += eat(p); });
+                const results = await Promise.all(starts.slice(i, i + HIST_BATCH).map(
+                    s => fetchJson(url(s)).then(p => ({ s, p })).catch(() => ({ s, p: null }))));
+                results.forEach(r => {
+                    if (r.p) histProgress[ticker].done += eat(r.p);
+                    else failed.push(r.s);
+                });
                 if (modalTicker === ticker) renderModalHist();
             }
+            const stillFailed = [];
+            for (const s of failed) {
+                let ok = false;
+                for (let a = 0; a < 2 && !ok; a++) {
+                    try {
+                        histProgress[ticker].done += eat(await fetchJson(url(s)));
+                        ok = true;
+                    } catch (_) {
+                        await sleep(800);
+                    }
+                }
+                if (!ok) stillFailed.push(s);
+            }
 
-            acc.rows = total;
+            rows.sort((a, b) => a.d.localeCompare(b.d));
+            const missing = Math.max(0, total - rows.length);
+            const notes = [];
+
+            // сплиты
+            const sp = await loadSplits(ticker);
+            const { applied, skipped } = buildSplitFactors(rows, sp.list);
+            const adj = rows.map(r => {
+                const f = splitFactorAt(applied, r.d);
+                return { d: r.d, lo: r.lo !== null ? r.lo * f : null, hi: r.hi !== null ? r.hi * f : null, cl: r.cl !== null ? r.cl * f : null };
+            });
+            applied.forEach(s => notes.push(
+                `Цены до ${humanDate(s.date)} пересчитаны на сплит/консолидацию (×${nf(s.f >= 1 ? 0 : 4).format(s.f)})${s.unverified ? ' — без проверки' : ''}.`));
+            skipped.forEach(s => notes.push(
+                `Сплит ${humanDate(s.date)} не применён: цены до и после не стыкуются, экстремумы до этой даты в старом масштабе.`));
+            if (!sp.ok) notes.push('Список сплитов MOEX не загрузился — поправка на сплиты не проверялась.');
+
+            // скачки цены, не объяснённые сплитом
+            let jumps = 0;
+            for (let i = 1; i < adj.length && jumps < 2; i++) {
+                const a = adj[i - 1].cl;
+                const b = adj[i].cl;
+                if (!(a > 0) || !(b > 0)) continue;
+                const r = b / a;
+                if (r >= 3 || r <= 1 / 3) {
+                    const near = applied.concat(skipped).some(s => Math.abs(Date.parse(s.date) - Date.parse(adj[i].d)) < 8 * 86400000);
+                    if (!near) {
+                        notes.push(`Скачок цены в ${nf(1).format(r >= 1 ? r : 1 / r)} раз ${r >= 1 ? 'вверх' : 'вниз'} ${humanDate(adj[i].d)} — возможно, неучтённый сплит; экстремумы могут быть искажены.`);
+                        jumps++;
+                    }
+                }
+            }
+
+            const today = moscowDateStr(new Date());
+            const all = extremesOf(adj, null);
+            const y5 = extremesOf(adj, shiftDateStr(today, { months: -60 }));
+            const w52 = extremesOf(adj, shiftDateStr(today, { days: -365 }));
+
+            // перекрёстная проверка по месячным свечам
+            let monthlyOk = false;
+            try {
+                const months = await fetchCandlePages(`${BOARD_PATH}/securities/${enc}`,
+                    `interval=31&from=1990-01-01&till=${encodeURIComponent(today + ' 23:59:59')}`);
+                let mMax = null;
+                let mMaxB = null;
+                let mMin = null;
+                let mMinB = null;
+                months.forEach((m, i) => {
+                    const b0 = m.t.slice(0, 10);
+                    const b1 = i + 1 < months.length ? months[i + 1].t.slice(0, 10) : '9999-12-31';
+                    if (applied.some(s => s.date > b0 && s.date < b1)) return; // сплит внутри месяца — пропускаем
+                    const f = splitFactorAt(applied, b0);
+                    const h = m.h * f;
+                    const l = m.l * f;
+                    if (h > 0 && (mMax === null || h > mMax)) { mMax = h; mMaxB = b0; }
+                    if (l > 0 && (mMin === null || l < mMin)) { mMin = l; mMinB = b0; }
+                });
+                monthlyOk = months.length > 0;
+                if (mMax !== null && all.max !== null && mMax > all.max * 1.005) {
+                    notes.push(`Дневная история неполная: максимум уточнён по месячным свечам (${mMaxB.slice(0, 7)}).`);
+                    all.max = mMax;
+                    all.maxD = mMaxB.slice(0, 7);
+                }
+                if (mMin !== null && all.min !== null && mMin < all.min * 0.995) {
+                    notes.push(`Дневная история неполная: минимум уточнён по месячным свечам (${mMinB.slice(0, 7)}).`);
+                    all.min = mMin;
+                    all.minD = mMinB.slice(0, 7);
+                }
+            } catch (e) {
+                console.error('monthly', e);
+            }
+            if (!monthlyOk) notes.push('Перекрёстная проверка по месячным свечам недоступна.');
+            if (missing > 0 || stillFailed.length) {
+                notes.push(`Не загружено ${missing} дней из ${total}: значения могли быть неточными (см. проверку по месяцам).`);
+            }
+
+            const acc = {
+                t: Date.now(), rows: rows.length, total, missing,
+                first: rows.length ? rows[0].d : null, last: rows.length ? rows[rows.length - 1].d : null,
+                all, y5, w52, notes, monthlyOk
+            };
             histStats[ticker] = acc;
-            writeJson(`moexHeatmap.hist.${ticker}`, acc);
+            writeJson(`moexHeatmap.hist2.${ticker}`, acc);
             delete histErrors[ticker];
             return acc;
         } catch (e) {
@@ -1283,20 +2136,28 @@ function renderModalHist() {
     const hist = mk('div', 'hist-box');
     hist.append(mk('h4', null, 'Исторические минимум и максимум'));
 
-    if (st && st.max !== null) {
-        const fromMax = price !== null ? (price / st.max - 1) * 100 : null;
-        const fromMin = price !== null ? (price / st.min - 1) * 100 : null;
-        hist.append(rowEl(`Максимум за всё время (${humanDate(st.maxDate)})`, `${formatPrice(st.max, dec)} ₽`));
+    if (st && st.all.max !== null) {
+        const pr = v => `${formatPrice(v, dec)} ₽`;
+        const fromMax = price !== null ? (price / st.all.max - 1) * 100 : null;
+        const fromMin = price !== null ? (price / st.all.min - 1) * 100 : null;
+        const dl = d => (String(d).length === 7 ? `${String(d).slice(5, 7)}.${String(d).slice(0, 4)}` : humanDate(d));
+
+        hist.append(rowEl(`Максимум за всё время (${dl(st.all.maxD)})`, pr(st.all.max)));
         if (fromMax !== null) hist.append(rowEl('Сейчас относительно максимума', formatChange(fromMax), signCls(fromMax)));
-        hist.append(rowEl(`Минимум за всё время (${humanDate(st.minDate)})`, `${formatPrice(st.min, dec)} ₽`));
+        hist.append(rowEl(`Минимум за всё время (${dl(st.all.minD)})`, pr(st.all.min)));
         if (fromMin !== null) hist.append(rowEl('Сейчас относительно минимума', formatChange(fromMin), signCls(fromMin)));
-        if (st.w52max !== null) {
-            hist.append(rowEl('Максимум за 52 недели', `${formatPrice(st.w52max, dec)} ₽ (${humanDate(st.w52maxDate)})`));
-            hist.append(rowEl('Минимум за 52 недели', `${formatPrice(st.w52min, dec)} ₽ (${humanDate(st.w52minDate)})`));
+        if (st.y5.max !== null) {
+            hist.append(rowEl(`Максимум за 5 лет (${dl(st.y5.maxD)})`, pr(st.y5.max)));
+            hist.append(rowEl(`Минимум за 5 лет (${dl(st.y5.minD)})`, pr(st.y5.min)));
+        }
+        if (st.w52.max !== null) {
+            hist.append(rowEl(`Максимум за 52 недели (${dl(st.w52.maxD)})`, pr(st.w52.max)));
+            hist.append(rowEl(`Минимум за 52 недели (${dl(st.w52.minD)})`, pr(st.w52.min)));
         }
         hist.append(mk('div', 'note',
-            `По дневным данным MOEX (доска ${BOARD}, ${formatInt(st.rows)} торговых дней), без поправки на сплиты и консолидации. ` +
+            `Дневная история MOEX (доска ${BOARD}): с ${humanDate(st.first)} по ${humanDate(st.last)}, ${formatInt(st.rows)} из ${formatInt(st.total)} торговых дней. ` +
             'Учитываются внутридневные минимум и максимум.'));
+        (st.notes || []).forEach(t => hist.append(mk('div', 'note', t)));
     } else if (histErrors[ticker]) {
         hist.append(mk('div', 'note', `Не удалось загрузить историю: ${histErrors[ticker]}`));
     } else {
@@ -1307,6 +2168,11 @@ function renderModalHist() {
     box.replaceChildren(hist);
 }
 
+/* ---------- дивиденды ---------- */
+
+const RUB_CUR = new Set(['SUR', 'RUB', 'RUR', '']);
+function isRubCur(cur) { return RUB_CUR.has(String(cur || '').toUpperCase()); }
+
 function loadDividends(ticker) {
     if (divData[ticker]) return Promise.resolve(divData[ticker]);
     if (divPromises[ticker]) return divPromises[ticker];
@@ -1315,21 +2181,28 @@ function loadDividends(ticker) {
         try {
             const data = await fetchJson(
                 `${MOEX_ISS}/securities/${encodeURIComponent(ticker)}/dividends.json?iss.meta=off`,
-                { retries: 1, timeout: 15000 }
+                { retries: 2, timeout: 15000 }
             );
-            const d = data.dividends;
             const rows = [];
-            if (d && Array.isArray(d.data)) {
-                const iDate = d.columns.indexOf('registryclosedate');
-                const iVal = d.columns.indexOf('value');
-                const iCur = d.columns.indexOf('currencyid');
+            let cols = null;
+            // блок называется dividends; на случай другого имени берём первый блок с нужными колонками
+            Object.keys(data).forEach(k => {
+                const d = data[k];
+                if (!d || !Array.isArray(d.columns) || !Array.isArray(d.data)) return;
+                const iDate = col(d.columns, 'registryclosedate');
+                const iVal = col(d.columns, 'value');
+                if (iDate < 0 || iVal < 0) return;
+                cols = d.columns;
+                const iCur = col(d.columns, 'currencyid');
                 d.data.forEach(r => {
                     const value = num(r[iVal]);
-                    if (value !== null) rows.push({ date: r[iDate], value, cur: r[iCur] || 'RUB' });
+                    if (value !== null && r[iDate]) {
+                        rows.push({ date: String(r[iDate]).slice(0, 10), value, cur: String(r[iCur] || 'RUB').toUpperCase() });
+                    }
                 });
-            }
+            });
             rows.sort((a, b) => String(b.date).localeCompare(String(a.date)));
-            divData[ticker] = { rows };
+            divData[ticker] = { rows, cols, blocks: Object.keys(data) };
         } catch (e) {
             console.error(e);
             divData[ticker] = { rows: [], error: e.message };
@@ -1371,7 +2244,6 @@ function divSummary(ticker) {
     const item = lastSnapshot && lastSnapshot.get(ticker);
     const price = item ? currentPrice(item) : null;
     const today = moscowDateStr(new Date());
-    const rub = r => r.cur === 'SUR' || r.cur === 'RUB';
     const dateOf = r => String(r.date).slice(0, 10);
 
     const all = dv.rows.map(r => ({ date: dateOf(r), value: r.value, cur: r.cur, manual: false }))
@@ -1381,14 +2253,14 @@ function divSummary(ticker) {
     const past = all.filter(r => r.date < today).sort((a, b) => b.date.localeCompare(a.date));
 
     const cutoff = shiftDateStr(today, { days: -365 });
-    const ttmRows = past.filter(r => r.date >= cutoff && rub(r));
+    const ttmRows = past.filter(r => r.date >= cutoff && isRubCur(r.cur));
     const ttm = ttmRows.reduce((s, r) => s + r.value, 0);
     const yieldTtm = price ? (ttm > 0 ? (ttm / price) * 100 : 0) : null;
 
     let est = null;
     if (!future.length) {
         const lookback = shiftDateStr(today, { days: -400 });
-        const cands = past.filter(r => r.date >= lookback && rub(r))
+        const cands = past.filter(r => r.date >= lookback && isRubCur(r.cur))
             .map(r => ({ date: shiftDateStr(r.date, { months: 12 }), value: r.value }))
             .filter(r => r.date >= today)
             .sort((a, b) => a.date.localeCompare(b.date));
@@ -1444,16 +2316,31 @@ function ensureAllDividends() {
 
             const data = {};
             let failed = 0;
+            let withRows = 0;
             allStocks.forEach(s => {
                 const dv = divData[s.ticker];
-                if (dv && !dv.error) data[s.ticker] = dv.rows;
-                else failed++;
+                if (dv && !dv.error) {
+                    data[s.ticker] = dv.rows;
+                    if (dv.rows.length) withRows++;
+                } else {
+                    failed++;
+                }
             });
-            writeJson(DIV_CACHE_KEY, { t: Date.now(), data });
 
+            if (withRows === 0) {
+                // ни одной выплаты на 260 бумаг — это ошибка источника, а не «никто не платил»
+                const sample = allStocks.map(s => divData[s.ticker]).find(Boolean);
+                setDivStatus('error',
+                    'MOEX не вернул дивиденды ни по одной бумаге' +
+                    (sample && sample.error ? ` (${sample.error})` : sample && sample.cols ? '' : ' (пустой ответ)') +
+                    '. Сортировка по дивидендам недоступна.');
+                return false;
+            }
+
+            writeJson(DIV_CACHE_KEY, { t: Date.now(), data });
             divAllLoaded = true;
             setDivStatus(failed ? 'warn' : 'ok',
-                failed ? `Дивиденды загружены, без данных: ${failed}` : 'Дивиденды загружены');
+                `Дивиденды загружены: у ${withRows} бумаг есть выплаты${failed ? `, без данных: ${failed}` : ''}`);
             return true;
         } catch (e) {
             console.error(e);
@@ -1506,6 +2393,49 @@ function applyDivMetric() {
     });
 }
 
+/* Цена акции перед закрытием реестра (за 2 торговых дня: последний день покупки с дивидендом) — для расчёта доходности выплат. */
+const ppCache = {};
+
+async function loadPayoutPrices(ticker) {
+    if (ppCache[ticker]) return ppCache[ticker];
+    const d = divSummary(ticker);
+    if (!d) return null;
+
+    const today = moscowDateStr(new Date());
+    const cutoff5 = shiftDateStr(today, { months: -60 });
+    const dates = Array.from(new Set(d.past.filter(r => r.date >= cutoff5 && isRubCur(r.cur)).map(r => r.date))).slice(0, 30);
+
+    const key = `moexHeatmap.pp.${ticker}`;
+    const saved = readJson(key);
+    const map = saved && Date.now() - saved.t < 7 * 24 * 3600 * 1000 ? saved.map : {};
+    const need = dates.filter(x => map[x] === undefined);
+
+    await runPool(need, async date => {
+        try {
+            const data = await fetchJson(
+                `${HISTORY_PATH}/securities/${encodeURIComponent(ticker)}.json?iss.meta=off&iss.only=history` +
+                `&history.columns=TRADEDATE,CLOSE&from=${shiftDateStr(date, { days: -14 })}&till=${shiftDateStr(date, { days: -1 })}`,
+                { retries: 1, timeout: 15000 });
+            const h = data.history;
+            const closes = [];
+            if (h && Array.isArray(h.data)) {
+                const iD = col(h.columns, 'TRADEDATE');
+                const iC = col(h.columns, 'CLOSE');
+                h.data.forEach(r => { const c = num(r[iC]); if (c !== null && c > 0) closes.push({ d: String(r[iD]), c }); });
+            }
+            closes.sort((a, b) => a.d.localeCompare(b.d));
+            const pick = closes.length >= 2 ? closes[closes.length - 2] : closes[closes.length - 1];
+            map[date] = pick ? pick.c : null;
+        } catch (e) {
+            console.error('payout price', ticker, date, e);
+        }
+    }, 5);
+
+    ppCache[ticker] = { map };
+    writeJson(key, { t: Date.now(), map });
+    return ppCache[ticker];
+}
+
 function renderModalDivTab() {
     const box = document.getElementById('modalDivTab');
     if (!modalTicker) return;
@@ -1525,6 +2455,7 @@ function renderModalDivTab() {
 
     const d = divSummary(ticker);
     const price = d.price;
+    const today = moscowDateStr(new Date());
 
     // --- ближайшая выплата
     if (d.upcoming) {
@@ -1536,92 +2467,116 @@ function renderModalDivTab() {
         if (price) box1.append(rowEl('Доходность к текущей цене', formatPct1((u.value / price) * 100), 'pos'));
         if (u.note) box1.append(rowEl('Заметка', u.note));
         parts.push(box1);
-        if (d.future.length > 1) {
-            d.future.slice(1, 4).forEach(r => parts.push(rowEl(`Далее: ${humanDate(r.date)}`, `${nf(2).format(r.value)} ₽`)));
-        }
+        d.future.slice(1, 4).forEach(r => parts.push(rowEl(`Далее: ${humanDate(r.date)}`, `${nf(2).format(r.value)} ₽`)));
     } else if (d.est) {
         const box2 = mk('div', 'estimate');
         box2.append(mk('h4', null, 'Ожидаемая выплата (оценка, не официально)'));
         box2.append(rowEl('Ориентировочная дата', `≈ ${humanDate(d.est.date)} (через ${daysUntil(d.est.date)} дн.)`));
         box2.append(rowEl('Ориентировочный размер', `${nf(2).format(d.est.value)} ₽ (как в прошлом году)`));
         if (price) box2.append(rowEl('Доходность к текущей цене', `≈ ${formatPct1((d.est.value / price) * 100)}`));
-        box2.append(mk('div', 'note',
-            'Это не данные эмитента: дата и сумма взяты по прошлогодней выплате. В данных MOEX объявленных будущих дивидендов нет.'));
+        box2.append(mk('div', 'note', 'Это не данные эмитента: дата и сумма взяты по прошлогодней выплате. Объявленных будущих дивидендов в данных MOEX нет.'));
         parts.push(box2);
     } else {
+        parts.push(mk('div', 'note', 'Объявленных будущих дивидендов в данных MOEX нет. Если дивиденд объявлен, внесите его ниже.'));
+    }
+
+    // --- итоги за 12 месяцев и за 5 лет
+    const cutoff5 = shiftDateStr(today, { months: -60 });
+    const past5 = d.past.filter(r => r.date >= cutoff5);
+    const rub5 = past5.filter(r => isRubCur(r.cur));
+    const sum5 = rub5.reduce((s, r) => s + r.value, 0);
+
+    parts.push(mk('h4', null, 'Итоги'));
+    parts.push(rowEl('Текущая цена', price !== null ? `${formatPrice(price, stock ? stock.decimals : null)} ₽` : '—'));
+    parts.push(rowEl('Выплаты за 12 месяцев', d.ttm > 0 ? `${nf(2).format(d.ttm)} ₽ (${d.ttmCount} шт.)` : 'не было'));
+    parts.push(rowEl('Доходность за 12 месяцев (к текущей цене)', d.ttm > 0 ? formatPct1(d.yieldTtm) : '0 %', d.ttm > 0 ? 'pos' : ''));
+    parts.push(rowEl('Выплаты за 5 лет', sum5 > 0 ? `${nf(2).format(sum5)} ₽ (${rub5.length} шт.)` : 'не было'));
+    if (!d.past.length) {
         parts.push(mk('div', 'note',
-            'Объявленных будущих дивидендов в данных MOEX нет, а по истории выплат оценить следующую нельзя. Если дивиденд объявлен, внесите его ниже.'));
+            `MOEX не вернул ни одной выплаты по этой бумаге (записей: 0${dv.cols ? '; колонки ответа: ' + dv.cols.join(', ') : '; блоки ответа: ' + (dv.blocks || []).join(', ')}). ` +
+            'Если эмитент платил дивиденды, проверьте внешние источники по ссылкам ниже.'));
     }
 
-    // --- итоги
-    const sum = [mk('h4', null, 'Итоги')];
-    sum.push(rowEl('Текущая цена', price !== null ? `${formatPrice(price, stock ? stock.decimals : null)} ₽` : '—'));
-    sum.push(rowEl('Выплаты за 12 месяцев', d.ttm > 0 ? `${nf(2).format(d.ttm)} ₽ (${d.ttmCount} шт.)` : 'не было'));
-    sum.push(rowEl('Дивидендная доходность (12 мес.)', d.ttm > 0 ? formatPct1(d.yieldTtm) : '0 %', d.ttm > 0 ? 'pos' : ''));
+    // --- таблица за 5 лет: дата, сумма, цена на дату, доходность выплаты, доходность за год
+    if (past5.length) {
+        const pp = ppCache[ticker];
+        parts.push(mk('div', 'sub-h', `Выплаты за 5 лет (${past5.length}), от новых к старым`));
 
-    const byYear = {};
-    d.past.filter(r => r.cur === 'SUR' || r.cur === 'RUB').forEach(r => {
-        const y = r.date.slice(0, 4);
-        byYear[y] = byYear[y] || { sum: 0, n: 0 };
-        byYear[y].sum += r.value;
-        byYear[y].n++;
-    });
-    const years = Object.keys(byYear).sort((a, b) => b.localeCompare(a));
-    const thisYear = moscowDateStr(new Date()).slice(0, 4);
-    const fullYears = years.filter(y => y < thisYear).slice(0, 3);
-    if (fullYears.length && price) {
-        const avg = fullYears.reduce((s, y) => s + byYear[y].sum, 0) / fullYears.length;
-        sum.push(rowEl(`Среднегодовая выплата (${fullYears.length} ${fullYears.length === 1 ? 'год' : 'года'})`,
-            `${nf(2).format(avg)} ₽ (≈ ${formatPct1((avg / price) * 100)} к цене)`));
-    }
-    let streak = 0;
-    for (let y = Number(thisYear); y >= Number(thisYear) - 30; y--) {
-        if (byYear[String(y)]) streak++;
-        else if (y === Number(thisYear)) continue;
-        else break;
-    }
-    if (streak) sum.push(rowEl('Лет подряд с выплатами', String(streak)));
-    parts.push(...sum);
+        const table = mk('table', 'dt');
+        const thead = mk('tr');
+        ['Реестр', 'Сумма', 'Цена', 'Дох.', 'Год. дох.'].forEach(h => thead.append(mk('th', null, h)));
+        table.append(thead);
 
-    // --- по годам
-    if (years.length) {
-        parts.push(mk('div', 'sub-h', 'По годам'));
-        years.slice(0, 10).forEach(y => {
-            const yy = byYear[y];
-            parts.push(rowEl(`${y} (${yy.n} шт.)`,
-                `${nf(2).format(yy.sum)} ₽${price ? ' · ' + formatPct1((yy.sum / price) * 100) : ''}`));
+        const trailing = date => {
+            const from = shiftDateStr(date, { days: -365 });
+            return d.past.filter(r => isRubCur(r.cur) && r.date <= date && r.date > from).reduce((s, r) => s + r.value, 0);
+        };
+
+        past5.slice(0, 40).forEach(r => {
+            const tr = mk('tr');
+            const cur = isRubCur(r.cur) ? '₽' : r.cur;
+            const p = pp && pp.map[r.date] ? pp.map[r.date] : null;
+            const rub = isRubCur(r.cur);
+            tr.append(mk('td', null, `${shortDate(r.date)}${r.manual ? '*' : ''}`));
+            tr.append(mk('td', null, `${nf(2).format(r.value)} ${cur}`));
+            tr.append(mk('td', null, p ? formatPrice(p, stock ? stock.decimals : null) : pp ? '—' : '...'));
+            tr.append(mk('td', 'pos', p && rub ? formatPct1((r.value / p) * 100) : '—'));
+            tr.append(mk('td', 'pos', p && rub ? formatPct1((trailing(r.date) / p) * 100) : '—'));
+            table.append(tr);
         });
-        parts.push(mk('div', 'note', 'Доходность по годам посчитана к текущей цене, а не к цене на тот момент.'));
-    }
+        parts.push(table);
+        parts.push(mk('div', 'note',
+            '«Цена» — закрытие за 2 торговых дня до закрытия реестра (последний день покупки с дивидендом); цена и сумма в масштабе того времени, поэтому доходность корректна и при сплитах. ' +
+            '«Дох.» — выплата / цена. «Год. дох.» — сумма выплат за 365 дней до этой даты / цена на эту дату.'));
 
-    // --- все выплаты
-    if (d.past.length) {
-        parts.push(mk('div', 'sub-h', `Все выплаты (${d.past.length}), от новых к старым`));
-        d.past.slice(0, 40).forEach(r => {
-            const cur = r.cur === 'SUR' || r.cur === 'RUB' ? '₽' : r.cur;
-            const yld = price && (r.cur === 'SUR' || r.cur === 'RUB') ? ` · ${formatPct1((r.value / price) * 100)}` : '';
-            parts.push(rowEl(`${humanDate(r.date)}${r.manual ? ' (вручную)' : ''}`, `${nf(2).format(r.value)} ${cur}${yld}`));
+        // --- по годам
+        const byYear = {};
+        rub5.forEach(r => {
+            const y = r.date.slice(0, 4);
+            byYear[y] = byYear[y] || { sum: 0, n: 0, prices: [] };
+            byYear[y].sum += r.value;
+            byYear[y].n++;
+            const p = pp && pp.map[r.date];
+            if (p) byYear[y].prices.push(p);
         });
-        if (d.past.length > 40) parts.push(mk('div', 'note', `Показаны 40 последних из ${d.past.length}.`));
+        const years = Object.keys(byYear).sort((a, b) => b.localeCompare(a));
+        if (years.length) {
+            parts.push(mk('div', 'sub-h', 'По годам'));
+            const yields = [];
+            years.forEach(y => {
+                const yy = byYear[y];
+                const avgP = yy.prices.length ? yy.prices.reduce((s, x) => s + x, 0) / yy.prices.length : null;
+                const yl = avgP ? (yy.sum / avgP) * 100 : null;
+                if (yl !== null && y < today.slice(0, 4)) yields.push(yl);
+                parts.push(rowEl(`${y} (${yy.n} шт.): ${nf(2).format(yy.sum)} ₽`,
+                    yl !== null ? `${formatPct1(yl)} годовых` : '—', yl !== null ? 'pos' : ''));
+            });
+            if (yields.length) {
+                parts.push(rowEl(`Средняя годовая доходность (${yields.length} полн. ${yields.length === 1 ? 'год' : 'лет'})`,
+                    formatPct1(yields.reduce((s, x) => s + x, 0) / yields.length), 'pos'));
+            }
+            parts.push(mk('div', 'note', 'Годовая доходность по годам = сумма выплат за год / средняя цена на даты выплат этого года.'));
+        }
+    }
+    if (d.past.length > past5.length) {
+        parts.push(mk('div', 'note', `Более ранних выплат (старше 5 лет): ${d.past.length - past5.length}.`));
     }
 
     // --- ручной ввод будущего дивиденда
     const manual = manualDivs(ticker);
     parts.push(mk('div', 'sub-h', 'Внести объявленный дивиденд'));
-    if (manual.length) {
-        manual.forEach((r, idx) => {
-            const line = rowEl(`${humanDate(r.date)}${r.note ? ' · ' + r.note : ''}`, `${nf(2).format(r.value)} ₽`);
-            const del = mk('button', 'btn', 'Удалить');
-            del.addEventListener('click', () => {
-                const arr = manualDivs(ticker);
-                arr.splice(idx, 1);
-                writeJson(`moexHeatmap.divmanual.${ticker}`, arr);
-                renderModalDivTab();
-                if (lastSnapshot) applySnapshot(lastSnapshot);
-            });
-            parts.push(line, del);
+    manual.forEach((r, idx) => {
+        parts.push(rowEl(`${humanDate(r.date)}${r.note ? ' · ' + r.note : ''}`, `${nf(2).format(r.value)} ₽`));
+        const del = mk('button', 'btn', 'Удалить');
+        del.addEventListener('click', () => {
+            const arr = manualDivs(ticker);
+            arr.splice(idx, 1);
+            writeJson(`moexHeatmap.divmanual.${ticker}`, arr);
+            renderModalDivTab();
+            if (lastSnapshot) applySnapshot(lastSnapshot);
         });
-    }
+        parts.push(del);
+    });
     const form = mk('div', 'forecast-form');
     const fDate = mk('input');
     fDate.type = 'date';
@@ -1660,7 +2615,13 @@ function renderModalDivTab() {
         'Открытые данные MOEX содержат закрытые реестры; ближайшие и прогнозные выплаты они, как правило, не включают. Ссылки на внешние сайты не проверялись автоматически.'));
 
     box.replaceChildren(...parts);
+
+    // цены на даты выплат подгружаются отдельно и дорисовываются
+    if (!ppCache[ticker] && d.past.length) {
+        loadPayoutPrices(ticker).then(() => { if (modalTicker === ticker) renderModalDivTab(); });
+    }
 }
+
 
 /* Прогнозы аналитиков через бесплатный API недоступны — храним собственный прогноз пользователя. */
 function renderModalForecast() {
@@ -1756,9 +2717,9 @@ async function analyzeMonthly(ticker) {
     const c = data.candles;
     if (!c || !Array.isArray(c.data)) return null;
 
-    const iB = c.columns.indexOf('begin');
-    const iL = c.columns.indexOf('low');
-    const iV = c.columns.indexOf('value');
+    const iB = col(c.columns, 'begin');
+    const iL = col(c.columns, 'low');
+    const iV = col(c.columns, 'value');
     const rows = c.data
         .map(r => ({ begin: String(r[iB]).slice(0, 10), low: num(r[iL]), value: num(r[iV]) }))
         .filter(r => r.low !== null && r.low > 0);
@@ -2187,6 +3148,7 @@ async function start() {
 /* ---------- events ---------- */
 
 document.getElementById('bondsLink').href = BONDS_PAGE;
+document.getElementById('newsLink').href = NEWS_PAGE;
 
 document.getElementById('periodSelect').addEventListener('change', e => {
     currentPeriod = e.target.value;
