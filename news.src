@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Новости фондового рынка</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, Helvetica, sans-serif; background: #f0f0f0; margin: 0; padding: 20px;
+            display: flex; justify-content: center;
+        }
+        .container { width: 100%; max-width: 900px; background: #fff; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.1); }
+        .nav { display: flex; gap: 8px; margin-bottom: 10px; font-size: 14px; flex-wrap: wrap; }
+        .nav a { padding: 4px 14px; border: 1px solid #ccc; border-radius: 16px; color: #333; text-decoration: none; background: #fff; }
+        .nav a.active { background: #2e7d32; color: #fff; border-color: #2e7d32; }
+        .nav a.logout { margin-left: auto; color: #777; }
+        .header { display: flex; align-items: center; margin-bottom: 10px; font-size: 14px; color: #333; flex-wrap: wrap; gap: 10px; }
+        .header button, .header input[type=search] { padding: 4px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background: #fff; }
+        .header button { cursor: pointer; }
+        .header input[type=search] { width: 170px; }
+        .header label { font-size: 13px; display: flex; align-items: center; gap: 4px; }
+        .status { font-size: 12px; color: #666; }
+        .status.error { color: #c00; font-weight: bold; }
+        .status.ok { color: #2e7d32; }
+        .status.warn { color: #b26a00; }
+        .status.loading { color: #f57c00; }
+        .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .chip { padding: 4px 10px; border: 1px solid #bbb; border-radius: 14px; background: #fff; font-size: 12px; cursor: pointer; color: #333; }
+        .chip.on { background: #1565c0; border-color: #1565c0; color: #fff; }
+        .chip.bad { border-style: dashed; color: #999; }
+        .news-item { display: block; padding: 10px 4px; border-bottom: 1px solid #eee; text-decoration: none; color: #1a1a1a; }
+        .news-item:hover { background: #fafafa; }
+        .news-title { font-size: 15px; line-height: 1.35; font-weight: bold; }
+        .news-meta { font-size: 12px; color: #777; margin-top: 3px; }
+        .news-meta .src { color: #1565c0; font-weight: bold; }
+        .note { font-size: 12px; color: #777; margin: 8px 0; line-height: 1.4; }
+        .more { text-align: center; margin: 12px 0 0; }
+        .more button { padding: 8px 18px; border: 1px solid #bbb; border-radius: 6px; background: #fff; font-size: 14px; cursor: pointer; }
+        @media (max-width: 768px) { body { padding: 8px; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="nav">
+        <a href="index.html" id="stocksLink">Акции</a>
+        <a href="bonds.html" id="bondsLink">Облигации</a>
+        <a href="#" class="active">Новости</a>
+        <a href="#" id="logoutLink" class="logout">Выйти</a>
+    </div>
+    <div class="header">
+        <button id="refreshBtn" title="Обновить сейчас">↻ Обновить</button>
+        <input id="searchInput" type="search" placeholder="Поиск по заголовкам" autocomplete="off">
+        <label><input id="marketOnly" type="checkbox" checked> Только про рынок</label>
+        <span id="status" class="status">Загрузка новостей...</span>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div id="list"></div>
+    <div class="more" id="more"></div>
+    <div class="note" id="note"></div>
+</div>
+
+<script>
+'use strict';
+
+/*
+ * Новости фондового рынка (n1)
+ *
+ * Берутся RSS-ленты нескольких изданий. Браузер не даёт читать чужие ленты напрямую (CORS), поэтому запрос идёт
+ * по цепочке: напрямую → публичные CORS-прокси → rss2json. Каждый источник независим: упавший не мешает остальным.
+ * Показываются только заголовок, источник и время со ссылкой на оригинал. Если ничего не загрузилось —
+ * значит, ленты или прокси сейчас недоступны (проверьте VPN/сеть).
+ */
+
+const VERSION = 'n1';
+const STOCKS_PAGE = 'index.html';
+const BONDS_PAGE = 'bonds.html';
+
+/* market: лента уже рыночная/экономическая — без фильтра по словам; иначе действует переключатель «Только про рынок». */
+const SOURCES = [
+    { id: 'rbc',        name: 'РБК',           url: 'https://rssexport.rbc.ru/rbcnews/news/30/full.rss', market: false },
+    { id: 'interfax',   name: 'Интерфакс',     url: 'https://www.interfax.ru/rss.asp',                   market: false },
+    { id: 'kommersant', name: 'Коммерсантъ',   url: 'https://www.kommersant.ru/RSS/section-economics.xml', market: true },
+    { id: 'vedomosti',  name: 'Ведомости',     url: 'https://www.vedomosti.ru/rss/news',                 market: false },
+    { id: 'smartlab',   name: 'Smart-lab',     url: 'https://smart-lab.ru/rss/',                         market: true },
+    { id: 'finam',      name: 'Финам',         url: 'https://www.finam.ru/analysis/conews/rsspoint/',    market: true },
+    { id: 'investing',  name: 'Investing.com', url: 'https://ru.investing.com/rss/news_25.rss',          market: true },
+    { id: 'tass',       name: 'ТАСС',          url: 'https://tass.ru/rss/v2.xml',                        market: false },
+    { id: 'ria',        name: 'РИА Новости',   url: 'https://ria.ru/export/rss2/economy/index.xml',      market: true }
+];
+
+const PROXIES = [
+    { name: 'напрямую',   build: u => u,                                                               timeout: 6000 },
+    { name: 'allorigins', build: u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,  timeout: 12000 },
+    { name: 'corsproxy',  build: u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,           timeout: 12000 }
+];
+const RSS2JSON = u => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(u)}`;
+
+const REFRESH_MS = 5 * 60 * 1000;
+const PAGE = 60;
+const MAX_AGE_MS = 3 * 24 * 3600 * 1000;
+
+const MARKET_RE = new RegExp([
+    'бирж', 'акци', 'облигац', 'дивиденд', 'банк росси', 'цб рф', '\\bцб\\b', 'ключев', 'ставк', 'рубл', 'курс', 'нефт', 'газпром',
+    'лукойл', 'роснефт', 'сбер', 'втб', 'яндекс', 'норникель', 'новатэк', 'сургут', 'татнефт', 'магнит', 'мтс', 'аэрофлот', 'алроса',
+    'moex', 'imoex', 'мосбирж', 'ммвб', 'индекс', 'ipo', 'размещени', 'санкц', 'инфляц', 'прибыл', 'выручк', 'отчётност', 'отчетност',
+    'капитализац', 'торги', 'торгов', 'инвест', 'дефолт', 'купон', 'офз', 'минфин', 'бюджет', 'экономик', 'доллар', 'евро', 'юан',
+    'золот', 'металл', 'акционер', 'эмитент', 'листинг', 'байбэк', 'buyback', 'слияни', 'поглощен', 'котировк', 'рынк', 'валют'
+].join('|'), 'i');
+
+let items = [];
+const srcState = {};            // id -> { ok, count, via, error }
+const srcOn = {};               // id -> включён ли чип
+SOURCES.forEach(s => { srcOn[s.id] = true; srcState[s.id] = { ok: null, count: 0 }; });
+let shown = PAGE;
+let query = '';
+let marketOnly = true;
+let loading = false;
+let timer = null;
+
+const $ = id => document.getElementById(id);
+const mk = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = text;
+    return e;
+};
+
+function setStatus(cls, text) {
+    const box = $('status');
+    box.className = 'status' + (cls ? ' ' + cls : '');
+    box.textContent = text;
+}
+
+/* ---------- сеть и разбор ---------- */
+
+async function fetchBytes(url, timeout) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+        const r = await fetch(url, { cache: 'no-store', signal: controller.signal });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return new Uint8Array(await r.arrayBuffer());
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+/* Ленты бывают в windows-1251: кодировка берётся из XML-заголовка. */
+function decodeBytes(bytes) {
+    let label = 'utf-8';
+    let head = '';
+    for (let i = 0; i < Math.min(bytes.length, 300); i++) head += String.fromCharCode(bytes[i]);
+    const m = head.match(/encoding=["']([\w-]+)["']/i);
+    if (m) label = m[1].toLowerCase();
+    try {
+        return new TextDecoder(label).decode(bytes);
+    } catch (_) {
+        return new TextDecoder('utf-8').decode(bytes);
+    }
+}
+
+function decodeEntities(s) {
+    return s
+        .replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#39;/g, "'")
+        .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+        .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+        .replace(/&amp;/g, '&');
+}
+
+function clean(s) {
+    if (!s) return '';
+    return decodeEntities(s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+}
+
+function tag(block, name) {
+    const m = block.match(new RegExp(`<${name}(?:\\s[^>]*)?>([\\s\\S]*?)</${name}>`, 'i'));
+    return m ? m[1] : '';
+}
+
+function parseFeed(text) {
+    const out = [];
+    const blocks = text.match(/<(item|entry)[\s>][\s\S]*?<\/\1>/gi) || [];
+    blocks.forEach(blk => {
+        const title = clean(tag(blk, 'title'));
+        let link = clean(tag(blk, 'link'));
+        if (!link) {
+            const m = blk.match(/<link[^>]*href=["']([^"']+)["']/i);
+            link = m ? decodeEntities(m[1]) : '';
+        }
+        if (!link) link = clean(tag(blk, 'guid'));
+        const date = clean(tag(blk, 'pubDate') || tag(blk, 'published') || tag(blk, 'updated') || tag(blk, 'dc:date'));
+        const ts = Date.parse(date);
+        if (title && /^https?:\/\//i.test(link)) out.push({ title, link, ts: Number.isFinite(ts) ? ts : null });
+    });
+    return out;
+}
+
+async function fetchFeed(src) {
+    let lastErr = null;
+    for (const p of PROXIES) {
+        try {
+            const text = decodeBytes(await fetchBytes(p.build(src.url), p.timeout));
+            const list = parseFeed(text);
+            if (list.length) return { list, via: p.name };
+            lastErr = new Error('лента пуста');
+        } catch (e) {
+            lastErr = e;
+        }
+    }
+    try {
+        const r = await fetch(RSS2JSON(src.url), { cache: 'no-store' });
+        const j = await r.json();
+        if (j && j.status === 'ok' && Array.isArray(j.items) && j.items.length) {
+            const list = j.items
+                .map(it => ({ title: clean(it.title), link: String(it.link || ''), ts: Date.parse(String(it.pubDate || '').replace(' ', 'T') + 'Z') }))
+                .filter(it => it.title && /^https?:\/\//i.test(it.link))
+                .map(it => ({ ...it, ts: Number.isFinite(it.ts) ? it.ts : null }));
+            if (list.length) return { list, via: 'rss2json' };
+        }
+    } catch (e) {
+        lastErr = e;
+    }
+    throw lastErr || new Error('нет ответа');
+}
+
+/* ---------- обработка ---------- */
+
+function normTitle(t) {
+    return t.toLowerCase().replace(/[^a-zа-яё0-9]+/g, ' ').trim().slice(0, 70);
+}
+
+async function loadAll() {
+    if (loading) return;
+    loading = true;
+    setStatus('loading', 'Загрузка новостей...');
+    const now = Date.now();
+    const results = await Promise.all(SOURCES.map(async src => {
+        try {
+            const r = await fetchFeed(src);
+            srcState[src.id] = { ok: true, count: r.list.length, via: r.via };
+            return r.list.map(it => ({ ...it, src: src.id, srcName: src.name, market: src.market }));
+        } catch (e) {
+            srcState[src.id] = { ok: false, count: 0, error: e.message };
+            return [];
+        }
+    }));
+
+    const seen = new Set();
+    const all = [];
+    results.flat().forEach(it => {
+        const ts = it.ts || now;
+        if (now - ts > MAX_AGE_MS || ts - now > 6 * 3600 * 1000) return;
+        const key = normTitle(it.title);
+        if (seen.has(key)) return;
+        seen.add(key);
+        all.push({ ...it, ts });
+    });
+    all.sort((a, b) => b.ts - a.ts);
+    items = all;
+    loading = false;
+
+    const ok = SOURCES.filter(s => srcState[s.id].ok).length;
+    if (!ok) {
+        setStatus('error', 'Ни один источник не ответил: ленты или прокси недоступны (проверьте сеть и VPN). Нажмите «Обновить».');
+    } else {
+        setStatus(ok < SOURCES.length ? 'warn' : 'ok',
+            `Обновлено ${new Date().toLocaleTimeString('ru-RU')}: источников ${ok} из ${SOURCES.length}, новостей ${items.length} · ${VERSION}`);
+    }
+    renderChips();
+    renderList();
+}
+
+function timeLabel(ts) {
+    const d = new Date(ts);
+    const diff = Date.now() - ts;
+    if (diff < 60 * 1000) return 'только что';
+    if (diff < 60 * 60 * 1000) return `${Math.round(diff / 60000)} мин назад`;
+    const pad = n => String(n).padStart(2, '0');
+    const hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return new Date().toDateString() === d.toDateString() ? `сегодня ${hm}` : `${pad(d.getDate())}.${pad(d.getMonth() + 1)} ${hm}`;
+}
+
+function visibleItems() {
+    return items.filter(it => {
+        if (!srcOn[it.src]) return false;
+        if (marketOnly && !it.market && !MARKET_RE.test(it.title)) return false;
+        if (query && !it.title.toLowerCase().includes(query)) return false;
+        return true;
+    });
+}
+
+function renderChips() {
+    $('chips').replaceChildren(...SOURCES.map(s => {
+        const st = srcState[s.id];
+        const label = st.ok === null ? s.name : st.ok ? `${s.name} · ${st.count}` : `${s.name} · нет ответа`;
+        const c = mk('button', 'chip' + (srcOn[s.id] ? ' on' : '') + (st.ok === false ? ' bad' : ''), label);
+        c.title = st.ok ? `Загружено через: ${st.via}` : st.error || '';
+        c.addEventListener('click', () => {
+            srcOn[s.id] = !srcOn[s.id];
+            shown = PAGE;
+            renderChips();
+            renderList();
+        });
+        return c;
+    }));
+}
+
+function renderList() {
+    const list = visibleItems();
+    const slice = list.slice(0, shown);
+    $('list').replaceChildren(...slice.map(it => {
+        const a = mk('a', 'news-item');
+        a.href = it.link;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.append(mk('div', 'news-title', it.title));
+        const meta = mk('div', 'news-meta');
+        meta.append(mk('span', 'src', it.srcName), ` · ${timeLabel(it.ts)}`);
+        a.append(meta);
+        return a;
+    }));
+
+    if (list.length > slice.length) {
+        const btn = mk('button', null, `Показать ещё (осталось ${list.length - slice.length})`);
+        btn.addEventListener('click', () => { shown += PAGE; renderList(); });
+        $('more').replaceChildren(btn);
+    } else {
+        $('more').replaceChildren();
+    }
+
+    $('note').textContent = items.length
+        ? `Показано ${slice.length} из ${list.length}. Заголовки и ссылки принадлежат изданиям; фильтр «Только про рынок» отбирает общие ленты по ключевым словам, поэтому часть новостей может отсеяться.`
+        : '';
+}
+
+/* ---------- события ---------- */
+
+$('stocksLink').href = STOCKS_PAGE;
+$('bondsLink').href = BONDS_PAGE;
+$('logoutLink').addEventListener('click', e => {
+    e.preventDefault();
+    try { sessionStorage.removeItem('mx_k'); } catch (_) { /* ignore */ }
+    location.reload();
+});
+$('refreshBtn').addEventListener('click', () => loadAll());
+$('searchInput').addEventListener('input', e => {
+    query = String(e.target.value || '').trim().toLowerCase();
+    shown = PAGE;
+    renderList();
+});
+$('marketOnly').addEventListener('change', e => {
+    marketOnly = !!e.target.checked;
+    shown = PAGE;
+    renderList();
+});
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        if (timer) clearInterval(timer);
+        timer = null;
+    } else {
+        loadAll();
+        timer = setInterval(loadAll, REFRESH_MS);
+    }
+});
+
+renderChips();
+loadAll();
+timer = setInterval(loadAll, REFRESH_MS);
+</script>
+</body>
+</html>
