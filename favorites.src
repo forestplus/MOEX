@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Избранное — акции и облигации</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, Helvetica, sans-serif; background: #f0f0f0; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 1200px; background: #fff; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.1); }
+        .nav { display: flex; gap: 8px; margin-bottom: 10px; font-size: 14px; flex-wrap: wrap; }
+        .nav a { padding: 4px 14px; border: 1px solid #ccc; border-radius: 16px; color: #333; text-decoration: none; background: #fff; }
+        .nav a.active { background: #2e7d32; color: #fff; border-color: #2e7d32; }
+        .nav a.logout { margin-left: auto; color: #777; }
+        .header { display: flex; align-items: center; margin-bottom: 10px; font-size: 14px; color: #333; flex-wrap: wrap; gap: 10px; }
+        .header button, .header input { padding: 4px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background: #fff; }
+        .header button { cursor: pointer; }
+        .header input[type=search] { width: 160px; }
+        .status { font-size: 12px; color: #666; }
+        .status.error { color: #c00; font-weight: bold; }
+        .status.ok { color: #2e7d32; }
+        .status.warn { color: #b26a00; }
+        .status.loading { color: #f57c00; }
+        .sorts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; align-items: center; }
+        .sorts button { padding: 6px 12px; border: 1px solid #bbb; border-radius: 16px; background: #fff; font-size: 13px; cursor: pointer; color: #333; }
+        .sorts button.active { background: #1565c0; border-color: #1565c0; color: #fff; }
+        .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; background: #fff; }
+        .card { position: relative; padding: 6px 8px; display: flex; justify-content: space-between; align-items: stretch; min-height: 76px; color: #fff; font-size: 12px; line-height: 1.2; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color .3s ease; }
+        @media (hover: hover) { .card:hover { filter: brightness(1.1); } }
+        .card-left { display: flex; flex-direction: column; justify-content: space-between; flex: 1; min-width: 0; padding-right: 6px; overflow: hidden; }
+        .card-right { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; text-align: right; white-space: nowrap; }
+        .name { font-weight: bold; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .line { font-size: 10px; opacity: .95; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .change { font-size: 13px; font-weight: bold; font-variant-numeric: tabular-nums; }
+        .delta { font-size: 10px; opacity: .9; font-variant-numeric: tabular-nums; }
+        .x { position: absolute; top: 0; right: 0; width: 22px; height: 22px; line-height: 20px; text-align: center; font-size: 13px; opacity: .0; }
+        .card:hover .x { opacity: .7; }
+        .note { font-size: 12px; color: #666; margin: 8px 0; line-height: 1.4; }
+        .bg-pos-5 { background-color: #2e7d32; } .bg-pos-4 { background-color: #388e3c; } .bg-pos-3 { background-color: #43a047; }
+        .bg-pos-2 { background-color: #81c784; color: #1a1a1a; } .bg-pos-1 { background-color: #c8e6c9; color: #1a1a1a; }
+        .bg-neg-1 { background-color: #ef9a9a; color: #1a1a1a; } .bg-neg-2 { background-color: #e57373; color: #1a1a1a; }
+        .bg-neg-3 { background-color: #d32f2f; } .bg-neg-4 { background-color: #c62828; } .bg-neg-5 { background-color: #8e0000; }
+        .bg-neutral { background-color: #9e9e9e; color: #fff; }
+        .backup { margin-top: 22px; padding: 12px; border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa; }
+        .backup h3 { margin: 0 0 6px; font-size: 15px; }
+        .backup textarea { width: 100%; min-height: 80px; font-size: 12px; font-family: ui-monospace, Menlo, Consolas, monospace; border: 1px solid #ccc; border-radius: 6px; padding: 6px; }
+        .backup button { padding: 7px 12px; border: 1px solid #bbb; border-radius: 6px; background: #fff; font-size: 13px; cursor: pointer; margin: 4px 6px 0 0; }
+        .backup button.danger { color: #c62828; }
+        @media (max-width: 1000px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 768px) { body { padding: 8px; } .grid { grid-template-columns: repeat(3, 1fr); } .card { min-height: 70px; padding: 5px 6px; } .name { font-size: 10px; } .line { font-size: 9px; } .change { font-size: 12px; } .delta { font-size: 9px; } }
+        @media (max-width: 480px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="nav">
+        <a href="index.html" id="stocksLink">Акции</a>
+        <a href="bonds.html" id="bondsLink">Облигации</a>
+        <a href="#" class="active">Избранное</a>
+        <a href="news.html" id="newsLink">Новости</a>
+        <a href="#" id="logoutLink" class="logout">Выйти</a>
+    </div>
+    <div class="header">
+        <button id="refreshBtn" title="Обновить сейчас">↻ Обновить</button>
+        <input id="searchInput" type="search" placeholder="Поиск по списку" autocomplete="off">
+        <span id="status" class="status">Загрузка...</span>
+    </div>
+    <div class="sorts" id="types"></div>
+    <div class="sorts" id="sorts"></div>
+    <div class="note" id="info"></div>
+    <div class="grid" id="grid"></div>
+
+    <div class="backup">
+        <h3>Резервная копия избранного</h3>
+        <div class="note" id="favStatus"></div>
+        <div class="note">Список хранится в вашем браузере и не теряется при обновлении кода сайта. Сделайте копию, если меняете устройство или чистите данные браузера.</div>
+        <button id="btnCopy">Скопировать копию</button>
+        <button id="btnDownload">Скачать файл</button>
+        <input type="file" id="fileInput" accept=".json,application/json" style="display:none">
+        <button id="btnFile">Загрузить из файла</button>
+        <textarea id="importText" placeholder="Вставьте сюда текст резервной копии"></textarea>
+        <button id="btnMerge">Объединить с текущим</button>
+        <button id="btnReplace" class="danger">Заменить текущим</button>
+        <button id="btnClear" class="danger">Очистить избранное</button>
+        <div class="note" id="backupMsg"></div>
+    </div>
+</div>
+
+<script>
+'use strict';
+
+/*
+ * Избранное (f1): акции и облигации, отмеченные звёздочкой в их карточках.
+ * Данные о составе списка берутся из браузера (FavStore), котировки — с MOEX.
+ */
+
+/* ====== ВЕБ-УТИЛИТЫ: чтение чужих сайтов через CORS-прокси, RSS, HTML-таблицы, Википедия ====== */
+
+/* Браузер не даёт читать чужие сайты напрямую (CORS): пробуем напрямую → публичные прокси. */
+const WEB_PROXIES = [
+    { name: 'напрямую',   build: u => u,                                                              timeout: 6000 },
+    { name: 'allorigins', build: u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, timeout: 15000 },
+    { name: 'corsproxy',  build: u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,          timeout: 15000 }
+];
+
+async function webBytes(url, timeout) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+        const r = await fetch(url, { cache: 'no-store', signal: controller.signal });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return new Uint8Array(await r.arrayBuffer());
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+/* Кодировка берётся из XML-заголовка / meta (бывает windows-1251). */
+function webDecode(bytes) {
+    let label = 'utf-8';
+    let head = '';
+    for (let i = 0; i < Math.min(bytes.length, 600); i++) head += String.fromCharCode(bytes[i]);
+    const m = head.match(/(?:encoding=|charset=)["']?([\w-]+)/i);
+    if (m) label = m[1].toLowerCase();
+    try {
+        return new TextDecoder(label).decode(bytes);
+    } catch (_) {
+        return new TextDecoder('utf-8').decode(bytes);
+    }
+}
+
+/* validate(text) → true, если ответ годится (иначе пробуем следующий прокси). */
+async function fetchTextViaProxies(url, validate) {
+    let lastErr = null;
+    for (const p of WEB_PROXIES) {
+        try {
+            const text = webDecode(await webBytes(p.build(url), p.timeout));
+            if (!validate || validate(text)) return { text, via: p.name };
+            lastErr = new Error('ответ не содержит нужных данных');
+        } catch (e) {
+            lastErr = e;
+        }
+    }
+    throw lastErr || new Error('нет ответа');
+}
+
+function decodeEntities(s) {
+    return s
+        .replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#39;/g, "'")
+        .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+        .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+        .replace(/&amp;/g, '&');
+}
+
+function cleanHtml(s) {
+    if (!s) return '';
+    return decodeEntities(s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+}
+
+function tagOf(block, name) {
+    const m = block.match(new RegExp(`<${name}(?:\\s[^>]*)?>([\\s\\S]*?)</${name}>`, 'i'));
+    return m ? m[1] : '';
+}
+
+function parseFeed(text) {
+    const out = [];
+    const blocks = text.match(/<(item|entry)[\s>][\s\S]*?<\/\1>/gi) || [];
+    blocks.forEach(blk => {
+        const title = cleanHtml(tagOf(blk, 'title'));
+        let link = cleanHtml(tagOf(blk, 'link'));
+        if (!link) {
+            const m = blk.match(/<link[^>]*href=["']([^"']+)["']/i);
+            link = m ? decodeEntities(m[1]) : '';
+        }
+        if (!link) link = cleanHtml(tagOf(blk, 'guid'));
+        const date = cleanHtml(tagOf(blk, 'pubDate') || tagOf(blk, 'published') || tagOf(blk, 'updated') || tagOf(blk, 'dc:date'));
+        const ts = Date.parse(date);
+        const src = cleanHtml(tagOf(blk, 'source'));
+        if (title && /^https?:\/\//i.test(link)) out.push({ title, link, ts: Number.isFinite(ts) ? ts : null, src });
+    });
+    return out;
+}
+
+const RSS2JSON = u => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(u)}`;
+
+async function fetchFeedAny(url) {
+    let lastErr = null;
+    try {
+        const r = await fetchTextViaProxies(url, t => parseFeed(t).length > 0);
+        return { list: parseFeed(r.text), via: r.via };
+    } catch (e) {
+        lastErr = e;
+    }
+    try {
+        const r = await fetch(RSS2JSON(url), { cache: 'no-store' });
+        const j = await r.json();
+        if (j && j.status === 'ok' && Array.isArray(j.items) && j.items.length) {
+            const list = j.items
+                .map(it => ({ title: cleanHtml(it.title), link: String(it.link || ''), ts: Date.parse(String(it.pubDate || '').replace(' ', 'T') + 'Z'), src: '' }))
+                .filter(it => it.title && /^https?:\/\//i.test(it.link))
+                .map(it => ({ ...it, ts: Number.isFinite(it.ts) ? it.ts : null }));
+            if (list.length) return { list, via: 'rss2json' };
+        }
+    } catch (e) {
+        lastErr = e;
+    }
+    throw lastErr || new Error('нет ответа');
+}
+
+/* Все таблицы страницы: массив таблиц, каждая — массив строк, строка — массив текстов ячеек. */
+function parseHtmlTables(html) {
+    const tables = [];
+    (html.match(/<table[\s\S]*?<\/table>/gi) || []).forEach(t => {
+        const rows = [];
+        (t.match(/<tr[\s\S]*?<\/tr>/gi) || []).forEach(tr => {
+            const cells = (tr.match(/<t[hd][\s\S]*?<\/t[hd]>/gi) || []).map(cleanHtml);
+            if (cells.some(x => x !== '')) rows.push(cells);
+        });
+        if (rows.length) tables.push(rows);
+    });
+    return tables;
+}
+
+/* Числа и даты из русских таблиц: «37,64₽», «13,6%», «1 059,5», «17.07.2026». */
+function ruNumber(s) {
+    if (s === null || s === undefined) return null;
+    const m = String(s).replace(/\u00a0/g, ' ').match(/-?\d[\d\s]*(?:[.,]\d+)?/);
+    if (!m) return null;
+    const n = Number(m[0].replace(/\s/g, '').replace(',', '.'));
+    return Number.isFinite(n) ? n : null;
+}
+
+function ruDate(s) {
+    const m = String(s || '').match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+    return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null;
+}
+
+function timeAgo(ts) {
+    const d = new Date(ts);
+    const diff = Date.now() - ts;
+    if (diff < 60 * 1000) return 'только что';
+    if (diff < 60 * 60 * 1000) return `${Math.round(diff / 60000)} мин назад`;
+    const pad = n => String(n).padStart(2, '0');
+    const hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return new Date().toDateString() === d.toDateString() ? `сегодня ${hm}` : `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)} ${hm}`;
+}
+
+
+/* ====== ИЗБРАННОЕ: надёжное хранение ======
+ * Список лежит в браузере под фиксированным ключом FAV_KEY (localStorage) и дублируется в IndexedDB.
+ * Обновление кода страниц его не трогает: данные принадлежат адресу сайта, а не файлам.
+ * Ключ и формат НЕ МЕНЯТЬ. Если формат когда-нибудь изменится, нужна миграция в normalize() — старые записи читаются всегда.
+ * Слияние идёт по времени изменения каждой записи (новее побеждает), удаления хранятся как «надгробия» 180 дней,
+ * поэтому копия из IndexedDB не воскрешает удалённое. Плюс экспорт/импорт резервной копии вручную.
+ */
+const FAV_KEY = 'mx.fav.v1';
+const FAV_IDB_NAME = 'mx-heatmap';
+const FAV_IDB_STORE = 'kv';
+const FAV_IDB_KEY = 'fav.v1';
+const FAV_TOMBSTONE_MS = 180 * 86400000;
+
+const FavStore = (() => {
+    let items = {};
+    const status = { ls: false, idb: false, persisted: null, saved: null };
+    const listeners = [];
+    let ready = null;
+
+    const keyOf = (k, id) => `${k}:${id}`;
+
+    function normalize(raw) {
+        const out = {};
+        if (!raw) return out;
+        if (Array.isArray(raw)) { // v0: просто массив тикеров
+            raw.forEach(id => {
+                if (typeof id === 'string' && id) out[keyOf('s', id)] = { k: 's', id, board: null, name: id, a: 1, u: 1, del: false };
+            });
+            return out;
+        }
+        const src = raw.items || raw;
+        Object.keys(src).forEach(key => {
+            const it = src[key];
+            if (it && it.id && (it.k === 's' || it.k === 'b')) {
+                out[keyOf(it.k, it.id)] = {
+                    k: it.k, id: String(it.id), board: it.board || null, name: it.name || String(it.id),
+                    a: Number(it.a) || 0, u: Number(it.u) || Number(it.a) || 0, del: !!it.del
+                };
+            }
+        });
+        return out;
+    }
+
+    function merge(a, b) {
+        const out = { ...a };
+        Object.keys(b).forEach(key => {
+            if (!out[key] || (b[key].u || 0) > (out[key].u || 0)) out[key] = b[key];
+        });
+        return out;
+    }
+
+    function readLS() {
+        try {
+            const raw = localStorage.getItem(FAV_KEY);
+            return raw ? normalize(JSON.parse(raw)) : {};
+        } catch (_) {
+            return {};
+        }
+    }
+
+    function idbOpen() {
+        return new Promise((resolve, reject) => {
+            if (typeof indexedDB === 'undefined') { reject(new Error('IndexedDB недоступна')); return; }
+            const r = indexedDB.open(FAV_IDB_NAME, 1);
+            r.onupgradeneeded = () => r.result.createObjectStore(FAV_IDB_STORE);
+            r.onsuccess = () => resolve(r.result);
+            r.onerror = () => reject(r.error);
+        });
+    }
+
+    async function idbGet() {
+        const db = await idbOpen();
+        return new Promise((resolve, reject) => {
+            const req = db.transaction(FAV_IDB_STORE, 'readonly').objectStore(FAV_IDB_STORE).get(FAV_IDB_KEY);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    async function idbPut(value) {
+        const db = await idbOpen();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(FAV_IDB_STORE, 'readwrite');
+            tx.objectStore(FAV_IDB_STORE).put(value, FAV_IDB_KEY);
+            tx.oncomplete = () => resolve(true);
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+
+    function purge() {
+        const limit = Date.now() - FAV_TOMBSTONE_MS;
+        Object.keys(items).forEach(key => { if (items[key].del && items[key].u < limit) delete items[key]; });
+    }
+
+    async function persist() {
+        purge();
+        const payload = { v: 1, saved: Date.now(), items };
+        status.saved = payload.saved;
+        try {
+            localStorage.setItem(FAV_KEY, JSON.stringify(payload));
+            status.ls = true;
+        } catch (_) {
+            status.ls = false;
+        }
+        try {
+            await idbPut(payload);
+            status.idb = true;
+        } catch (_) {
+            status.idb = false;
+        }
+    }
+
+    function emit() {
+        listeners.forEach(fn => { try { fn(); } catch (e) { console.error(e); } });
+    }
+
+    items = readLS(); // сразу, синхронно: звёздочки рисуются без ожидания
+
+    return {
+        init() {
+            if (ready) return ready;
+            ready = (async () => {
+                try {
+                    items = merge(items, normalize(await idbGet()));
+                    status.idb = true;
+                } catch (_) {
+                    status.idb = false;
+                }
+                await persist();
+                try {
+                    if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.persist) {
+                        status.persisted = await navigator.storage.persist();
+                    }
+                } catch (_) { /* ignore */ }
+                if (typeof window !== 'undefined' && window.addEventListener) {
+                    window.addEventListener('storage', e => {
+                        if (e.key !== FAV_KEY || !e.newValue) return;
+                        try {
+                            items = merge(items, normalize(JSON.parse(e.newValue)));
+                            emit();
+                        } catch (_) { /* ignore */ }
+                    });
+                }
+                emit();
+            })();
+            return ready;
+        },
+        has(k, id) {
+            const it = items[keyOf(k, id)];
+            return !!it && !it.del;
+        },
+        toggle(k, id, meta) {
+            const key = keyOf(k, id);
+            const now = Date.now();
+            const cur = items[key];
+            if (cur && !cur.del) {
+                items[key] = { ...cur, del: true, u: now };
+            } else {
+                items[key] = {
+                    k, id: String(id), board: (meta && meta.board) || (cur && cur.board) || null,
+                    name: (meta && meta.name) || (cur && cur.name) || String(id), a: now, u: now, del: false
+                };
+            }
+            persist().then(emit);
+            emit();
+            return !items[key].del;
+        },
+        list() {
+            return Object.keys(items).map(k => items[k]).filter(it => !it.del).sort((a, b) => a.a - b.a);
+        },
+        onChange(fn) { listeners.push(fn); },
+        exportText() {
+            return JSON.stringify({ v: 1, exported: new Date().toISOString(), items: this.list() }, null, 1);
+        },
+        async importText(text, replace) {
+            let raw;
+            try { raw = JSON.parse(text); } catch (_) { throw new Error('это не похоже на резервную копию (не JSON)'); }
+            let list = raw && raw.items ? raw.items : raw;
+            if (!Array.isArray(list) && list && typeof list === 'object') list = Object.keys(list).map(k => list[k]);
+            if (!Array.isArray(list)) throw new Error('в копии нет списка бумаг');
+            const now = Date.now();
+            const incoming = normalize({ items: Object.fromEntries(list.filter(x => x && x.id && (x.k === 's' || x.k === 'b')).map(x => [keyOf(x.k, x.id), { ...x, u: now, del: false, a: x.a || now }])) });
+            if (replace) {
+                Object.keys(items).forEach(key => { if (!items[key].del) items[key] = { ...items[key], del: true, u: now }; });
+            }
+            items = merge(items, incoming);
+            await persist();
+            emit();
+            return Object.keys(incoming).length;
+        },
+        describe() {
+            return `Хранилище: localStorage ${status.ls ? '✓' : '✗'} · IndexedDB ${status.idb ? '✓' : '✗'}` +
+                ` · постоянное хранение: ${status.persisted === null ? 'не запрошено' : status.persisted ? 'да' : 'нет (браузер может очистить при нехватке места)'}` +
+                (status.saved ? ` · сохранено ${new Date(status.saved).toLocaleString('ru-RU')}` : '');
+        }
+    };
+})();
+
+
+const VERSION = 'f1';
+const STOCKS_PAGE = 'index.html';
+const BONDS_PAGE = 'bonds.html';
+const NEWS_PAGE = 'news.html';
+const MOEX_ISS = 'https://iss.moex.com/iss';
+const STOCK_BOARD = `${MOEX_ISS}/engines/stock/markets/shares/boards/TQBR`;
+const BOND_BOARDS = ['TQOB', 'TQCB', 'TQOD', 'TQOE', 'TQOY', 'TQIU', 'TQIE', 'TQCD'];
+const REFRESH_MS = 30000;
+const FETCH_TIMEOUT = 20000;
+
+const SORTS = [
+    ['color', 'Цвет (изменение)', -1],
+    ['name', 'Название', 1],
+    ['type', 'Тип', 1],
+    ['added', 'Дата добавления', 1],
+    ['turnover', 'Оборот', -1],
+    ['yield', 'Доходность', -1],
+    ['mat', 'Погашение', 1],
+    ['divdate', 'Дата дивидендов', 1],
+    ['cap', 'Капитализация', -1]
+];
+const TYPES = [['all', 'Все'], ['s', 'Акции'], ['b', 'Облигации']];
+
+let quotes = {};               // 's:SBER' -> котировка
+let typeFilter = 'all';
+let sortKey = 'color';
+let sortDir = -1;
+let query = '';
+let upcoming = null;           // календарь дивидендов smart-lab (по запросу)
+let loading = false;
+let timer = null;
+
+const $ = id => document.getElementById(id);
+const mk = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = text;
+    return e;
+};
+const num = v => { if (v === null || v === undefined || v === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; };
+const nfCache = {};
+const nf = d => nfCache[d] || (nfCache[d] = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: d, maximumFractionDigits: d }));
+const moscowDateStr = date => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Moscow' }).format(date);
+const shortDate = s => { if (!s) return '—'; const [y, m, d] = String(s).slice(0, 10).split('-'); return `${d}.${m}.${y.slice(2)}`; };
+const keyOf = it => `${it.k}:${it.id}`;
+
+function setStatus(cls, text) {
+    const b = $('status');
+    b.className = 'status' + (cls ? ' ' + cls : '');
+    b.textContent = text;
+}
+
+async function fetchJson(url, timeout = FETCH_TIMEOUT) {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), timeout);
+    try {
+        const r = await fetch(url, { cache: 'no-store', signal: c.signal });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return await r.json();
+    } catch (e) {
+        throw new Error(e && e.name === 'AbortError' ? 'MOEX не ответил вовремя' : e.message || 'нет связи с MOEX');
+    } finally {
+        clearTimeout(t);
+    }
+}
+
+function formatChange(c) {
+    if (c === null || c === undefined || isNaN(c)) return '—';
+    const r = Math.round(c * 100) / 100;
+    return r === 0 ? '0,00 %' : (r > 0 ? '+' : '−') + nf(2).format(Math.abs(r)) + ' %';
+}
+
+function bgClass(change, scale) {
+    if (change === null || change === undefined || isNaN(change) || Math.round(change * 100) / 100 === 0) return 'bg-neutral';
+    const a = Math.abs(change) / scale;
+    const level = a >= 5 ? 5 : a >= 2 ? 4 : a >= 1 ? 3 : a >= 0.5 ? 2 : 1;
+    return (change > 0 ? 'bg-pos-' : 'bg-neg-') + level;
+}
+
+function formatMoney(v) {
+    if (v === null || v === undefined || isNaN(v)) return '—';
+    if (v >= 1e12) return nf(2).format(v / 1e12) + ' трлн';
+    if (v >= 1e9) return nf(2).format(v / 1e9) + ' млрд';
+    if (v >= 1e6) return nf(1).format(v / 1e6) + ' млн';
+    return nf(0).format(v);
+}
+
+const colIdx = cols => Object.fromEntries(cols.map((c, i) => [String(c).toUpperCase(), i]));
+
+/* ---------- котировки ---------- */
+
+async function loadStocks(ids) {
+    if (!ids.length) return;
+    const url = `${STOCK_BOARD}/securities.json?iss.meta=off&iss.only=securities,marketdata&securities=${ids.map(encodeURIComponent).join(',')}` +
+        `&securities.columns=SECID,SHORTNAME,SECNAME,DECIMALS,PREVPRICE,PREVLEGALCLOSEPRICE,LOTSIZE` +
+        `&marketdata.columns=SECID,LAST,MARKETPRICE,VALTODAY,ISSUECAPITALIZATION`;
+    const data = await fetchJson(url);
+    const si = colIdx(data.securities.columns);
+    const mi = colIdx(data.marketdata.columns);
+    const map = {};
+    data.securities.data.forEach(r => {
+        map[r[si.SECID]] = { k: 's', id: r[si.SECID], name: r[si.SHORTNAME] || r[si.SECID], dec: num(r[si.DECIMALS]), prev: num(r[si.PREVPRICE]) ?? num(r[si.PREVLEGALCLOSEPRICE]), last: null, turnover: null, cap: null };
+    });
+    data.marketdata.data.forEach(r => {
+        const q = map[r[mi.SECID]];
+        if (!q) return;
+        q.last = num(r[mi.LAST]);
+        q.mp = num(r[mi.MARKETPRICE]);
+        q.turnover = num(r[mi.VALTODAY]);
+        q.cap = num(r[mi.ISSUECAPITALIZATION]);
+    });
+    Object.values(map).forEach(q => {
+        q.price = q.last ?? q.prev ?? q.mp ?? null;
+        q.change = q.price !== null && q.prev ? (q.price / q.prev - 1) * 100 : null;
+        quotes[keyOf(q)] = q;
+    });
+}
+
+async function loadBondBoard(board, ids) {
+    const url = `${MOEX_ISS}/engines/stock/markets/bonds/boards/${board}/securities.json?iss.meta=off&iss.only=securities,marketdata&securities=${ids.map(encodeURIComponent).join(',')}` +
+        `&securities.columns=SECID,SHORTNAME,SECNAME,PREVPRICE,PREVLEGALCLOSEPRICE,COUPONPERIOD,COUPONPERCENT,MATDATE,FACEUNIT` +
+        `&marketdata.columns=SECID,LAST,YIELD,YIELDATWAP,VALTODAY`;
+    const data = await fetchJson(url);
+    if (!data.securities || !Array.isArray(data.securities.data)) return [];
+    const si = colIdx(data.securities.columns);
+    const mi = data.marketdata ? colIdx(data.marketdata.columns) : {};
+    const map = {};
+    data.securities.data.forEach(r => {
+        map[r[si.SECID]] = { k: 'b', id: r[si.SECID], board, name: r[si.SHORTNAME] || r[si.SECID], prev: num(r[si.PREVPRICE]) ?? num(r[si.PREVLEGALCLOSEPRICE]), per: num(r[si.COUPONPERIOD]), cpn: num(r[si.COUPONPERCENT]), mat: r[si.MATDATE] || null, unit: r[si.FACEUNIT] || 'SUR', last: null, yld: null, turnover: null };
+    });
+    if (data.marketdata && Array.isArray(data.marketdata.data)) {
+        data.marketdata.data.forEach(r => {
+            const q = map[r[mi.SECID]];
+            if (!q) return;
+            q.last = num(r[mi.LAST]);
+            q.yld = num(r[mi.YIELD]) ?? num(r[mi.YIELDATWAP]);
+            q.turnover = num(r[mi.VALTODAY]);
+        });
+    }
+    return Object.values(map);
+}
+
+async function loadBonds(ids) {
+    if (!ids.length) return;
+    const results = await Promise.allSettled(BOND_BOARDS.map(b => loadBondBoard(b, ids)));
+    results.forEach(r => {
+        if (r.status !== 'fulfilled') return;
+        r.value.forEach(q => {
+            q.price = q.last ?? q.prev ?? null;
+            q.change = q.price !== null && q.prev ? (q.price / q.prev - 1) * 100 : null;
+            q.euro = q.unit && q.unit !== 'SUR' && q.unit !== 'RUB';
+            quotes[keyOf(q)] = q;
+        });
+    });
+}
+
+/* Календарь дивидендов smart-lab (одним запросом) — для сортировки акций по дате и доходности дивидендов. */
+function parseUpcoming(html) {
+    const out = {};
+    parseHtmlTables(html).forEach(rows => {
+        const h = rows[0];
+        const ix = re => h.findIndex(x => re.test(x));
+        const iT = ix(/тикер/i);
+        const iD = ix(/(дата\s*отсечки|дата закрытия реестра)/i);
+        const iY = ix(/дох/i);
+        const iA = h.findIndex(x => /дивиденд/i.test(x) && !/дох/i.test(x));
+        if (iT < 0 || iD < 0 || iA < 0) return;
+        rows.slice(1).forEach(r => {
+            const t = String(r[iT]).trim().toUpperCase();
+            const date = ruDate(r[iD]);
+            const value = ruNumber(r[iA]);
+            if (!t || !date || value === null) return;
+            if (!out[t] || date < out[t].date) out[t] = { date, value, yieldPct: iY >= 0 ? ruNumber(r[iY]) : null };
+        });
+    });
+    return out;
+}
+
+async function ensureUpcoming() {
+    if (upcoming) return;
+    setStatus('loading', 'Загрузка календаря дивидендов...');
+    try {
+        const r = await fetchTextViaProxies('https://smart-lab.ru/dividends/', t => /Тикер/i.test(t) && /<table/i.test(t));
+        const map = parseUpcoming(r.text);
+        const today = moscowDateStr(new Date());
+        upcoming = {};
+        Object.keys(map).forEach(t => { if (map[t].date >= today) upcoming[t] = map[t]; });
+    } catch (e) {
+        console.error(e);
+        upcoming = {};
+        setStatus('warn', `Календарь дивидендов не загрузился: ${e.message}`);
+    }
+}
+
+async function loadAll() {
+    if (loading) return;
+    loading = true;
+    setStatus('loading', 'Обновление...');
+    const items = FavStore.list();
+    const sIds = items.filter(i => i.k === 's').map(i => i.id);
+    const bIds = items.filter(i => i.k === 'b').map(i => i.id);
+    const errs = [];
+    await Promise.all([
+        loadStocks(sIds).catch(e => errs.push(`акции: ${e.message}`)),
+        loadBonds(bIds).catch(e => errs.push(`облигации: ${e.message}`))
+    ]);
+    loading = false;
+    render();
+    if (errs.length) setStatus('error', `Ошибка загрузки (${errs.join('; ')})`);
+    else setStatus('ok', `Обновлено ${new Date().toLocaleTimeString('ru-RU')} · ${items.length} бумаг · ${VERSION}`);
+}
+
+/* ---------- сортировка и плитки ---------- */
+
+function sortValue(it, q, key) {
+    switch (key) {
+        case 'name': return String(it.name || it.id).toLowerCase();
+        case 'type': return it.k === 's' ? 0 : 1;
+        case 'added': return it.a;
+        case 'color': {
+            const c = q ? q.change : null;
+            return c === null || c === undefined || Math.round(c * 100) / 100 === 0 ? null : c;
+        }
+        case 'turnover': return q ? q.turnover : null;
+        case 'yield':
+            if (!q) return null;
+            if (it.k === 'b') return q.yld;
+            return upcoming && upcoming[it.id] ? upcoming[it.id].yieldPct : null;
+        case 'mat': return it.k === 'b' && q && q.mat ? Date.parse(String(q.mat).slice(0, 10)) : null;
+        case 'divdate': return it.k === 's' && upcoming && upcoming[it.id] ? Date.parse(upcoming[it.id].date) : null;
+        case 'cap': return it.k === 's' && q ? q.cap : null;
+        default: return null;
+    }
+}
+
+function sortedItems() {
+    let list = FavStore.list().filter(it => typeFilter === 'all' || it.k === typeFilter);
+    if (query) list = list.filter(it => `${it.name} ${it.id}`.toLowerCase().includes(query));
+    const dec = list.map(it => ({ it, q: quotes[keyOf(it)], v: null }));
+    dec.forEach(d => { d.v = sortValue(d.it, d.q, sortKey); });
+    dec.sort((a, b) => {
+        if (a.v === null && b.v === null) return String(a.it.name).localeCompare(String(b.it.name));
+        if (a.v === null) return 1;
+        if (b.v === null) return -1;
+        if (a.v === b.v) return String(a.it.name).localeCompare(String(b.it.name));
+        if (typeof a.v === 'string') return sortDir * a.v.localeCompare(b.v);
+        return sortDir * (a.v - b.v);
+    });
+    return dec;
+}
+
+function metricText(it, q) {
+    if (!q) return '';
+    switch (sortKey) {
+        case 'turnover': return q.turnover ? `Оборот ${formatMoney(q.turnover)}` : 'нет оборота';
+        case 'cap': return q.cap ? `Кап. ${formatMoney(q.cap)}` : '';
+        case 'mat': return q.mat ? shortDate(q.mat) : '';
+        case 'divdate': return upcoming && upcoming[it.id] ? shortDate(upcoming[it.id].date) : 'нет дат';
+        case 'yield':
+            if (it.k === 'b') return q.yld !== null ? `Дох. ${nf(2).format(q.yld)} %` : '';
+            return upcoming && upcoming[it.id] && upcoming[it.id].yieldPct !== null ? `Див. ${nf(1).format(upcoming[it.id].yieldPct)} %` : '';
+        default: return it.k === 's' ? 'акция' : q.euro ? `облигация ${q.unit}` : 'облигация';
+    }
+}
+
+function createTile(it, q) {
+    const card = mk('div', 'card ' + (q ? bgClass(q.change, it.k === 's' ? 1 : 0.2) : 'bg-neutral'));
+    card.tabIndex = 0;
+    const left = mk('div', 'card-left');
+    left.append(mk('div', 'name', `${it.k === 's' ? '' : '◆ '}${(q && q.name) || it.name}`));
+    if (q && q.price !== null) {
+        left.append(mk('div', 'line', it.k === 's' ? `${nf(Number.isInteger(q.dec) ? q.dec : 2).format(q.price)} ₽` : `${nf(2).format(q.price)} % от номинала`));
+        left.append(mk('div', 'line', it.k === 's' ? it.id : `${q.mat ? 'погаш. ' + shortDate(q.mat) : 'без срока'}${q.cpn !== null ? ' · куп. ' + nf(1).format(q.cpn) + ' %' : ''}`));
+    } else {
+        left.append(mk('div', 'line', 'нет котировок'), mk('div', 'line', it.id));
+    }
+    const right = mk('div', 'card-right');
+    right.append(mk('div', 'change', q ? formatChange(q.change) : '—'), mk('div', 'delta', metricText(it, q)));
+    const x = mk('span', 'x', '✕');
+    x.title = 'Убрать из избранного';
+    x.addEventListener('click', e => {
+        e.stopPropagation();
+        if (confirm(`Убрать «${(q && q.name) || it.name}» из избранного?`)) FavStore.toggle(it.k, it.id, {});
+    });
+    card.append(left, right, x);
+    const go = () => {
+        const base = it.k === 's' ? STOCKS_PAGE : BONDS_PAGE;
+        location.href = `${base}?open=${encodeURIComponent(it.id)}${q && q.euro ? '&euro=1' : ''}`;
+    };
+    card.addEventListener('click', go);
+    card.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+    return card;
+}
+
+function render() {
+    const rows = sortedItems();
+    const all = FavStore.list();
+    $('info').textContent = all.length
+        ? `В избранном: ${all.length} (акций ${all.filter(i => i.k === 's').length}, облигаций ${all.filter(i => i.k === 'b').length}). Нажмите на плитку, чтобы открыть карточку.`
+        : 'Список пуст. Откройте карточку акции или облигации и нажмите ☆ в правом верхнем углу.';
+    $('grid').replaceChildren(...rows.map(d => createTile(d.it, d.q)));
+    renderControls();
+}
+
+function renderControls() {
+    $('types').replaceChildren(...TYPES.map(([k, label]) => {
+        const b = mk('button', typeFilter === k ? 'active' : null, label);
+        b.addEventListener('click', () => { typeFilter = k; render(); });
+        return b;
+    }));
+    $('sorts').replaceChildren(...SORTS.map(([k, label, dir]) => {
+        const active = sortKey === k;
+        const b = mk('button', active ? 'active' : null, label + (active ? (sortDir < 0 ? ' ↓' : ' ↑') : ''));
+        b.addEventListener('click', async () => {
+            if (sortKey === k) sortDir = -sortDir;
+            else { sortKey = k; sortDir = dir; }
+            if ((k === 'yield' || k === 'divdate') && !upcoming) {
+                await ensureUpcoming();
+                setStatus('ok', `Обновлено ${new Date().toLocaleTimeString('ru-RU')} · ${VERSION}`);
+            }
+            render();
+        });
+        return b;
+    }));
+    $('favStatus').textContent = FavStore.describe();
+}
+
+/* ---------- резервная копия ---------- */
+
+function backupMsg(t, bad) {
+    const b = $('backupMsg');
+    b.textContent = t;
+    b.style.color = bad ? '#c62828' : '#2e7d32';
+}
+
+$('btnCopy').addEventListener('click', async () => {
+    const text = FavStore.exportText();
+    try {
+        await navigator.clipboard.writeText(text);
+        backupMsg('Копия скопирована в буфер обмена.');
+    } catch (_) {
+        $('importText').value = text;
+        $('importText').select();
+        backupMsg('Буфер недоступен: текст копии помещён в поле ниже — скопируйте его вручную.');
+    }
+});
+$('btnDownload').addEventListener('click', () => {
+    const blob = new Blob([FavStore.exportText()], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `moex-favorites-${moscowDateStr(new Date())}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    backupMsg('Файл копии сформирован.');
+});
+$('btnFile').addEventListener('click', () => $('fileInput').click());
+$('fileInput').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    $('importText').value = await f.text();
+    backupMsg('Файл прочитан: нажмите «Объединить» или «Заменить».');
+});
+async function doImport(replace) {
+    try {
+        const n = await FavStore.importText($('importText').value, replace);
+        backupMsg(`Загружено записей: ${n}.`);
+        loadAll();
+    } catch (e) {
+        backupMsg(`Не удалось загрузить: ${e.message}`, true);
+    }
+}
+$('btnMerge').addEventListener('click', () => doImport(false));
+$('btnReplace').addEventListener('click', () => { if (confirm('Заменить текущий список содержимым копии?')) doImport(true); });
+$('btnClear').addEventListener('click', async () => {
+    if (!confirm('Очистить всё избранное? Сначала можно сделать копию.')) return;
+    for (const it of FavStore.list()) FavStore.toggle(it.k, it.id, {});
+    backupMsg('Избранное очищено.');
+});
+
+/* ---------- запуск ---------- */
+
+$('stocksLink').href = STOCKS_PAGE;
+$('bondsLink').href = BONDS_PAGE;
+$('newsLink').href = NEWS_PAGE;
+$('logoutLink').addEventListener('click', e => {
+    e.preventDefault();
+    try { sessionStorage.removeItem('mx_k'); } catch (_) { /* ignore */ }
+    location.reload();
+});
+$('refreshBtn').addEventListener('click', () => loadAll());
+$('searchInput').addEventListener('input', e => { query = String(e.target.value || '').trim().toLowerCase(); render(); });
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { if (timer) clearInterval(timer); timer = null; }
+    else { loadAll(); timer = setInterval(loadAll, REFRESH_MS); }
+});
+
+FavStore.onChange(() => { render(); loadAll(); });
+render();
+FavStore.init().then(() => loadAll());
+timer = setInterval(loadAll, REFRESH_MS);
+</script>
+</body>
+</html>
