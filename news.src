@@ -45,6 +45,7 @@
     <div class="nav">
         <a href="index.html" id="stocksLink">Акции</a>
         <a href="bonds.html" id="bondsLink">Облигации</a>
+        <a href="favorites.html" id="favLink">Избранное</a>
         <a href="#" class="active">Новости</a>
         <a href="#" id="logoutLink" class="logout">Выйти</a>
     </div>
@@ -72,7 +73,7 @@
  * значит, ленты или прокси сейчас недоступны (проверьте VPN/сеть).
  */
 
-const VERSION = 'n1';
+const VERSION = 'n2';
 const STOCKS_PAGE = 'index.html';
 const BONDS_PAGE = 'bonds.html';
 
@@ -339,6 +340,7 @@ function renderList() {
 
 $('stocksLink').href = STOCKS_PAGE;
 $('bondsLink').href = BONDS_PAGE;
+$('favLink').href = 'favorites.html';
 $('logoutLink').addEventListener('click', e => {
     e.preventDefault();
     try { sessionStorage.removeItem('mx_k'); } catch (_) { /* ignore */ }
