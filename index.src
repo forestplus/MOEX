@@ -192,11 +192,39 @@
         .cp-tip .r { display: flex; justify-content: space-between; gap: 8px; }
         .cp-tip .up { color: #2e7d32; font-weight: bold; }
         .cp-tip .down { color: #c62828; font-weight: bold; }
+        .cp-close { display: none; }
         .cp.cp-full {
-            position: fixed; inset: 0; z-index: 300; margin: 0; padding: 10px; display: flex; flex-direction: column;
+            position: fixed; inset: 0; z-index: 500; margin: 0; display: flex; flex-direction: column;
+            padding: calc(env(safe-area-inset-top, 0px) + 56px) 10px calc(env(safe-area-inset-bottom, 0px) + 10px);
+        }
+        .cp.cp-full .cp-close {
+            display: block; position: absolute; top: calc(env(safe-area-inset-top, 0px) + 8px); right: 10px; z-index: 2;
+            padding: 11px 16px; font-size: 16px; font-weight: bold; color: #fff; background: #c62828;
+            border: none; border-radius: 10px; cursor: pointer;
         }
         .cp.cp-full .cp-stage { flex: 1; height: auto; min-height: 0; }
-
+        .ob-row { position: relative; display: flex; justify-content: space-between; padding: 4px 8px; font-size: 13px; font-variant-numeric: tabular-nums; overflow: hidden; }
+        .ob-row span { position: relative; z-index: 1; }
+        .ob-bar { position: absolute; top: 0; bottom: 0; right: 0; opacity: .22; }
+        .ob-sell .ob-bar { background: #c62828; } .ob-sell span:first-child { color: #c62828; font-weight: bold; }
+        .ob-buy .ob-bar { background: #2e7d32; } .ob-buy span:first-child { color: #2e7d32; font-weight: bold; }
+        .ob-head { display: flex; justify-content: space-between; padding: 4px 8px; font-size: 11px; color: #777; }
+        .ob-spread { text-align: center; padding: 6px; font-size: 12px; background: #f5f5f5; color: #555; margin: 2px 0; }
+        .news-line { display: block; padding: 8px 2px; border-bottom: 1px solid #eee; text-decoration: none; color: #1a1a1a; }
+        .news-line .t { font-size: 14px; line-height: 1.35; font-weight: bold; }
+        .news-line .m { font-size: 11px; color: #777; margin-top: 2px; }
+        .news-line .m b { color: #1565c0; }
+        .star-btn { border: none; background: #eee; border-radius: 50%; width: 34px; height: 34px; font-size: 19px; cursor: pointer; flex: none; color: #9e9e9e; line-height: 1; }
+        .star-btn.on { background: #fff8e1; color: #f9a825; }
+        .rates { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .rate { border: 1px solid #ddd; border-radius: 8px; background: #fafafa; padding: 5px 9px; cursor: pointer; font-size: 11px; text-align: left; line-height: 1.25; color: #444; }
+        .rate b { display: block; font-size: 14px; color: #111; }
+        .rate .rc.up { color: #2e7d32; font-weight: bold; }
+        .rate .rc.down { color: #c62828; font-weight: bold; }
+        .head-btns { display: flex; gap: 8px; flex: none; }
+        .tabs { flex-wrap: wrap; }
+        .tab { flex: 1 1 auto; font-size: 13px; padding: 7px 8px; }
+        .info-text { font-size: 13px; line-height: 1.45; margin: 4px 0 6px; }
         table.dt { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
         table.dt th { text-align: right; color: #555; font-weight: bold; padding: 4px 3px; border-bottom: 1px solid #ddd; }
         table.dt th:first-child, table.dt td:first-child { text-align: left; }
@@ -219,9 +247,11 @@
     <div class="nav">
         <a href="#" class="active">Акции</a>
         <a href="bonds.html" id="bondsLink">Облигации</a>
+        <a href="favorites.html" id="favLink">Избранное</a>
         <a href="news.html" id="newsLink">Новости</a>
         <a href="#" id="logoutLink" class="logout">Выйти</a>
     </div>
+    <div class="rates" id="rates"></div>
     <div class="header">
         <span>Доходность:</span>
         <select id="periodSelect">
@@ -230,6 +260,7 @@
             <option value="month">за месяц</option>
         </select>
         <button id="refreshBtn" title="Обновить сейчас">↻ Обновить</button>
+        <button id="orderBtn" class="toggle" title="Порядок плиток: от зелёных к красным или наоборот">⇅ Зелёные → красные</button>
         <button id="divDateBtn" class="toggle" title="Сначала те, у кого ближайшая дата дивидендов">Ближайшие дивиденды</button>
         <button id="divYieldBtn" class="toggle" title="От максимальной дивидендной доходности к минимальной">Див. доходность</button>
         <input id="searchInput" type="search" placeholder="Поиск: тикер или имя" autocomplete="off">
@@ -249,11 +280,17 @@
                 <div class="sheet-title" id="modalTitle"></div>
                 <div class="sheet-sub" id="modalSub"></div>
             </div>
-            <button class="sheet-close" id="modalClose" aria-label="Закрыть">✕</button>
+            <div class="head-btns">
+                <button class="star-btn" id="modalStar" aria-label="В избранное" title="В избранное">☆</button>
+                <button class="sheet-close" id="modalClose" aria-label="Закрыть">✕</button>
+            </div>
         </div>
         <div class="tabs">
             <button class="tab active" id="tabSummary">Сводка</button>
             <button class="tab" id="tabDiv">Дивиденды</button>
+            <button class="tab" id="tabInfo">О компании</button>
+            <button class="tab" id="tabBook">Стакан</button>
+            <button class="tab" id="tabNews">Новости</button>
         </div>
         <div id="paneSummary">
             <div class="sec" id="modalLive"></div>
@@ -264,7 +301,33 @@
         <div id="paneDiv" hidden>
             <div class="sec" id="modalDivTab"></div>
         </div>
+        <div id="paneInfo" hidden>
+            <div class="sec" id="modalInfo"></div>
+        </div>
+        <div id="paneBook" hidden>
+            <div class="sec" id="modalBook"></div>
+        </div>
+        <div id="paneNews" hidden>
+            <div class="sec" id="modalNews"></div>
+        </div>
         <div class="sec" id="modalChart"></div>
+    </div>
+</div>
+
+<div id="rateModal" class="modal" hidden>
+    <div class="sheet" role="dialog" aria-modal="true">
+        <div class="sheet-head">
+            <div>
+                <div class="sheet-title" id="rateTitle"></div>
+                <div class="sheet-sub" id="rateSub"></div>
+            </div>
+            <div class="head-btns">
+                <button class="sheet-close" id="rateClose" aria-label="Закрыть">✕</button>
+            </div>
+        </div>
+        <div class="sec" id="rateLive"></div>
+        <div class="sec" id="rateHist"></div>
+        <div class="sec" id="rateChart"></div>
     </div>
 </div>
 
@@ -272,7 +335,7 @@
 'use strict';
 
 /*
- * MOEX Heatmap v20 (акции)
+ * MOEX Heatmap v21 (акции)
  *
  *  • Главная сетка: выбранный период (день / неделя / месяц), все акции TQBR.
  *  • Нули (0,00 %) уходят в конец списка.
@@ -282,9 +345,10 @@
  *  • Отладка:  ?debug=OZON  или  ?debug=OZON&bcs=34.22
  */
 
-const VERSION = 'v20';
+const VERSION = 'v21';
 const BONDS_PAGE = 'bonds.html';
 const NEWS_PAGE = 'news.html';
+const FAV_PAGE = 'favorites.html';
 
 const MOEX_ISS = 'https://iss.moex.com/iss';
 const BOARD = 'TQBR';
@@ -303,7 +367,7 @@ const HIST_TTL = 12 * 3600 * 1000;
 const TOP_TURNOVER_COUNT = 10;
 const CACHE_KEY = 'moexHeatmap.snapshot.v2';
 const DIV_CACHE_KEY = 'moexHeatmap.div.v1';
-const DIV_TTL = 24 * 3600 * 1000;
+const DIV_TTL = 6 * 3600 * 1000;
 const DIV_CONCURRENCY = 8;
 
 /* Кандидаты на разворот: формальный отбор по цифрам (не прогноз). */
@@ -370,6 +434,9 @@ let divAllLoaded = false;
 let divAllPromise = null;
 const divProgress = { done: 0, total: 0 };
 let modalTab = 'summary';
+const upcomingMap = {};          // тикер -> предстоящая выплата (календарь smart-lab)
+let colorAsc = false;            // порядок плиток: false — зелёные → красные, true — красные → зелёные
+try { colorAsc = localStorage.getItem('mx.pref.order') === 'asc'; } catch (_) { /* ignore */ }
 let chartPanel = null;
 let revEls = null;
 const revState = { status: 'idle', scheduled: false, analysis: null, progress: { done: 0, total: 0 }, error: null };
@@ -594,7 +661,7 @@ function createCard(stock) {
     card.setAttribute('role', 'button');
 
     const left = mk('div', 'card-left');
-    const nameEl = mk('div', 'name', stock.name);
+    const nameEl = mk('div', 'name', (FavStore.has('s', stock.ticker) ? '★ ' : '') + stock.name);
     nameEl.title = `${stock.name} (${stock.ticker})`;
     const priceEl = mk('div', 'price', '—');
     left.append(nameEl, priceEl);
@@ -613,7 +680,7 @@ function createCard(stock) {
         }
     });
 
-    return { card, price: priceEl, change: changeEl, delta: deltaEl };
+    return { card, name: nameEl, price: priceEl, change: changeEl, delta: deltaEl };
 }
 
 function fillCard(els, stock, result, period) {
@@ -671,14 +738,18 @@ function sortCards() {
                 return a.ticker.localeCompare(b.ticker);
             });
         } else {
-            const y = e => (e.div && e.div.yieldTtm > 0 ? e.div.yieldTtm : null);
+            // сначала бумаги с объявленной выплатой (по её доходности), затем по доходности за 12 месяцев, затем остальные
+            const key = e => {
+                const d = e.div;
+                if (d && d.upcoming && d.upYield !== null && d.upYield !== undefined) return { g: 0, y: d.upYield };
+                if (d && d.yieldTtm > 0) return { g: 1, y: d.yieldTtm };
+                return { g: 2, y: 0 };
+            };
             entries.sort((a, b) => {
-                const ya = y(a);
-                const yb = y(b);
-                if (ya === null && yb === null) return a.ticker.localeCompare(b.ticker);
-                if (ya === null) return 1;
-                if (yb === null) return -1;
-                if (ya !== yb) return yb - ya;
+                const ka = key(a);
+                const kb = key(b);
+                if (ka.g !== kb.g) return ka.g - kb.g;
+                if (ka.y !== kb.y) return kb.y - ka.y;
                 return a.ticker.localeCompare(b.ticker);
             });
         }
@@ -687,7 +758,7 @@ function sortCards() {
             const ga = group(a.change);
             const gb = group(b.change);
             if (ga !== gb) return ga - gb;
-            if (ga === 0 && a.change !== b.change) return b.change - a.change;
+            if (ga === 0 && a.change !== b.change) return colorAsc ? a.change - b.change : b.change - a.change;
             return a.ticker.localeCompare(b.ticker);
         });
     }
@@ -1309,6 +1380,7 @@ function createCandleChart(stage, cfg) {
 
     let data = [];
     let tfKey = '1d';
+    let mode = 'candles';
     let visible = 80;
     let end = 0;
     let hover = -1;
@@ -1374,8 +1446,10 @@ function createCandleChart(stage, cfg) {
         let vmax = 0;
         for (let i = i0; i <= i1; i++) {
             const d = data[i];
-            if (d.l < lo) lo = d.l;
-            if (d.h > hi) hi = d.h;
+            const dl = mode === 'line' ? d.c : d.l;
+            const dh = mode === 'line' ? d.c : d.h;
+            if (dl < lo) lo = dl;
+            if (dh > hi) hi = dh;
             if (d.v > vmax) vmax = d.v;
         }
         if (!isFinite(lo) || !isFinite(hi)) return;
@@ -1402,18 +1476,38 @@ function createCandleChart(stage, cfg) {
             ctx.fillText(nf(dec).format(p), g.w - M.r + 4, y);
         }
 
-        // свечи и объёмы
+        // свечи / линия и объёмы
         const body = Math.max(1, Math.min(g.bw * 0.72, 22));
+        if (mode === 'line') {
+            ctx.beginPath();
+            for (let i = i0; i <= i1; i++) {
+                const x = px(i);
+                const y = py(data[i].c);
+                if (i === i0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.strokeStyle = '#1565c0';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.lineTo(px(i1), M.t + g.priceH);
+            ctx.lineTo(px(i0), M.t + g.priceH);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(21,101,192,.10)';
+            ctx.fill();
+            ctx.lineWidth = 1;
+        }
         for (let i = i0; i <= i1; i++) {
             const d = data[i];
             const x = px(i);
             const up = d.c >= d.o;
-            ctx.strokeStyle = ctx.fillStyle = up ? UP : DOWN;
-            ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, py(d.h)); ctx.lineTo(Math.round(x) + 0.5, py(d.l)); ctx.stroke();
-            const y1 = py(Math.max(d.o, d.c));
-            const y2 = py(Math.min(d.o, d.c));
-            ctx.fillRect(x - body / 2, y1, body, Math.max(1, y2 - y1));
+            if (mode !== 'line') {
+                ctx.strokeStyle = ctx.fillStyle = up ? UP : DOWN;
+                ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, py(d.h)); ctx.lineTo(Math.round(x) + 0.5, py(d.l)); ctx.stroke();
+                const y1 = py(Math.max(d.o, d.c));
+                const y2 = py(Math.min(d.o, d.c));
+                ctx.fillRect(x - body / 2, y1, body, Math.max(1, y2 - y1));
+            }
             if (d.v) {
+                ctx.fillStyle = mode === 'line' ? '#90a4ae' : up ? UP : DOWN;
                 ctx.globalAlpha = 0.45;
                 ctx.fillRect(x - body / 2, vy(d.v), body, M.t + g.priceH + 6 + g.volH - vy(d.v));
                 ctx.globalAlpha = 1;
@@ -1594,6 +1688,8 @@ function createCandleChart(stage, cfg) {
             schedule();
         },
         redraw: schedule,
+        setMode(m) { mode = m; schedule(); },
+        getMode() { return mode; },
         zoom(factor) { zoomAt(factor, M.l + geometry().plotW / 2); },
         reset() {
             visible = Math.min(Math.max(data.length, 10), CHART_DEFAULT_VISIBLE[tfKey] || 80);
@@ -1626,6 +1722,8 @@ function makeChartPanel(cfg) {
         head.append(b);
     });
 
+    const bCandles = mk('button', 'cp-btn active', 'Свечи');
+    const bLine = mk('button', 'cp-btn', 'Линия');
     const bMinus = mk('button', 'cp-btn', '−');
     const bPlus = mk('button', 'cp-btn', '+');
     const bReset = mk('button', 'cp-btn', '⟲');
@@ -1634,8 +1732,9 @@ function makeChartPanel(cfg) {
     bPlus.title = 'Увеличить';
     bReset.title = 'Сбросить масштаб';
     bFull.title = 'На весь экран';
-    tools.append(bMinus, bPlus, bReset, bFull);
-    root.append(head, tools, stage, note);
+    const bClose = mk('button', 'cp-close', '✕ Закрыть');
+    tools.append(bCandles, bLine, bMinus, bPlus, bReset, bFull);
+    root.append(bClose, head, tools, stage, note);
 
     const chart = createCandleChart(stage, cfg);
     const cache = {};
@@ -1643,12 +1742,30 @@ function makeChartPanel(cfg) {
     let full = false;
     let destroyed = false;
 
+    function setMode(m) {
+        chart.setMode(m);
+        bCandles.className = 'cp-btn' + (m === 'candles' ? ' active' : '');
+        bLine.className = 'cp-btn' + (m === 'line' ? ' active' : '');
+    }
+    bCandles.addEventListener('click', () => setMode('candles'));
+    bLine.addEventListener('click', () => setMode('line'));
     bMinus.addEventListener('click', () => chart.zoom(1.3));
     bPlus.addEventListener('click', () => chart.zoom(1 / 1.3));
     bReset.addEventListener('click', () => chart.reset());
 
+    let homeParent = null;
+    let homeNext = null;
     function setFull(on) {
+        if (on === full) return;
         full = on;
+        // Полный экран выносим в <body>: внутри прокручиваемого окна iPhone «прилипший» блок съезжает и кнопка закрытия пропадает.
+        if (on) {
+            homeParent = root.parentNode;
+            homeNext = root.nextSibling;
+            document.body.appendChild(root);
+        } else if (homeParent) {
+            homeParent.insertBefore(root, homeNext);
+        }
         root.className = 'cp' + (on ? ' cp-full' : '');
         bFull.textContent = on ? '✕' : '⛶';
         bFull.title = on ? 'Свернуть' : 'На весь экран';
@@ -1659,6 +1776,7 @@ function makeChartPanel(cfg) {
         chart.redraw();
     }
     bFull.addEventListener('click', () => setFull(!full));
+    bClose.addEventListener('click', () => setFull(false));
 
     const onKey = e => {
         if (e.key === 'Escape' && full) {
@@ -1725,11 +1843,556 @@ function makeChartPanel(cfg) {
         chart,
         destroy() {
             destroyed = true;
+            if (full) setFull(false);
+            if (root.parentNode === document.body) root.remove();
             document.removeEventListener('keydown', onKey, true);
             chart.destroy();
             try { if (full && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); } catch (_) { /* ignore */ }
         }
     };
+}
+
+
+/* ====== ВЕБ-УТИЛИТЫ: чтение чужих сайтов через CORS-прокси, RSS, HTML-таблицы, Википедия ====== */
+
+/* Браузер не даёт читать чужие сайты напрямую (CORS): пробуем напрямую → публичные прокси. */
+const WEB_PROXIES = [
+    { name: 'напрямую',   build: u => u,                                                              timeout: 6000 },
+    { name: 'allorigins', build: u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, timeout: 15000 },
+    { name: 'corsproxy',  build: u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,          timeout: 15000 }
+];
+
+async function webBytes(url, timeout) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+        const r = await fetch(url, { cache: 'no-store', signal: controller.signal });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return new Uint8Array(await r.arrayBuffer());
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+/* Кодировка берётся из XML-заголовка / meta (бывает windows-1251). */
+function webDecode(bytes) {
+    let label = 'utf-8';
+    let head = '';
+    for (let i = 0; i < Math.min(bytes.length, 600); i++) head += String.fromCharCode(bytes[i]);
+    const m = head.match(/(?:encoding=|charset=)["']?([\w-]+)/i);
+    if (m) label = m[1].toLowerCase();
+    try {
+        return new TextDecoder(label).decode(bytes);
+    } catch (_) {
+        return new TextDecoder('utf-8').decode(bytes);
+    }
+}
+
+/* validate(text) → true, если ответ годится (иначе пробуем следующий прокси). */
+async function fetchTextViaProxies(url, validate) {
+    let lastErr = null;
+    for (const p of WEB_PROXIES) {
+        try {
+            const text = webDecode(await webBytes(p.build(url), p.timeout));
+            if (!validate || validate(text)) return { text, via: p.name };
+            lastErr = new Error('ответ не содержит нужных данных');
+        } catch (e) {
+            lastErr = e;
+        }
+    }
+    throw lastErr || new Error('нет ответа');
+}
+
+function decodeEntities(s) {
+    return s
+        .replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#39;/g, "'")
+        .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+        .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+        .replace(/&amp;/g, '&');
+}
+
+function cleanHtml(s) {
+    if (!s) return '';
+    return decodeEntities(s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+}
+
+function tagOf(block, name) {
+    const m = block.match(new RegExp(`<${name}(?:\\s[^>]*)?>([\\s\\S]*?)</${name}>`, 'i'));
+    return m ? m[1] : '';
+}
+
+function parseFeed(text) {
+    const out = [];
+    const blocks = text.match(/<(item|entry)[\s>][\s\S]*?<\/\1>/gi) || [];
+    blocks.forEach(blk => {
+        const title = cleanHtml(tagOf(blk, 'title'));
+        let link = cleanHtml(tagOf(blk, 'link'));
+        if (!link) {
+            const m = blk.match(/<link[^>]*href=["']([^"']+)["']/i);
+            link = m ? decodeEntities(m[1]) : '';
+        }
+        if (!link) link = cleanHtml(tagOf(blk, 'guid'));
+        const date = cleanHtml(tagOf(blk, 'pubDate') || tagOf(blk, 'published') || tagOf(blk, 'updated') || tagOf(blk, 'dc:date'));
+        const ts = Date.parse(date);
+        const src = cleanHtml(tagOf(blk, 'source'));
+        if (title && /^https?:\/\//i.test(link)) out.push({ title, link, ts: Number.isFinite(ts) ? ts : null, src });
+    });
+    return out;
+}
+
+const RSS2JSON = u => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(u)}`;
+
+async function fetchFeedAny(url) {
+    let lastErr = null;
+    try {
+        const r = await fetchTextViaProxies(url, t => parseFeed(t).length > 0);
+        return { list: parseFeed(r.text), via: r.via };
+    } catch (e) {
+        lastErr = e;
+    }
+    try {
+        const r = await fetch(RSS2JSON(url), { cache: 'no-store' });
+        const j = await r.json();
+        if (j && j.status === 'ok' && Array.isArray(j.items) && j.items.length) {
+            const list = j.items
+                .map(it => ({ title: cleanHtml(it.title), link: String(it.link || ''), ts: Date.parse(String(it.pubDate || '').replace(' ', 'T') + 'Z'), src: '' }))
+                .filter(it => it.title && /^https?:\/\//i.test(it.link))
+                .map(it => ({ ...it, ts: Number.isFinite(it.ts) ? it.ts : null }));
+            if (list.length) return { list, via: 'rss2json' };
+        }
+    } catch (e) {
+        lastErr = e;
+    }
+    throw lastErr || new Error('нет ответа');
+}
+
+/* Все таблицы страницы: массив таблиц, каждая — массив строк, строка — массив текстов ячеек. */
+function parseHtmlTables(html) {
+    const tables = [];
+    (html.match(/<table[\s\S]*?<\/table>/gi) || []).forEach(t => {
+        const rows = [];
+        (t.match(/<tr[\s\S]*?<\/tr>/gi) || []).forEach(tr => {
+            const cells = (tr.match(/<t[hd][\s\S]*?<\/t[hd]>/gi) || []).map(cleanHtml);
+            if (cells.some(x => x !== '')) rows.push(cells);
+        });
+        if (rows.length) tables.push(rows);
+    });
+    return tables;
+}
+
+/* Числа и даты из русских таблиц: «37,64₽», «13,6%», «1 059,5», «17.07.2026». */
+function ruNumber(s) {
+    if (s === null || s === undefined) return null;
+    const m = String(s).replace(/\u00a0/g, ' ').match(/-?\d[\d\s]*(?:[.,]\d+)?/);
+    if (!m) return null;
+    const n = Number(m[0].replace(/\s/g, '').replace(',', '.'));
+    return Number.isFinite(n) ? n : null;
+}
+
+function ruDate(s) {
+    const m = String(s || '').match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+    return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null;
+}
+
+/* Описание компании из Википедии (CORS открыт): подбор статьи по названию, может быть неточным. */
+async function wikiSummary(queries) {
+    for (const q of queries) {
+        if (!q) continue;
+        try {
+            const s = await fetchJson(
+                `https://ru.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&srlimit=3&format=json&origin=*`,
+                { retries: 1, timeout: 12000 });
+            const hits = s && s.query && s.query.search ? s.query.search : [];
+            for (const h of hits) {
+                const sum = await fetchJson(
+                    `https://ru.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(h.title.replace(/ /g, '_'))}`,
+                    { retries: 1, timeout: 12000 });
+                if (sum && sum.extract && sum.type !== 'disambiguation') {
+                    return {
+                        title: sum.title, extract: sum.extract, description: sum.description || '',
+                        url: sum.content_urls && sum.content_urls.desktop ? sum.content_urls.desktop.page : null, query: q
+                    };
+                }
+            }
+        } catch (e) {
+            console.error('wiki', q, e);
+        }
+    }
+    return null;
+}
+
+/* Новости по одной бумаге: Google News RSS по названию (через прокси). */
+async function loadSecurityNews(query) {
+    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=ru&gl=RU&ceid=RU:ru`;
+    const r = await fetchFeedAny(url);
+    const now = Date.now();
+    const seen = new Set();
+    const out = [];
+    r.list.forEach(it => {
+        let title = it.title;
+        let src = it.src;
+        const m = title.match(/^(.*)\s[-–—]\s([^-–—]{2,40})$/);
+        if (m) {
+            title = m[1];
+            if (!src) src = m[2];
+        }
+        const key = title.toLowerCase().replace(/[^a-zа-яё0-9]+/g, ' ').trim().slice(0, 70);
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push({ title, link: it.link, ts: it.ts || now, src: src || 'Google News' });
+    });
+    out.sort((a, b) => b.ts - a.ts);
+    return out;
+}
+
+function timeAgo(ts) {
+    const d = new Date(ts);
+    const diff = Date.now() - ts;
+    if (diff < 60 * 1000) return 'только что';
+    if (diff < 60 * 60 * 1000) return `${Math.round(diff / 60000)} мин назад`;
+    const pad = n => String(n).padStart(2, '0');
+    const hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return new Date().toDateString() === d.toDateString() ? `сегодня ${hm}` : `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)} ${hm}`;
+}
+
+
+/* ====== ИЗБРАННОЕ: надёжное хранение ======
+ * Список лежит в браузере под фиксированным ключом FAV_KEY (localStorage) и дублируется в IndexedDB.
+ * Обновление кода страниц его не трогает: данные принадлежат адресу сайта, а не файлам.
+ * Ключ и формат НЕ МЕНЯТЬ. Если формат когда-нибудь изменится, нужна миграция в normalize() — старые записи читаются всегда.
+ * Слияние идёт по времени изменения каждой записи (новее побеждает), удаления хранятся как «надгробия» 180 дней,
+ * поэтому копия из IndexedDB не воскрешает удалённое. Плюс экспорт/импорт резервной копии вручную.
+ */
+const FAV_KEY = 'mx.fav.v1';
+const FAV_IDB_NAME = 'mx-heatmap';
+const FAV_IDB_STORE = 'kv';
+const FAV_IDB_KEY = 'fav.v1';
+const FAV_TOMBSTONE_MS = 180 * 86400000;
+
+const FavStore = (() => {
+    let items = {};
+    const status = { ls: false, idb: false, persisted: null, saved: null };
+    const listeners = [];
+    let ready = null;
+
+    const keyOf = (k, id) => `${k}:${id}`;
+
+    function normalize(raw) {
+        const out = {};
+        if (!raw) return out;
+        if (Array.isArray(raw)) { // v0: просто массив тикеров
+            raw.forEach(id => {
+                if (typeof id === 'string' && id) out[keyOf('s', id)] = { k: 's', id, board: null, name: id, a: 1, u: 1, del: false };
+            });
+            return out;
+        }
+        const src = raw.items || raw;
+        Object.keys(src).forEach(key => {
+            const it = src[key];
+            if (it && it.id && (it.k === 's' || it.k === 'b')) {
+                out[keyOf(it.k, it.id)] = {
+                    k: it.k, id: String(it.id), board: it.board || null, name: it.name || String(it.id),
+                    a: Number(it.a) || 0, u: Number(it.u) || Number(it.a) || 0, del: !!it.del
+                };
+            }
+        });
+        return out;
+    }
+
+    function merge(a, b) {
+        const out = { ...a };
+        Object.keys(b).forEach(key => {
+            if (!out[key] || (b[key].u || 0) > (out[key].u || 0)) out[key] = b[key];
+        });
+        return out;
+    }
+
+    function readLS() {
+        try {
+            const raw = localStorage.getItem(FAV_KEY);
+            return raw ? normalize(JSON.parse(raw)) : {};
+        } catch (_) {
+            return {};
+        }
+    }
+
+    function idbOpen() {
+        return new Promise((resolve, reject) => {
+            if (typeof indexedDB === 'undefined') { reject(new Error('IndexedDB недоступна')); return; }
+            const r = indexedDB.open(FAV_IDB_NAME, 1);
+            r.onupgradeneeded = () => r.result.createObjectStore(FAV_IDB_STORE);
+            r.onsuccess = () => resolve(r.result);
+            r.onerror = () => reject(r.error);
+        });
+    }
+
+    async function idbGet() {
+        const db = await idbOpen();
+        return new Promise((resolve, reject) => {
+            const req = db.transaction(FAV_IDB_STORE, 'readonly').objectStore(FAV_IDB_STORE).get(FAV_IDB_KEY);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    async function idbPut(value) {
+        const db = await idbOpen();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(FAV_IDB_STORE, 'readwrite');
+            tx.objectStore(FAV_IDB_STORE).put(value, FAV_IDB_KEY);
+            tx.oncomplete = () => resolve(true);
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+
+    function purge() {
+        const limit = Date.now() - FAV_TOMBSTONE_MS;
+        Object.keys(items).forEach(key => { if (items[key].del && items[key].u < limit) delete items[key]; });
+    }
+
+    async function persist() {
+        purge();
+        const payload = { v: 1, saved: Date.now(), items };
+        status.saved = payload.saved;
+        try {
+            localStorage.setItem(FAV_KEY, JSON.stringify(payload));
+            status.ls = true;
+        } catch (_) {
+            status.ls = false;
+        }
+        try {
+            await idbPut(payload);
+            status.idb = true;
+        } catch (_) {
+            status.idb = false;
+        }
+    }
+
+    function emit() {
+        listeners.forEach(fn => { try { fn(); } catch (e) { console.error(e); } });
+    }
+
+    items = readLS(); // сразу, синхронно: звёздочки рисуются без ожидания
+
+    return {
+        init() {
+            if (ready) return ready;
+            ready = (async () => {
+                try {
+                    items = merge(items, normalize(await idbGet()));
+                    status.idb = true;
+                } catch (_) {
+                    status.idb = false;
+                }
+                await persist();
+                try {
+                    if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.persist) {
+                        status.persisted = await navigator.storage.persist();
+                    }
+                } catch (_) { /* ignore */ }
+                if (typeof window !== 'undefined' && window.addEventListener) {
+                    window.addEventListener('storage', e => {
+                        if (e.key !== FAV_KEY || !e.newValue) return;
+                        try {
+                            items = merge(items, normalize(JSON.parse(e.newValue)));
+                            emit();
+                        } catch (_) { /* ignore */ }
+                    });
+                }
+                emit();
+            })();
+            return ready;
+        },
+        has(k, id) {
+            const it = items[keyOf(k, id)];
+            return !!it && !it.del;
+        },
+        toggle(k, id, meta) {
+            const key = keyOf(k, id);
+            const now = Date.now();
+            const cur = items[key];
+            if (cur && !cur.del) {
+                items[key] = { ...cur, del: true, u: now };
+            } else {
+                items[key] = {
+                    k, id: String(id), board: (meta && meta.board) || (cur && cur.board) || null,
+                    name: (meta && meta.name) || (cur && cur.name) || String(id), a: now, u: now, del: false
+                };
+            }
+            persist().then(emit);
+            emit();
+            return !items[key].del;
+        },
+        list() {
+            return Object.keys(items).map(k => items[k]).filter(it => !it.del).sort((a, b) => a.a - b.a);
+        },
+        onChange(fn) { listeners.push(fn); },
+        exportText() {
+            return JSON.stringify({ v: 1, exported: new Date().toISOString(), items: this.list() }, null, 1);
+        },
+        async importText(text, replace) {
+            let raw;
+            try { raw = JSON.parse(text); } catch (_) { throw new Error('это не похоже на резервную копию (не JSON)'); }
+            let list = raw && raw.items ? raw.items : raw;
+            if (!Array.isArray(list) && list && typeof list === 'object') list = Object.keys(list).map(k => list[k]);
+            if (!Array.isArray(list)) throw new Error('в копии нет списка бумаг');
+            const now = Date.now();
+            const incoming = normalize({ items: Object.fromEntries(list.filter(x => x && x.id && (x.k === 's' || x.k === 'b')).map(x => [keyOf(x.k, x.id), { ...x, u: now + 1, del: false, a: x.a || now }])) });
+            if (replace) {
+                Object.keys(items).forEach(key => { if (!items[key].del) items[key] = { ...items[key], del: true, u: now }; });
+            }
+            items = merge(items, incoming);
+            await persist();
+            emit();
+            return Object.keys(incoming).length;
+        },
+        describe() {
+            return `Хранилище: localStorage ${status.ls ? '✓' : '✗'} · IndexedDB ${status.idb ? '✓' : '✗'}` +
+                ` · постоянное хранение: ${status.persisted === null ? 'не запрошено' : status.persisted ? 'да' : 'нет (браузер может очистить при нехватке места)'}` +
+                (status.saved ? ` · сохранено ${new Date(status.saved).toLocaleString('ru-RU')}` : '');
+        }
+    };
+})();
+
+
+/* ====== СТАКАН и НОВОСТИ БУМАГИ (общий код акций и облигаций) ====== */
+
+async function fetchOrderBook(url) {
+    const data = await fetchJson(url, { retries: 1, timeout: 12000 });
+    const blk = data.orderbook;
+    if (!blk || !Array.isArray(blk.data)) return { rows: [], updated: null };
+    const iS = col(blk.columns, 'BUYSELL');
+    const iP = col(blk.columns, 'PRICE');
+    const iQ = col(blk.columns, 'QUANTITY');
+    const iT = col(blk.columns, 'UPDATETIME');
+    const rows = blk.data
+        .map(r => ({ side: String(r[iS]).toUpperCase(), price: num(r[iP]), qty: num(r[iQ]), t: iT >= 0 ? r[iT] : null }))
+        .filter(r => r.price !== null && r.qty !== null && (r.side === 'B' || r.side === 'S'));
+    return { rows, updated: rows.length && rows[0].t ? rows[0].t : null };
+}
+
+/* cfg: { url, dec, bid, offer, bcsUrl } — продавцы красным, покупатели зелёным, максимальная глубина, которую отдаёт MOEX */
+function renderOrderBook(box, cfg) {
+    const fmt = v => nf(cfg.dec).format(v);
+    box.replaceChildren(mk('div', 'note', 'Загрузка стакана...'));
+
+    const refresh = mk('button', 'btn', '↻ Обновить стакан');
+    refresh.addEventListener('click', () => renderOrderBook(box, cfg));
+
+    fetchOrderBook(cfg.url).then(res => {
+        const parts = [mk('h4', null, 'Стакан заявок')];
+        const sells = res.rows.filter(r => r.side === 'S').sort((a, b) => b.price - a.price);
+        const buys = res.rows.filter(r => r.side === 'B').sort((a, b) => b.price - a.price);
+
+        if (!sells.length && !buys.length) {
+            parts.push(mk('div', 'note',
+                'MOEX не отдаёт стакан в бесплатном (задержанном) доступе, поэтому полноценной глубины здесь нет. ' +
+                'Лучшие цены из котировок ниже, а живой стакан смотрите в приложении брокера.'));
+            if (cfg.bid !== null && cfg.bid !== undefined) parts.push(rowEl('Лучшая цена покупки (бид)', fmt(cfg.bid), 'pos'));
+            if (cfg.offer !== null && cfg.offer !== undefined) parts.push(rowEl('Лучшая цена продажи (оффер)', fmt(cfg.offer), 'neg'));
+            if (cfg.bcsUrl) {
+                const a = mk('a', 'btn primary', 'Открыть стакан в БКС');
+                a.href = cfg.bcsUrl;
+                a.target = '_blank';
+                a.rel = 'noopener';
+                parts.push(a);
+            }
+            parts.push(refresh);
+            box.replaceChildren(...parts);
+            return;
+        }
+
+        const maxQty = Math.max(...res.rows.map(r => r.qty), 1);
+        const head = mk('div', 'ob-head');
+        head.append(mk('span', null, 'Цена'), mk('span', null, 'Объём (шт.)'));
+        parts.push(head);
+
+        const rowEl2 = (r, cls) => {
+            const row = mk('div', 'ob-row ' + cls);
+            const bar = mk('div', 'ob-bar');
+            bar.style.width = `${Math.max(2, (r.qty / maxQty) * 100)}%`;
+            row.append(bar, mk('span', null, fmt(r.price)), mk('span', null, nf(0).format(r.qty)));
+            return row;
+        };
+        sells.forEach(r => parts.push(rowEl2(r, 'ob-sell')));
+        if (sells.length && buys.length) {
+            const bestAsk = sells[sells.length - 1].price;
+            const bestBid = buys[0].price;
+            const sp = bestAsk - bestBid;
+            parts.push(mk('div', 'ob-spread', `Спред: ${fmt(sp)} (${nf(2).format((sp / bestAsk) * 100)} %)`));
+        }
+        buys.forEach(r => parts.push(rowEl2(r, 'ob-buy')));
+
+        const sumS = sells.reduce((s, r) => s + r.qty, 0);
+        const sumB = buys.reduce((s, r) => s + r.qty, 0);
+        parts.push(rowEl('Продавцов всего (шт.)', nf(0).format(sumS), 'neg'));
+        parts.push(rowEl('Покупателей всего (шт.)', nf(0).format(sumB), 'pos'));
+        parts.push(mk('div', 'note', `Уровней: ${sells.length} на продажу, ${buys.length} на покупку${res.updated ? `; обновлено ${res.updated}` : ''}. Глубина — максимум, который отдаёт MOEX.`));
+        parts.push(refresh);
+        box.replaceChildren(...parts);
+    }).catch(e => {
+        console.error(e);
+        const parts = [mk('h4', null, 'Стакан заявок'), mk('div', 'note', `Не удалось получить стакан: ${e.message}`)];
+        if (cfg.bcsUrl) {
+            const a = mk('a', 'btn primary', 'Открыть стакан в БКС');
+            a.href = cfg.bcsUrl;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            parts.push(a);
+        }
+        parts.push(refresh);
+        box.replaceChildren(...parts);
+    });
+}
+
+/* Вкладка «Новости»: только про эту бумагу. matcher(title) — отбор по названию/тикеру, если подходящих достаточно. */
+function renderNewsTab(box, query, matcher) {
+    box.replaceChildren(mk('h4', null, 'Новости по бумаге'), mk('div', 'note', 'Загрузка новостей...'));
+    loadSecurityNews(query).then(all => {
+        let list = all;
+        if (matcher) {
+            const f = all.filter(it => matcher(it.title));
+            if (f.length >= 3) list = f;
+        }
+        list = list.slice(0, 25);
+        const parts = [mk('h4', null, 'Новости по бумаге')];
+        if (!list.length) {
+            parts.push(mk('div', 'note', 'Свежих новостей не найдено.'));
+        } else {
+            list.forEach(it => {
+                const a = mk('a', 'news-line');
+                a.href = it.link;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.append(mk('div', 't', it.title));
+                const m = mk('div', 'm');
+                m.append(mk('b', null, it.src), ` · ${timeAgo(it.ts)}`);
+                a.append(m);
+                parts.push(a);
+            });
+        }
+        parts.push(mk('div', 'note', `Поиск новостей: «${query}» (Google News через прокси). Заголовки и ссылки принадлежат изданиям.`));
+        const again = mk('button', 'btn', '↻ Обновить новости');
+        again.addEventListener('click', () => renderNewsTab(box, query, matcher));
+        parts.push(again);
+        box.replaceChildren(...parts);
+    }).catch(e => {
+        console.error(e);
+        const again = mk('button', 'btn', '↻ Повторить');
+        again.addEventListener('click', () => renderNewsTab(box, query, matcher));
+        box.replaceChildren(mk('h4', null, 'Новости по бумаге'),
+            mk('div', 'note', `Не удалось загрузить новости: ${e.message}. Прокси могли быть недоступны (проверьте сеть и VPN).`), again);
+    });
+}
+
+/* Название для поиска: без «ПАО», «ао», «ап», серий и т.п. */
+function cleanCompanyName(name) {
+    return String(name || '')
+        .replace(/\b(ПАО|АО|ОАО|ЗАО|ООО|МКПАО|ао|ап|п|ап\.|ао\.|акции|обыкновенные|привилегированные|[0-9]+[-\s]?[ао]{2}|-ао|-ап|-п)\b/gi, ' ')
+        .replace(/[«»"()]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
 
@@ -1745,6 +2408,8 @@ function rowEl(label, value, cls) {
     return r;
 }
 
+const MODAL_TABS = ['summary', 'div', 'info', 'book', 'news'];
+
 function openStock(ticker) {
     const stock = stockByTicker[ticker];
     if (!stock) return;
@@ -1758,6 +2423,7 @@ function openStock(ticker) {
     document.getElementById('modalSub').textContent = (item && item.secname) || '';
 
     setModalTab('summary');
+    renderStar();
     renderModalLive();
     renderModalHist();
     renderModalDivTab();
@@ -1776,10 +2442,15 @@ function openStock(ticker) {
 
 function setModalTab(tab) {
     modalTab = tab;
-    document.getElementById('paneSummary').hidden = tab !== 'summary';
-    document.getElementById('paneDiv').hidden = tab !== 'div';
-    document.getElementById('tabSummary').className = 'tab' + (tab === 'summary' ? ' active' : '');
-    document.getElementById('tabDiv').className = 'tab' + (tab === 'div' ? ' active' : '');
+    MODAL_TABS.forEach(t => {
+        const cap = t[0].toUpperCase() + t.slice(1);
+        document.getElementById('pane' + cap).hidden = t !== tab;
+        document.getElementById('tab' + cap).className = 'tab' + (t === tab ? ' active' : '');
+    });
+    if (!modalTicker) return;
+    if (tab === 'info') renderModalInfo();
+    if (tab === 'book') renderModalBook();
+    if (tab === 'news') renderModalNews();
 }
 
 function mountChart(ticker) {
@@ -1801,6 +2472,7 @@ function closeModal() {
     }
     document.getElementById('modalChart').replaceChildren();
     modalTicker = null;
+    newsFor = null;
     document.getElementById('modal').hidden = true;
     document.body.style.overflow = '';
 }
@@ -1957,7 +2629,7 @@ function extremesOf(rows, fromDate) {
  *  2. Поправка на сплиты/консолидации (с проверкой по ценам).
  *  3. Перекрёстная проверка по месячным свечам: если месячный максимум выше дневного — дневная история неполная, берём месячный.
  */
-function loadHistoryStats(ticker) {
+function loadStatsFor(ticker, cfg) {
     if (histStats[ticker]) return Promise.resolve(histStats[ticker]);
 
     const cached = readJson(`moexHeatmap.hist2.${ticker}`);
@@ -1969,9 +2641,8 @@ function loadHistoryStats(ticker) {
 
     histPromises[ticker] = (async () => {
         try {
-            const enc = encodeURIComponent(ticker);
             const url = start =>
-                `${HISTORY_PATH}/securities/${enc}.json?iss.meta=off&iss.only=history,history.cursor` +
+                `${cfg.historyBase}.json?iss.meta=off&iss.only=history,history.cursor` +
                 `&history.columns=TRADEDATE,LOW,HIGH,CLOSE&from=1990-01-01&start=${start}`;
 
             const rows = [];
@@ -2010,7 +2681,7 @@ function loadHistoryStats(ticker) {
                     if (r.p) histProgress[ticker].done += eat(r.p);
                     else failed.push(r.s);
                 });
-                if (modalTicker === ticker) renderModalHist();
+                if (cfg.onProgress) cfg.onProgress();
             }
             const stillFailed = [];
             for (const s of failed) {
@@ -2031,7 +2702,7 @@ function loadHistoryStats(ticker) {
             const notes = [];
 
             // сплиты
-            const sp = await loadSplits(ticker);
+            const sp = cfg.splits ? await loadSplits(cfg.splitsTicker || ticker) : { list: [], ok: true };
             const { applied, skipped } = buildSplitFactors(rows, sp.list);
             const adj = rows.map(r => {
                 const f = splitFactorAt(applied, r.d);
@@ -2041,7 +2712,7 @@ function loadHistoryStats(ticker) {
                 `Цены до ${humanDate(s.date)} пересчитаны на сплит/консолидацию (×${nf(s.f >= 1 ? 0 : 4).format(s.f)})${s.unverified ? ' — без проверки' : ''}.`));
             skipped.forEach(s => notes.push(
                 `Сплит ${humanDate(s.date)} не применён: цены до и после не стыкуются, экстремумы до этой даты в старом масштабе.`));
-            if (!sp.ok) notes.push('Список сплитов MOEX не загрузился — поправка на сплиты не проверялась.');
+            if (cfg.splits && !sp.ok) notes.push('Список сплитов MOEX не загрузился — поправка на сплиты не проверялась.');
 
             // скачки цены, не объяснённые сплитом
             let jumps = 0;
@@ -2067,7 +2738,7 @@ function loadHistoryStats(ticker) {
             // перекрёстная проверка по месячным свечам
             let monthlyOk = false;
             try {
-                const months = await fetchCandlePages(`${BOARD_PATH}/securities/${enc}`,
+                const months = await fetchCandlePages(cfg.candlesBase,
                     `interval=31&from=1990-01-01&till=${encodeURIComponent(today + ' 23:59:59')}`);
                 let mMax = null;
                 let mMaxB = null;
@@ -2123,49 +2794,24 @@ function loadHistoryStats(ticker) {
     return histPromises[ticker];
 }
 
+function loadHistoryStats(ticker) {
+    const enc = encodeURIComponent(ticker);
+    return loadStatsFor(ticker, {
+        historyBase: `${HISTORY_PATH}/securities/${enc}`,
+        candlesBase: `${BOARD_PATH}/securities/${enc}`,
+        splits: true,
+        splitsTicker: ticker,
+        onProgress: () => { if (modalTicker === ticker) renderModalHist(); }
+    });
+}
+
 function renderModalHist() {
     const box = document.getElementById('modalHist');
     if (!modalTicker) return;
     const ticker = modalTicker;
     const stock = stockByTicker[ticker];
     const item = modalItem();
-    const price = item ? currentPrice(item) : null;
-    const dec = stock ? stock.decimals : null;
-    const st = histStats[ticker];
-
-    const hist = mk('div', 'hist-box');
-    hist.append(mk('h4', null, 'Исторические минимум и максимум'));
-
-    if (st && st.all.max !== null) {
-        const pr = v => `${formatPrice(v, dec)} ₽`;
-        const fromMax = price !== null ? (price / st.all.max - 1) * 100 : null;
-        const fromMin = price !== null ? (price / st.all.min - 1) * 100 : null;
-        const dl = d => (String(d).length === 7 ? `${String(d).slice(5, 7)}.${String(d).slice(0, 4)}` : humanDate(d));
-
-        hist.append(rowEl(`Максимум за всё время (${dl(st.all.maxD)})`, pr(st.all.max)));
-        if (fromMax !== null) hist.append(rowEl('Сейчас относительно максимума', formatChange(fromMax), signCls(fromMax)));
-        hist.append(rowEl(`Минимум за всё время (${dl(st.all.minD)})`, pr(st.all.min)));
-        if (fromMin !== null) hist.append(rowEl('Сейчас относительно минимума', formatChange(fromMin), signCls(fromMin)));
-        if (st.y5.max !== null) {
-            hist.append(rowEl(`Максимум за 5 лет (${dl(st.y5.maxD)})`, pr(st.y5.max)));
-            hist.append(rowEl(`Минимум за 5 лет (${dl(st.y5.minD)})`, pr(st.y5.min)));
-        }
-        if (st.w52.max !== null) {
-            hist.append(rowEl(`Максимум за 52 недели (${dl(st.w52.maxD)})`, pr(st.w52.max)));
-            hist.append(rowEl(`Минимум за 52 недели (${dl(st.w52.minD)})`, pr(st.w52.min)));
-        }
-        hist.append(mk('div', 'note',
-            `Дневная история MOEX (доска ${BOARD}): с ${humanDate(st.first)} по ${humanDate(st.last)}, ${formatInt(st.rows)} из ${formatInt(st.total)} торговых дней. ` +
-            'Учитываются внутридневные минимум и максимум.'));
-        (st.notes || []).forEach(t => hist.append(mk('div', 'note', t)));
-    } else if (histErrors[ticker]) {
-        hist.append(mk('div', 'note', `Не удалось загрузить историю: ${histErrors[ticker]}`));
-    } else {
-        const p = histProgress[ticker];
-        hist.append(mk('div', 'note', p ? `Загрузка истории... ${formatInt(p.done)} из ${formatInt(p.total)} дней` : 'Загрузка истории...'));
-    }
-
-    box.replaceChildren(hist);
+    box.replaceChildren(buildHistBox(ticker, item ? currentPrice(item) : null, stock ? stock.decimals : null, '₽', `доска ${BOARD}`));
 }
 
 /* ---------- дивиденды ---------- */
@@ -2173,42 +2819,112 @@ function renderModalHist() {
 const RUB_CUR = new Set(['SUR', 'RUB', 'RUR', '']);
 function isRubCur(cur) { return RUB_CUR.has(String(cur || '').toUpperCase()); }
 
+/* Таблицы smart-lab: заголовки ищем по названию колонки, а не по номеру. */
+function smartlabColumns(header) {
+    const idx = re => header.findIndex(h => re.test(h));
+    return {
+        ticker: idx(/тикер/i),
+        period: idx(/период/i),
+        buyUntil: idx(/(дата\s*t-?\s*1|купить\s*до)/i),
+        date: idx(/(дата\s*отсечки|дата закрытия реестра)/i),
+        yield: idx(/дох/i),
+        price: idx(/цена/i),
+        amount: header.findIndex(h => /дивиденд/i.test(h) && !/дох/i.test(h))
+    };
+}
+
+/* История выплат по бумаге: https://smart-lab.ru/q/<ТИКЕР>/dividend/ (в таблице есть и цена на дату, и доходность). */
+function parseSmartlabHistory(html, ticker) {
+    const out = [];
+    parseHtmlTables(html).forEach(rows => {
+        const c = smartlabColumns(rows[0]);
+        if (c.ticker < 0 || c.date < 0 || c.amount < 0) return;
+        rows.slice(1).forEach(r => {
+            if (String(r[c.ticker]).trim().toUpperCase() !== ticker.toUpperCase()) return;
+            const date = ruDate(r[c.date]);
+            const value = ruNumber(r[c.amount]);
+            if (!date || value === null) return;
+            out.push({
+                date, value, cur: 'RUB', src: 'smart-lab',
+                buyUntil: c.buyUntil >= 0 ? ruDate(r[c.buyUntil]) : null,
+                period: c.period >= 0 ? r[c.period] : '',
+                price: c.price >= 0 ? ruNumber(r[c.price]) : null,
+                yieldPct: c.yield >= 0 ? ruNumber(r[c.yield]) : null
+            });
+        });
+    });
+    return out;
+}
+
+/* Календарь предстоящих дивидендов всех компаний: https://smart-lab.ru/dividends/ */
+function parseSmartlabUpcoming(html) {
+    const out = {};
+    parseHtmlTables(html).forEach(rows => {
+        const c = smartlabColumns(rows[0]);
+        if (c.ticker < 0 || c.date < 0 || c.amount < 0) return;
+        rows.slice(1).forEach(r => {
+            const t = String(r[c.ticker]).trim().toUpperCase();
+            const date = ruDate(r[c.date]);
+            const value = ruNumber(r[c.amount]);
+            if (!t || !/^[A-Z0-9]{2,8}$/.test(t) || !date || value === null) return;
+            const rec = {
+                date, value, buyUntil: c.buyUntil >= 0 ? ruDate(r[c.buyUntil]) : null,
+                period: c.period >= 0 ? r[c.period] : '', yieldPct: c.yield >= 0 ? ruNumber(r[c.yield]) : null,
+                price: c.price >= 0 ? ruNumber(r[c.price]) : null
+            };
+            if (!out[t] || rec.date < out[t].date) out[t] = rec;
+        });
+    });
+    return out;
+}
+
+/* Дивиденды бумаги. Сначала smart-lab (даты, суммы, цены и доходности), если не вышло — ISS MOEX. */
 function loadDividends(ticker) {
     if (divData[ticker]) return Promise.resolve(divData[ticker]);
     if (divPromises[ticker]) return divPromises[ticker];
 
     divPromises[ticker] = (async () => {
+        const diag = [];
+        let rows = [];
+        let src = null;
+
         try {
-            const data = await fetchJson(
-                `${MOEX_ISS}/securities/${encodeURIComponent(ticker)}/dividends.json?iss.meta=off`,
-                { retries: 2, timeout: 15000 }
-            );
-            const rows = [];
-            let cols = null;
-            // блок называется dividends; на случай другого имени берём первый блок с нужными колонками
-            Object.keys(data).forEach(k => {
-                const d = data[k];
-                if (!d || !Array.isArray(d.columns) || !Array.isArray(d.data)) return;
-                const iDate = col(d.columns, 'registryclosedate');
-                const iVal = col(d.columns, 'value');
-                if (iDate < 0 || iVal < 0) return;
-                cols = d.columns;
-                const iCur = col(d.columns, 'currencyid');
-                d.data.forEach(r => {
-                    const value = num(r[iVal]);
-                    if (value !== null && r[iDate]) {
-                        rows.push({ date: String(r[iDate]).slice(0, 10), value, cur: String(r[iCur] || 'RUB').toUpperCase() });
-                    }
-                });
-            });
-            rows.sort((a, b) => String(b.date).localeCompare(String(a.date)));
-            divData[ticker] = { rows, cols, blocks: Object.keys(data) };
+            const r = await fetchTextViaProxies(`https://smart-lab.ru/q/${encodeURIComponent(ticker)}/dividend/`,
+                t => /дивиденд/i.test(t) && /<table/i.test(t));
+            rows = parseSmartlabHistory(r.text, ticker);
+            if (rows.length) src = `smart-lab (${r.via})`;
+            else diag.push('smart-lab: таблица выплат не найдена');
         } catch (e) {
-            console.error(e);
-            divData[ticker] = { rows: [], error: e.message };
-        } finally {
-            divPromises[ticker] = null;
+            diag.push(`smart-lab: ${e.message}`);
         }
+
+        if (!rows.length) {
+            try {
+                const data = await fetchJson(`${MOEX_ISS}/securities/${encodeURIComponent(ticker)}/dividends.json?iss.meta=off`, { retries: 1, timeout: 15000 });
+                Object.keys(data).forEach(k => {
+                    const d = data[k];
+                    if (!d || !Array.isArray(d.columns) || !Array.isArray(d.data)) return;
+                    const iDate = col(d.columns, 'registryclosedate');
+                    const iVal = col(d.columns, 'value');
+                    if (iDate < 0 || iVal < 0) return;
+                    const iCur = col(d.columns, 'currencyid');
+                    d.data.forEach(r => {
+                        const value = num(r[iVal]);
+                        if (value !== null && r[iDate]) {
+                            rows.push({ date: String(r[iDate]).slice(0, 10), value, cur: String(r[iCur] || 'RUB').toUpperCase(), src: 'ISS', price: null, yieldPct: null });
+                        }
+                    });
+                });
+                if (rows.length) src = 'ISS MOEX';
+                else diag.push('ISS: пустой ответ');
+            } catch (e) {
+                diag.push(`ISS: ${e.message}`);
+            }
+        }
+
+        rows.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+        divData[ticker] = { rows, src, diag: rows.length ? [] : diag };
+        divPromises[ticker] = null;
         return divData[ticker];
     })();
 
@@ -2236,18 +2952,22 @@ function manualDivs(ticker) {
     return Array.isArray(a) ? a : [];
 }
 
-/* Сводка по дивидендам бумаги: данные MOEX + будущие выплаты, внесённые вручную. */
+/* Сводка по дивидендам: история бумаги + календарь smart-lab (по всем бумагам) + выплаты, внесённые вручную. */
 function divSummary(ticker) {
     const dv = divData[ticker];
-    if (!dv || dv.error) return null;
+    const up = upcomingMap[ticker] || null;
+    if (!dv && !up) return null;
 
     const item = lastSnapshot && lastSnapshot.get(ticker);
     const price = item ? currentPrice(item) : null;
     const today = moscowDateStr(new Date());
     const dateOf = r => String(r.date).slice(0, 10);
 
-    const all = dv.rows.map(r => ({ date: dateOf(r), value: r.value, cur: r.cur, manual: false }))
-        .concat(manualDivs(ticker).map(r => ({ date: String(r.date).slice(0, 10), value: r.value, cur: 'RUB', manual: true, note: r.note })));
+    const all = (dv ? dv.rows : []).map(r => ({ ...r, date: dateOf(r), manual: false }))
+        .concat(manualDivs(ticker).map(r => ({ date: String(r.date).slice(0, 10), value: r.value, cur: 'RUB', manual: true, note: r.note, price: null, yieldPct: null })));
+    if (up && !all.some(r => r.date === up.date)) {
+        all.push({ date: up.date, value: up.value, cur: 'RUB', manual: false, src: 'smart-lab', buyUntil: up.buyUntil, period: up.period, price: up.price, yieldPct: up.yieldPct });
+    }
 
     const future = all.filter(r => r.date >= today).sort((a, b) => a.date.localeCompare(b.date));
     const past = all.filter(r => r.date < today).sort((a, b) => b.date.localeCompare(a.date));
@@ -2267,7 +2987,12 @@ function divSummary(ticker) {
         est = cands[0] || null;
     }
 
-    return { price, future, past, upcoming: future[0] || null, est, ttm, ttmCount: ttmRows.length, yieldTtm, all };
+    const upcoming = future[0] || null;
+    const upYield = upcoming && upcoming.yieldPct !== null && upcoming.yieldPct !== undefined
+        ? upcoming.yieldPct
+        : upcoming && price ? (upcoming.value / price) * 100 : null;
+
+    return { price, future, past, upcoming, est, ttm, ttmCount: ttmRows.length, yieldTtm, upYield, all, hasHistory: !!(dv && dv.rows.length) };
 }
 
 function runPool(items, worker, size) {
@@ -2287,7 +3012,7 @@ function setDivStatus(cls, text) {
     box.textContent = text;
 }
 
-/* Дивиденды по всем бумагам — одним проходом (около 260 запросов), результат кэшируется на сутки. */
+/* Один запрос календаря дивидендов smart-lab на все бумаги (кэш на 6 часов). */
 function ensureAllDividends() {
     if (divAllLoaded) return Promise.resolve(true);
     if (divAllPromise) return divAllPromise;
@@ -2295,56 +3020,24 @@ function ensureAllDividends() {
     divAllPromise = (async () => {
         try {
             const cached = readJson(DIV_CACHE_KEY);
-            if (cached && cached.data && Date.now() - cached.t < DIV_TTL) {
-                Object.keys(cached.data).forEach(t => { if (!divData[t]) divData[t] = { rows: cached.data[t] }; });
+            let map = cached && cached.map && Date.now() - cached.t < DIV_TTL ? cached.map : null;
+            if (!map) {
+                setDivStatus('loading', 'Загрузка календаря дивидендов (smart-lab)...');
+                const r = await fetchTextViaProxies('https://smart-lab.ru/dividends/', t => /Тикер/i.test(t) && /<table/i.test(t));
+                map = parseSmartlabUpcoming(r.text);
+                if (!Object.keys(map).length) throw new Error('таблица дивидендов не найдена в ответе');
+                writeJson(DIV_CACHE_KEY, { t: Date.now(), map, via: r.via });
             }
-
-            const todo = allStocks.map(s => s.ticker).filter(t => !divData[t] || divData[t].error);
-            divProgress.done = 0;
-            divProgress.total = todo.length;
-
-            if (todo.length) {
-                setDivStatus('loading', `Загрузка дивидендов: 0 / ${todo.length}`);
-                await runPool(todo, async t => {
-                    await loadDividends(t);
-                    divProgress.done++;
-                    if (divProgress.done % 5 === 0 || divProgress.done === divProgress.total) {
-                        setDivStatus('loading', `Загрузка дивидендов: ${divProgress.done} / ${divProgress.total}`);
-                    }
-                }, DIV_CONCURRENCY);
-            }
-
-            const data = {};
-            let failed = 0;
-            let withRows = 0;
-            allStocks.forEach(s => {
-                const dv = divData[s.ticker];
-                if (dv && !dv.error) {
-                    data[s.ticker] = dv.rows;
-                    if (dv.rows.length) withRows++;
-                } else {
-                    failed++;
-                }
-            });
-
-            if (withRows === 0) {
-                // ни одной выплаты на 260 бумаг — это ошибка источника, а не «никто не платил»
-                const sample = allStocks.map(s => divData[s.ticker]).find(Boolean);
-                setDivStatus('error',
-                    'MOEX не вернул дивиденды ни по одной бумаге' +
-                    (sample && sample.error ? ` (${sample.error})` : sample && sample.cols ? '' : ' (пустой ответ)') +
-                    '. Сортировка по дивидендам недоступна.');
-                return false;
-            }
-
-            writeJson(DIV_CACHE_KEY, { t: Date.now(), data });
+            const today = moscowDateStr(new Date());
+            Object.keys(upcomingMap).forEach(k => delete upcomingMap[k]);
+            Object.keys(map).forEach(t => { if (map[t].date >= today) upcomingMap[t] = map[t]; });
+            const n = allStocks.filter(s => upcomingMap[s.ticker]).length;
             divAllLoaded = true;
-            setDivStatus(failed ? 'warn' : 'ok',
-                `Дивиденды загружены: у ${withRows} бумаг есть выплаты${failed ? `, без данных: ${failed}` : ''}`);
+            setDivStatus('ok', `Дивиденды (smart-lab): предстоящие выплаты у ${n} бумаг из ${allStocks.length}`);
             return true;
         } catch (e) {
             console.error(e);
-            setDivStatus('error', `Не удалось загрузить дивиденды: ${e.message}`);
+            setDivStatus('error', `Не удалось загрузить календарь дивидендов: ${e.message}. Проверьте сеть/VPN и нажмите кнопку ещё раз.`);
             return false;
         } finally {
             divAllPromise = null;
@@ -2381,12 +3074,14 @@ function applyDivMetric() {
         const els = cardEls[stock.ticker];
         if (!els) return;
         const d = divSummary(stock.ticker);
-        let text = '—';
+        let text = 'нет данных';
         if (d) {
             if (sortMode === 'divDate') {
                 text = d.upcoming ? shortDate(d.upcoming.date) : d.est ? `≈${shortDate(d.est.date)}` : 'нет дат';
+            } else if (d.upcoming && d.upYield !== null) {
+                text = `Див. ${formatPct1(d.upYield)}`;
             } else {
-                text = d.yieldTtm > 0 ? `Див. ${formatPct1(d.yieldTtm)}` : 'без дивид.';
+                text = d.yieldTtm > 0 ? `12м ${formatPct1(d.yieldTtm)}` : 'без дивид.';
             }
         }
         els.delta.textContent = text;
@@ -2448,11 +3143,6 @@ function renderModalDivTab() {
         box.replaceChildren(mk('div', 'note', 'Загрузка дивидендов...'));
         return;
     }
-    if (dv.error) {
-        box.replaceChildren(mk('div', 'note', `Не удалось загрузить дивиденды: ${dv.error}`));
-        return;
-    }
-
     const d = divSummary(ticker);
     const price = d.price;
     const today = moscowDateStr(new Date());
@@ -2474,10 +3164,10 @@ function renderModalDivTab() {
         box2.append(rowEl('Ориентировочная дата', `≈ ${humanDate(d.est.date)} (через ${daysUntil(d.est.date)} дн.)`));
         box2.append(rowEl('Ориентировочный размер', `${nf(2).format(d.est.value)} ₽ (как в прошлом году)`));
         if (price) box2.append(rowEl('Доходность к текущей цене', `≈ ${formatPct1((d.est.value / price) * 100)}`));
-        box2.append(mk('div', 'note', 'Это не данные эмитента: дата и сумма взяты по прошлогодней выплате. Объявленных будущих дивидендов в данных MOEX нет.'));
+        box2.append(mk('div', 'note', 'Это не данные эмитента: дата и сумма взяты по прошлогодней выплате. Объявленных будущих дивидендов в источниках нет.'));
         parts.push(box2);
     } else {
-        parts.push(mk('div', 'note', 'Объявленных будущих дивидендов в данных MOEX нет. Если дивиденд объявлен, внесите его ниже.'));
+        parts.push(mk('div', 'note', 'Объявленных будущих дивидендов не найдено. Если дивиденд объявлен, внесите его ниже.'));
     }
 
     // --- итоги за 12 месяцев и за 5 лет
@@ -2493,8 +3183,8 @@ function renderModalDivTab() {
     parts.push(rowEl('Выплаты за 5 лет', sum5 > 0 ? `${nf(2).format(sum5)} ₽ (${rub5.length} шт.)` : 'не было'));
     if (!d.past.length) {
         parts.push(mk('div', 'note',
-            `MOEX не вернул ни одной выплаты по этой бумаге (записей: 0${dv.cols ? '; колонки ответа: ' + dv.cols.join(', ') : '; блоки ответа: ' + (dv.blocks || []).join(', ')}). ` +
-            'Если эмитент платил дивиденды, проверьте внешние источники по ссылкам ниже.'));
+            `Выплат не получено (${(dv.diag && dv.diag.length ? dv.diag.join('; ') : 'источники не вернули записей')}). ` +
+            'Если эмитент платил дивиденды, проверьте внешние источники по ссылкам ниже или проверьте сеть/VPN.'));
     }
 
     // --- таблица за 5 лет: дата, сумма, цена на дату, доходность выплаты, доходность за год
@@ -2515,7 +3205,7 @@ function renderModalDivTab() {
         past5.slice(0, 40).forEach(r => {
             const tr = mk('tr');
             const cur = isRubCur(r.cur) ? '₽' : r.cur;
-            const p = pp && pp.map[r.date] ? pp.map[r.date] : null;
+            const p = r.price || (pp && pp.map[r.date] ? pp.map[r.date] : null);
             const rub = isRubCur(r.cur);
             tr.append(mk('td', null, `${shortDate(r.date)}${r.manual ? '*' : ''}`));
             tr.append(mk('td', null, `${nf(2).format(r.value)} ${cur}`));
@@ -2526,7 +3216,7 @@ function renderModalDivTab() {
         });
         parts.push(table);
         parts.push(mk('div', 'note',
-            '«Цена» — закрытие за 2 торговых дня до закрытия реестра (последний день покупки с дивидендом); цена и сумма в масштабе того времени, поэтому доходность корректна и при сплитах. ' +
+            `Источник: ${dv.src || 'не определён'}. «Цена» и «Дох.» — как в источнике на момент выплаты; если их нет, цена берётся из истории MOEX за 2 торговых дня до реестра. ` +
             '«Дох.» — выплата / цена. «Год. дох.» — сумма выплат за 365 дней до этой даты / цена на эту дату.'));
 
         // --- по годам
@@ -2536,7 +3226,7 @@ function renderModalDivTab() {
             byYear[y] = byYear[y] || { sum: 0, n: 0, prices: [] };
             byYear[y].sum += r.value;
             byYear[y].n++;
-            const p = pp && pp.map[r.date];
+            const p = r.price || (pp && pp.map[r.date]);
             if (p) byYear[y].prices.push(p);
         });
         const years = Object.keys(byYear).sort((a, b) => b.localeCompare(a));
@@ -2612,12 +3302,12 @@ function renderModalDivTab() {
     parts.push(mkLink('Дивиденды на Доход.ру', `https://www.dohod.ru/ik/analytics/dividend/${encodeURIComponent(ticker.toLowerCase())}`));
     parts.push(mkLink('Дивиденды на Smart-lab', `https://smart-lab.ru/q/${encodeURIComponent(ticker)}/dividend/`));
     parts.push(mk('div', 'note',
-        'Открытые данные MOEX содержат закрытые реестры; ближайшие и прогнозные выплаты они, как правило, не включают. Ссылки на внешние сайты не проверялись автоматически.'));
+        'История и календарь берутся с smart-lab.ru через публичные прокси (запасной источник — ISS MOEX). Сторонние данные сверяйте с сообщениями эмитента.'));
 
     box.replaceChildren(...parts);
 
     // цены на даты выплат подгружаются отдельно и дорисовываются
-    if (!ppCache[ticker] && d.past.length) {
+    if (!ppCache[ticker] && d.past.some(r => !r.price)) {
         loadPayoutPrices(ticker).then(() => { if (modalTicker === ticker) renderModalDivTab(); });
     }
 }
@@ -2866,6 +3556,471 @@ function renderReversal() {
     }));
 }
 
+/* ---------- избранное, тикеры в плитках ---------- */
+
+function refreshFavMarks() {
+    allStocks.forEach(stock => {
+        const els = cardEls[stock.ticker];
+        if (els && els.name) els.name.textContent = (FavStore.has('s', stock.ticker) ? '★ ' : '') + stock.name;
+    });
+}
+
+function renderStar() {
+    const b = document.getElementById('modalStar');
+    if (!modalTicker) return;
+    const on = FavStore.has('s', modalTicker);
+    b.className = 'star-btn' + (on ? ' on' : '');
+    b.textContent = on ? '★' : '☆';
+    b.title = on ? 'Убрать из избранного' : 'Добавить в избранное';
+}
+
+/* ---------- вкладка «О компании» ---------- */
+
+const infoCache = {};
+const SECTOR_INDEX = {
+    MOEXOG: 'Нефть и газ', MOEXEU: 'Электроэнергетика', MOEXTL: 'Телекоммуникации', MOEXMM: 'Металлы и добыча',
+    MOEXFN: 'Финансы', MOEXCN: 'Потребительский сектор', MOEXCH: 'Химия и нефтехимия', MOEXIT: 'Информационные технологии',
+    MOEXRE: 'Строительство и недвижимость', MOEXTN: 'Транспорт'
+};
+const SMARTLAB_METRICS = [
+    ['Капитализация', /^капитализация/i], ['EV', /^ev\b(?!\/)/i], ['Выручка', /^(выручка|чист\S* операц)/i],
+    ['Чистая прибыль', /^чистая прибыль/i], ['EPS', /^eps/i], ['P/E', /^p\/e/i], ['P/B', /^p\/b/i], ['P/S', /^p\/s/i],
+    ['EV/EBITDA', /^ev\/ebitda/i], ['ROE', /^roe/i], ['ROA', /^roa/i], ['Долг', /^долг/i],
+    ['Дивиденд на акцию', /^дивиденд/i], ['Дивидендная доходность', /^див\S*\s*доход/i], ['Free float', /free\s*float/i]
+];
+
+/* Разбор страницы https://smart-lab.ru/q/<ТИКЕР>/f/y/: сектор и ключевые показатели (последнее значение в строке). */
+function parseSmartlabFundamentals(html) {
+    const res = { sector: null, metrics: [] };
+    const sm = html.match(/нализ\s+сектора\s*([^<"\n]{2,40})/i);
+    if (sm) res.sector = cleanHtml(sm[1]);
+    parseHtmlTables(html).forEach(rows => {
+        if (rows.length < 5) return;
+        const head = rows[0];
+        SMARTLAB_METRICS.forEach(([name, re]) => {
+            if (res.metrics.some(m => m.name === name)) return;
+            const row = rows.find(r => r.length > 2 && re.test(String(r[0]).trim()));
+            if (!row) return;
+            let idx = -1;
+            for (let i = row.length - 1; i >= 1; i--) {
+                if (String(row[i]).trim() !== '' && ruNumber(row[i]) !== null) { idx = i; break; }
+            }
+            if (idx > 0) res.metrics.push({ name, label: row[0], value: row[idx], period: head[idx] || '' });
+        });
+    });
+    return res;
+}
+
+async function loadInfo(ticker) {
+    if (infoCache[ticker]) return infoCache[ticker];
+    const stock = stockByTicker[ticker];
+    const item = lastSnapshot && lastSnapshot.get(ticker);
+    const enc = encodeURIComponent(ticker);
+    const res = { desc: null, indices: [], smart: null, wiki: null, market: null, errors: [] };
+    const guard = (name, fn) => fn().catch(e => { console.error(name, e); res.errors.push(`${name}: ${e.message}`); });
+
+    await Promise.all([
+        guard('описание MOEX', async () => {
+            const data = await fetchJson(`${MOEX_ISS}/securities/${enc}.json?iss.meta=off&iss.only=description`, { retries: 1, timeout: 15000 });
+            const d = data.description;
+            if (d && Array.isArray(d.data)) {
+                const iN = col(d.columns, 'name');
+                const iT = col(d.columns, 'title');
+                const iV = col(d.columns, 'value');
+                res.desc = {};
+                d.data.forEach(r => { res.desc[String(r[iN]).toUpperCase()] = { title: r[iT], value: r[iV] }; });
+            }
+        }),
+        guard('индексы MOEX', async () => {
+            const data = await fetchJson(`${MOEX_ISS}/securities/${enc}/indices.json?iss.meta=off&only_actual=1`, { retries: 1, timeout: 15000 });
+            const d = data.indices;
+            if (d && Array.isArray(d.data)) {
+                const iS = col(d.columns, 'SECID');
+                const iN = col(d.columns, 'SHORTNAME');
+                d.data.forEach(r => res.indices.push({ id: String(r[iS]), name: r[iN] || r[iS] }));
+            }
+        }),
+        guard('показатели smart-lab', async () => {
+            let r;
+            try {
+                r = await fetchTextViaProxies(`https://smart-lab.ru/q/${enc}/f/y/`, t => /<table/i.test(t) && /капитализация|P\/E/i.test(t));
+            } catch (e) {
+                if (!/P$/.test(ticker)) throw e;
+                r = await fetchTextViaProxies(`https://smart-lab.ru/q/${encodeURIComponent(ticker.slice(0, -1))}/f/y/`, t => /<table/i.test(t) && /капитализация|P\/E/i.test(t));
+            }
+            res.smart = parseSmartlabFundamentals(r.text);
+        }),
+        guard('описание компании', async () => {
+            const nm = cleanCompanyName((item && item.secname) || (stock && stock.name));
+            res.wiki = await wikiSummary([nm, `${cleanCompanyName(stock && stock.name)} компания`]);
+        }),
+        guard('оборот и волатильность', async () => {
+            const today = moscowDateStr(new Date());
+            const rows = await fetchCandlePages(`${BOARD_PATH}/securities/${enc}`,
+                `interval=24&from=${shiftDateStr(today, { days: -75 })}&till=${encodeURIComponent(today + ' 23:59:59')}`);
+            const last = rows.slice(-30);
+            const vals = last.map(r => r.val).filter(v => v !== null);
+            const rets = [];
+            for (let i = 1; i < rows.length; i++) if (rows[i - 1].c > 0 && rows[i].c > 0) rets.push(Math.log(rows[i].c / rows[i - 1].c));
+            let vol = null;
+            if (rets.length > 5) {
+                const mean = rets.reduce((s, x) => s + x, 0) / rets.length;
+                vol = Math.sqrt(rets.reduce((s, x) => s + (x - mean) * (x - mean), 0) / (rets.length - 1)) * Math.sqrt(252) * 100;
+            }
+            res.market = {
+                avgTurnover: vals.length ? vals.reduce((s, x) => s + x, 0) / vals.length : null,
+                days: vals.length, vol, volDays: rets.length
+            };
+        })
+    ]);
+
+    infoCache[ticker] = res;
+    return res;
+}
+
+function renderModalInfo() {
+    const box = document.getElementById('modalInfo');
+    if (!modalTicker) return;
+    const ticker = modalTicker;
+    const stock = stockByTicker[ticker];
+    const item = modalItem();
+    const info = infoCache[ticker];
+
+    if (!info) {
+        box.replaceChildren(mk('div', 'note', 'Загрузка сведений о компании...'));
+        loadInfo(ticker).then(() => { if (modalTicker === ticker && modalTab === 'info') renderModalInfo(); });
+        return;
+    }
+
+    const parts = [];
+
+    parts.push(mk('h4', null, 'Чем занимается'));
+    if (info.wiki) {
+        const ex = info.wiki.extract.length > 900 ? info.wiki.extract.slice(0, 900).replace(/\s\S*$/, '') + '…' : info.wiki.extract;
+        parts.push(mk('div', 'info-text', ex));
+        if (info.wiki.url) {
+            const a = mk('a', 'btn', `Статья «${info.wiki.title}» в Википедии`);
+            a.href = info.wiki.url;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            parts.push(a);
+        }
+        parts.push(mk('div', 'note', 'Описание подобрано автоматически по названию и может относиться к другой организации — сверяйте со статьёй.'));
+    } else {
+        parts.push(mk('div', 'note', 'Описание не найдено автоматически. Смотрите карточку эмитента по ссылкам внизу.'));
+    }
+
+    parts.push(mk('h4', null, 'Отрасль и сектор'));
+    const sectors = info.indices.filter(i => SECTOR_INDEX[i.id]).map(i => SECTOR_INDEX[i.id]);
+    if (info.smart && info.smart.sector) parts.push(rowEl('Сектор (smart-lab)', info.smart.sector));
+    if (sectors.length) parts.push(rowEl('Отраслевой индекс MOEX', sectors.join(', ')));
+    const broad = info.indices.filter(i => !SECTOR_INDEX[i.id]).slice(0, 8).map(i => i.name);
+    if (broad.length) parts.push(rowEl('Входит в индексы', broad.join(', ')));
+    if (!(info.smart && info.smart.sector) && !sectors.length) parts.push(mk('div', 'note', 'Сектор определить не удалось.'));
+
+    parts.push(mk('h4', null, 'О бумаге (MOEX)'));
+    const d = info.desc || {};
+    const field = (key, label) => { if (d[key] && d[key].value) parts.push(rowEl(label || d[key].title || key, String(d[key].value))); };
+    field('NAME', 'Полное наименование');
+    field('LATNAME', 'Латинское название');
+    field('ISIN', 'ISIN');
+    field('TYPENAME', 'Тип');
+    field('ISSUESIZE', 'Выпущено акций');
+    field('FACEVALUE', 'Номинал');
+    field('LISTLEVEL', 'Уровень листинга');
+    field('ISSUEDATE', 'Дата начала торгов');
+    field('REGNUMBER', 'Регистрационный номер');
+    if (!info.desc) parts.push(mk('div', 'note', 'Описание бумаги MOEX не загрузилось.'));
+
+    parts.push(mk('h4', null, 'Рыночные показатели'));
+    if (item) {
+        if (item.cap) parts.push(rowEl('Капитализация', formatMoney(item.cap)));
+        if (item.lotSize) parts.push(rowEl('Размер лота', `${formatInt(item.lotSize)} шт.`));
+    }
+    if (info.market) {
+        if (info.market.avgTurnover !== null) parts.push(rowEl(`Средний дневной оборот (${info.market.days} дн.)`, formatMoney(info.market.avgTurnover)));
+        if (info.market.vol !== null) parts.push(rowEl('Волатильность (годовая, по дням)', formatPct1(info.market.vol)));
+    }
+    const st = histStats[ticker];
+    const price = item ? currentPrice(item) : null;
+    if (st && st.w52 && st.w52.max && price) {
+        parts.push(rowEl('До максимума 52 недель', formatChange((price / st.w52.max - 1) * 100), signCls(price / st.w52.max - 1)));
+        parts.push(rowEl('От минимума 52 недель', formatChange((price / st.w52.min - 1) * 100), signCls(price / st.w52.min - 1)));
+    }
+    const ds = divSummary(ticker);
+    if (ds && ds.yieldTtm !== null) parts.push(rowEl('Дивидендная доходность (12 мес.)', ds.ttm > 0 ? formatPct1(ds.yieldTtm) : 'выплат не было'));
+
+    parts.push(mk('h4', null, 'Финансовые показатели (smart-lab, МСФО)'));
+    if (info.smart && info.smart.metrics.length) {
+        info.smart.metrics.forEach(m => parts.push(rowEl(`${m.label}${m.period ? ' · ' + m.period : ''}`, m.value)));
+        parts.push(mk('div', 'note', 'Последнее доступное значение в строке отчётности; единицы указаны в названии показателя. Данные сторонние, сверяйте с отчётностью эмитента.'));
+    } else {
+        parts.push(mk('div', 'note', 'Показатели не загрузились (нет данных по этой бумаге или недоступны прокси).'));
+    }
+
+    if (info.errors.length) parts.push(mk('div', 'note', `Часть данных не загрузилась: ${info.errors.join('; ')}`));
+
+    const mkLink = (text, href) => {
+        const a = mk('a', 'btn', text);
+        a.href = href;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        return a;
+    };
+    parts.push(mkLink('Показатели на Smart-lab', `https://smart-lab.ru/q/${encodeURIComponent(ticker)}/f/y/`));
+    parts.push(mkLink('Страница на MOEX', `https://www.moex.com/ru/issue.aspx?code=${encodeURIComponent(ticker)}&board=${BOARD}`));
+
+    box.replaceChildren(...parts);
+}
+
+/* ---------- вкладки «Стакан» и «Новости» ---------- */
+
+function renderModalBook() {
+    const box = document.getElementById('modalBook');
+    const ticker = modalTicker;
+    if (!ticker) return;
+    const stock = stockByTicker[ticker];
+    const item = modalItem();
+    renderOrderBook(box, {
+        url: `${BOARD_PATH}/securities/${encodeURIComponent(ticker)}/orderbook.json?iss.meta=off`,
+        dec: stock && Number.isInteger(stock.decimals) ? stock.decimals : 2,
+        bid: item ? item.bid : null,
+        offer: item ? item.offer : null,
+        bcsUrl: bcsUrl(ticker)
+    });
+}
+
+let newsFor = null;
+let newsAt = 0;
+function renderModalNews() {
+    const box = document.getElementById('modalNews');
+    const ticker = modalTicker;
+    if (!ticker) return;
+    if (newsFor === ticker && Date.now() - newsAt < 60000) return;
+    newsFor = ticker;
+    newsAt = Date.now();
+    const stock = stockByTicker[ticker];
+    const item = modalItem();
+    const nm = cleanCompanyName((item && item.secname) || (stock && stock.name)) || ticker;
+    const short = cleanCompanyName(stock && stock.name).toLowerCase();
+    const stem = short.length >= 5 ? short.slice(0, Math.max(4, Math.min(short.length, 7))) : short;
+    renderNewsTab(box, `${nm} акции`, title => {
+        const t = title.toLowerCase();
+        return t.includes(ticker.toLowerCase()) || (stem && t.includes(stem)) || t.includes(nm.toLowerCase().slice(0, 6));
+    });
+}
+
+
+/* ---------- курсы валют, металлы, индекс ---------- */
+
+const CETS_PATH = `${MOEX_ISS}/engines/currency/markets/selt/boards/CETS`;
+const CETS_HIST = `${MOEX_ISS}/history/engines/currency/markets/selt/boards/CETS`;
+const RATES = [
+    { id: 'USD',   label: 'USD/RUB',    kind: 'cets',  sec: 'USD000UTSTOM', cbr: 'USD', preferCbr: true,  dec: 2, unit: '₽' },
+    { id: 'EUR',   label: 'EUR/RUB',    kind: 'cets',  sec: 'EUR_RUB__TOM', cbr: 'EUR', preferCbr: true,  dec: 2, unit: '₽' },
+    { id: 'HKD',   label: 'HKD/RUB',    kind: 'cets',  sec: 'HKDRUB_TOM',   cbr: 'HKD', preferCbr: true,  dec: 3, unit: '₽' },
+    { id: 'CNY',   label: 'CNY/RUB',    kind: 'cets',  sec: 'CNYRUB_TOM',   cbr: 'CNY', preferCbr: false, dec: 3, unit: '₽' },
+    { id: 'GLD',   label: 'Золото',     kind: 'cets',  sec: 'GLDRUB_TOM',   dec: 2, unit: '₽/г' },
+    { id: 'SLV',   label: 'Серебро',    kind: 'cets',  sec: 'SLVRUB_TOM',   dec: 2, unit: '₽/г' },
+    { id: 'IMOEX', label: 'Индекс MOEX', kind: 'index', sec: 'IMOEX',        dec: 2, unit: '' }
+];
+const ratesIss = {};      // sec -> { value, change, prev, open, low, high }
+let ratesCbr = null;      // { USD: { value, prev }, ... , t }
+let modalRate = null;
+let ratePanel = null;
+
+function rateBases(r) {
+    if (r.kind === 'index') {
+        return { candles: `${MOEX_ISS}/engines/stock/markets/index/securities/${r.sec}`, history: `${MOEX_ISS}/history/engines/stock/markets/index/securities/${r.sec}` };
+    }
+    return { candles: `${CETS_PATH}/securities/${r.sec}`, history: `${CETS_HIST}/securities/${r.sec}` };
+}
+
+async function loadRates() {
+    const secs = RATES.filter(r => r.kind === 'cets').map(r => r.sec).join(',');
+    const tasks = [];
+
+    tasks.push((async () => {
+        const data = await fetchJson(
+            `${CETS_PATH}/securities.json?iss.meta=off&iss.only=securities,marketdata&securities=${secs}`,
+            { retries: 1, timeout: 12000 });
+        const sec = data.securities;
+        const md = data.marketdata;
+        const prevBy = {};
+        if (sec && Array.isArray(sec.data)) {
+            const iS = col(sec.columns, 'SECID');
+            const iP = col(sec.columns, 'PREVPRICE');
+            const iW = col(sec.columns, 'PREVWAPRICE');
+            sec.data.forEach(r => { prevBy[r[iS]] = num(r[iP]) ?? num(r[iW]); });
+        }
+        if (md && Array.isArray(md.data)) {
+            const ix = n => col(md.columns, n);
+            md.data.forEach(r => {
+                const id = r[ix('SECID')];
+                const last = num(r[ix('LAST')]);
+                const prev = prevBy[id] ?? null;
+                const value = last ?? num(r[ix('MARKETPRICE')]) ?? prev;
+                let change = num(r[ix('LASTCHANGEPRCNT')]);
+                if (change === null && value !== null && prev) change = (value / prev - 1) * 100;
+                ratesIss[id] = { value, change: last === null ? 0 : change, prev, open: num(r[ix('OPEN')]), low: num(r[ix('LOW')]), high: num(r[ix('HIGH')]), live: last !== null };
+            });
+        }
+    })().catch(e => console.error('курсы MOEX', e)));
+
+    if (!ratesCbr || Date.now() - ratesCbr.t > 10 * 60 * 1000) {
+        tasks.push((async () => {
+            const data = await fetchJson('https://www.cbr-xml-daily.ru/daily_json.js', { retries: 1, timeout: 10000 });
+            const out = { t: Date.now() };
+            Object.keys(data.Valute || {}).forEach(k => {
+                const v = data.Valute[k];
+                if (v && v.Nominal && v.Value) out[k] = { value: v.Value / v.Nominal, prev: v.Previous ? v.Previous / v.Nominal : null };
+            });
+            ratesCbr = out;
+        })().catch(e => console.error('курсы ЦБ', e)));
+    }
+
+    await Promise.all(tasks);
+}
+
+/* Что показываем по каждому курсу: ЦБ для USD/EUR/HKD (биржевые торги ими могут быть остановлены), MOEX для остального. */
+function rateValue(r) {
+    if (r.kind === 'index') {
+        return imoex ? { value: imoex.value, change: imoex.pct, src: 'MOEX' } : null;
+    }
+    const iss = ratesIss[r.sec];
+    const cbr = ratesCbr && r.cbr ? ratesCbr[r.cbr] : null;
+    const fromCbr = cbr ? { value: cbr.value, change: cbr.prev ? (cbr.value / cbr.prev - 1) * 100 : null, src: 'ЦБ РФ' } : null;
+    const fromIss = iss && iss.value !== null ? { value: iss.value, change: iss.change, src: 'MOEX', open: iss.open, low: iss.low, high: iss.high, prev: iss.prev } : null;
+    if (r.preferCbr) return fromCbr || fromIss;
+    return fromIss || fromCbr;
+}
+
+function renderRates() {
+    const box = document.getElementById('rates');
+    box.replaceChildren(...RATES.map(r => {
+        const v = rateValue(r);
+        const b = mk('button', 'rate');
+        b.title = v ? `${r.label}: источник ${v.src}. Нажмите для графика и подробностей.` : 'Нет данных';
+        b.append(mk('span', 'rl', r.label));
+        b.append(mk('b', null, v ? nf(r.dec).format(v.value) : '—'));
+        const c = v ? v.change : null;
+        b.append(mk('span', c === null || c === undefined || Math.abs(c) < 0.005 ? 'rc' : c > 0 ? 'rc up' : 'rc down', formatChange(c)));
+        b.addEventListener('click', () => openRate(r.id));
+        return b;
+    }));
+}
+
+function refreshRates() {
+    loadRates().then(() => {
+        renderRates();
+        if (modalRate) renderRateLive();
+    });
+}
+
+/* Общий блок «исторические минимум и максимум»: key — ключ в histStats, unit — единица, coverage — подпись источника. */
+function buildHistBox(key, price, dec, unit, coverage) {
+    const st = histStats[key];
+    const hist = mk('div', 'hist-box');
+    hist.append(mk('h4', null, 'Исторические минимум и максимум'));
+
+    if (st && st.all.max !== null) {
+        const pr = v => `${nf(Number.isInteger(dec) ? dec : defaultDecimals(v)).format(v)}${unit ? ' ' + unit : ''}`;
+        const fromMax = price !== null && price !== undefined ? (price / st.all.max - 1) * 100 : null;
+        const fromMin = price !== null && price !== undefined ? (price / st.all.min - 1) * 100 : null;
+        const dl = d => (String(d).length === 7 ? `${String(d).slice(5, 7)}.${String(d).slice(0, 4)}` : humanDate(d));
+
+        hist.append(rowEl(`Максимум за всё время (${dl(st.all.maxD)})`, pr(st.all.max)));
+        if (fromMax !== null) hist.append(rowEl('Сейчас относительно максимума', formatChange(fromMax), signCls(fromMax)));
+        hist.append(rowEl(`Минимум за всё время (${dl(st.all.minD)})`, pr(st.all.min)));
+        if (fromMin !== null) hist.append(rowEl('Сейчас относительно минимума', formatChange(fromMin), signCls(fromMin)));
+        if (st.y5.max !== null) {
+            hist.append(rowEl(`Максимум за 5 лет (${dl(st.y5.maxD)})`, pr(st.y5.max)));
+            hist.append(rowEl(`Минимум за 5 лет (${dl(st.y5.minD)})`, pr(st.y5.min)));
+        }
+        if (st.w52.max !== null) {
+            hist.append(rowEl(`Максимум за 52 недели (${dl(st.w52.maxD)})`, pr(st.w52.max)));
+            hist.append(rowEl(`Минимум за 52 недели (${dl(st.w52.minD)})`, pr(st.w52.min)));
+        }
+        hist.append(mk('div', 'note',
+            `Дневная история MOEX (${coverage}): с ${humanDate(st.first)} по ${humanDate(st.last)}, ${formatInt(st.rows)} из ${formatInt(st.total)} торговых дней. ` +
+            'Учитываются внутридневные минимум и максимум.'));
+        (st.notes || []).forEach(t => hist.append(mk('div', 'note', t)));
+    } else if (histErrors[key]) {
+        hist.append(mk('div', 'note', `Не удалось загрузить историю: ${histErrors[key]}`));
+    } else {
+        const p = histProgress[key];
+        hist.append(mk('div', 'note', p ? `Загрузка истории... ${formatInt(p.done)} из ${formatInt(p.total)} дней` : 'Загрузка истории...'));
+    }
+    return hist;
+}
+
+function openRate(id) {
+    const r = RATES.find(x => x.id === id);
+    if (!r) return;
+    modalRate = id;
+    document.getElementById('rateModal').hidden = false;
+    document.body.style.overflow = 'hidden';
+    document.getElementById('rateTitle').textContent = r.label;
+    document.getElementById('rateSub').textContent = r.kind === 'index' ? 'Индекс МосБиржи' : r.id === 'GLD' || r.id === 'SLV' ? 'Цена за грамм, MOEX' : 'Курс к рублю';
+    renderRateLive();
+    renderRateHist();
+
+    const b = rateBases(r);
+    if (ratePanel) ratePanel.destroy();
+    ratePanel = makeChartPanel({ candlesBase: b.candles, historyBase: b.history, decimals: r.dec });
+    document.getElementById('rateChart').replaceChildren(mk('h4', null, 'График'), ratePanel.el);
+
+    const key = `rate:${id}`;
+    loadStatsFor(key, {
+        historyBase: b.history, candlesBase: b.candles, splits: false,
+        onProgress: () => { if (modalRate === id) renderRateHist(); }
+    }).then(() => { if (modalRate === id) renderRateHist(); });
+}
+
+function closeRate() {
+    if (ratePanel) {
+        ratePanel.destroy();
+        ratePanel = null;
+    }
+    document.getElementById('rateChart').replaceChildren();
+    modalRate = null;
+    document.getElementById('rateModal').hidden = true;
+    document.body.style.overflow = '';
+}
+
+function renderRateLive() {
+    const box = document.getElementById('rateLive');
+    const r = modalRate && RATES.find(x => x.id === modalRate);
+    if (!r) return;
+    const v = rateValue(r);
+    const rows = [mk('h4', null, 'Сейчас')];
+    if (!v) {
+        rows.push(mk('div', 'note', 'Данных нет: источник не ответил или торги по этому инструменту не ведутся.'));
+    } else {
+        rows.push(rowEl('Значение', `${nf(r.dec).format(v.value)}${r.unit ? ' ' + r.unit : ''}`));
+        rows.push(rowEl('Изменение', formatChange(v.change), signCls(v.change)));
+        rows.push(rowEl('Источник', v.src));
+        if (v.prev) rows.push(rowEl('Предыдущее закрытие', nf(r.dec).format(v.prev)));
+        if (v.open) rows.push(rowEl('Открытие сегодня', nf(r.dec).format(v.open)));
+        if (v.low) rows.push(rowEl('Минимум сегодня', nf(r.dec).format(v.low)));
+        if (v.high) rows.push(rowEl('Максимум сегодня', nf(r.dec).format(v.high)));
+    }
+    if (r.preferCbr) {
+        rows.push(mk('div', 'note', 'Показан официальный курс ЦБ РФ (биржевые торги этой валютой могут быть остановлены). График и минимумы/максимумы — по данным MOEX и могут заканчиваться на дате остановки торгов.'));
+    }
+    rows.push(mk('div', 'note', 'Данные с задержкой. Курс ЦБ — через открытое зеркало cbr-xml-daily.ru.'));
+    box.replaceChildren(...rows);
+}
+
+function renderRateHist() {
+    const r = modalRate && RATES.find(x => x.id === modalRate);
+    if (!r) return;
+    const v = rateValue(r);
+    document.getElementById('rateHist').replaceChildren(
+        buildHistBox(`rate:${r.id}`, v ? v.value : null, r.dec, r.unit, r.kind === 'index' ? 'индекс' : 'валютный рынок MOEX'));
+}
+
+
 /* ---------- debug ---------- */
 
 function setDebugText(text) {
@@ -3035,6 +4190,7 @@ async function fetchQuotes(force = false) {
         if (token !== periodToken) return;
 
         imoex = index;
+        refreshRates();
         saveSnapshotCache(snapshot);
         const updated = applySnapshot(snapshot);
 
@@ -3131,7 +4287,10 @@ async function start() {
     isStarting = false;
 
     const updated = applySnapshot(snapshot);
-    fetchIndex().then(i => { imoex = i; if (lastSnapshot) renderSummary(lastSnapshot); }).catch(() => {});
+    fetchIndex().then(i => { imoex = i; if (lastSnapshot) renderSummary(lastSnapshot); renderRates(); }).catch(() => {});
+    refreshRates();
+    const openParam = new URLSearchParams(location.search).get('open');
+    if (openParam && stockByTicker[openParam.toUpperCase()]) openStock(openParam.toUpperCase());
 
     if (cacheTime) {
         const t = new Date(cacheTime).toLocaleString('ru-RU');
@@ -3148,6 +4307,7 @@ async function start() {
 /* ---------- events ---------- */
 
 document.getElementById('bondsLink').href = BONDS_PAGE;
+document.getElementById('favLink').href = FAV_PAGE;
 document.getElementById('newsLink').href = NEWS_PAGE;
 
 document.getElementById('periodSelect').addEventListener('change', e => {
@@ -3174,10 +4334,37 @@ document.getElementById('refreshBtn').addEventListener('click', () => {
     fetchQuotes(true);
 });
 
+function updateOrderBtn() {
+    document.getElementById('orderBtn').textContent = colorAsc ? '⇅ Красные → зелёные' : '⇅ Зелёные → красные';
+}
+document.getElementById('orderBtn').addEventListener('click', () => {
+    colorAsc = !colorAsc;
+    try { localStorage.setItem('mx.pref.order', colorAsc ? 'asc' : 'desc'); } catch (_) { /* ignore */ }
+    updateOrderBtn();
+    if (lastSnapshot) sortCards();
+});
+updateOrderBtn();
+
+document.getElementById('modalStar').addEventListener('click', () => {
+    if (!modalTicker) return;
+    const stock = stockByTicker[modalTicker];
+    FavStore.toggle('s', modalTicker, { name: stock ? stock.name : modalTicker });
+    renderStar();
+    refreshFavMarks();
+});
+FavStore.onChange(() => { renderStar(); refreshFavMarks(); });
+FavStore.init();
+
+MODAL_TABS.forEach(t => {
+    document.getElementById('tab' + t[0].toUpperCase() + t.slice(1)).addEventListener('click', () => setModalTab(t));
+});
+document.getElementById('rateClose').addEventListener('click', closeRate);
+document.getElementById('rateModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('rateModal')) closeRate();
+});
+
 document.getElementById('divDateBtn').addEventListener('click', () => setSortMode('divDate'));
 document.getElementById('divYieldBtn').addEventListener('click', () => setSortMode('divYield'));
-document.getElementById('tabSummary').addEventListener('click', () => setModalTab('summary'));
-document.getElementById('tabDiv').addEventListener('click', () => setModalTab('div'));
 document.getElementById('logoutLink').addEventListener('click', e => {
     e.preventDefault();
     try { sessionStorage.removeItem('mx_k'); } catch (_) { /* ignore */ }
@@ -3194,7 +4381,9 @@ document.getElementById('modal').addEventListener('click', e => {
     if (e.target === document.getElementById('modal')) closeModal();
 });
 document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && modalTicker) closeModal();
+    if (e.key !== 'Escape') return;
+    if (modalRate) closeRate();
+    else if (modalTicker) closeModal();
 });
 
 /* Не долбим MOEX из фоновой вкладки; при возврате сразу обновляемся. */
@@ -3208,6 +4397,7 @@ document.addEventListener('visibilitychange', () => {
     }
 });
 
+renderRates();
 initBlocks();
 start();
 </script>
