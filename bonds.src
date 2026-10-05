@@ -161,11 +161,35 @@
         .cp-tip .r { display: flex; justify-content: space-between; gap: 8px; }
         .cp-tip .up { color: #2e7d32; font-weight: bold; }
         .cp-tip .down { color: #c62828; font-weight: bold; }
+        .cp-close { display: none; }
         .cp.cp-full {
-            position: fixed; inset: 0; z-index: 300; margin: 0; padding: 10px; display: flex; flex-direction: column;
+            position: fixed; inset: 0; z-index: 500; margin: 0; display: flex; flex-direction: column;
+            padding: calc(env(safe-area-inset-top, 0px) + 56px) 10px calc(env(safe-area-inset-bottom, 0px) + 10px);
+        }
+        .cp.cp-full .cp-close {
+            display: block; position: absolute; top: calc(env(safe-area-inset-top, 0px) + 8px); right: 10px; z-index: 2;
+            padding: 11px 16px; font-size: 16px; font-weight: bold; color: #fff; background: #c62828;
+            border: none; border-radius: 10px; cursor: pointer;
         }
         .cp.cp-full .cp-stage { flex: 1; height: auto; min-height: 0; }
-
+        .ob-row { position: relative; display: flex; justify-content: space-between; padding: 4px 8px; font-size: 13px; font-variant-numeric: tabular-nums; overflow: hidden; }
+        .ob-row span { position: relative; z-index: 1; }
+        .ob-bar { position: absolute; top: 0; bottom: 0; right: 0; opacity: .22; }
+        .ob-sell .ob-bar { background: #c62828; } .ob-sell span:first-child { color: #c62828; font-weight: bold; }
+        .ob-buy .ob-bar { background: #2e7d32; } .ob-buy span:first-child { color: #2e7d32; font-weight: bold; }
+        .ob-head { display: flex; justify-content: space-between; padding: 4px 8px; font-size: 11px; color: #777; }
+        .ob-spread { text-align: center; padding: 6px; font-size: 12px; background: #f5f5f5; color: #555; margin: 2px 0; }
+        .news-line { display: block; padding: 8px 2px; border-bottom: 1px solid #eee; text-decoration: none; color: #1a1a1a; }
+        .news-line .t { font-size: 14px; line-height: 1.35; font-weight: bold; }
+        .news-line .m { font-size: 11px; color: #777; margin-top: 2px; }
+        .news-line .m b { color: #1565c0; }
+        .star-btn { border: none; background: #eee; border-radius: 50%; width: 34px; height: 34px; font-size: 19px; cursor: pointer; flex: none; color: #9e9e9e; line-height: 1; }
+        .star-btn.on { background: #fff8e1; color: #f9a825; }
+        .head-btns { display: flex; gap: 8px; flex: none; }
+        .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+        .tab { flex: 1 1 auto; padding: 7px 8px; border: 1px solid #ccc; border-radius: 8px; background: #fff; font-size: 13px; cursor: pointer; color: #333; }
+        .tab.active { background: #1565c0; border-color: #1565c0; color: #fff; }
+        .euro-note { font-size: 12px; color: #666; margin: -4px 0 10px; }
         table.dt { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
         table.dt th { text-align: right; color: #555; font-weight: bold; padding: 4px 3px; border-bottom: 1px solid #ddd; }
         table.dt th:first-child, table.dt td:first-child { text-align: left; }
@@ -218,6 +242,7 @@
     <div class="nav">
         <a href="index.html" id="stocksLink">Акции</a>
         <a href="#" class="active">Облигации</a>
+        <a href="favorites.html" id="favLink">Избранное</a>
         <a href="news.html" id="newsLink">Новости</a>
         <a href="#" id="logoutLink" class="logout">Выйти</a>
     </div>
@@ -233,6 +258,7 @@
         <span id="status" class="status">Загрузка данных...</span>
     </div>
     <div class="sorts" id="sorts"></div>
+    <div class="euro-note" id="euroNote"></div>
     <div id="summary" class="summary" hidden></div>
     <div class="grid" id="grid"></div>
     <div class="more" id="more"></div>
@@ -246,11 +272,27 @@
                 <div class="sheet-title" id="modalTitle"></div>
                 <div class="sheet-sub" id="modalSub"></div>
             </div>
-            <button class="sheet-close" id="modalClose" aria-label="Закрыть">✕</button>
+            <div class="head-btns">
+                <button class="star-btn" id="modalStar" aria-label="В избранное" title="В избранное">☆</button>
+                <button class="sheet-close" id="modalClose" aria-label="Закрыть">✕</button>
+            </div>
         </div>
-        <div class="sec" id="modalLive"></div>
-        <div class="sec" id="modalCoupons"></div>
-        <div class="sec" id="modalLinks"></div>
+        <div class="tabs">
+            <button class="tab active" id="tabSummary">Сводка</button>
+            <button class="tab" id="tabBook">Стакан</button>
+            <button class="tab" id="tabNews">Новости</button>
+        </div>
+        <div id="paneSummary">
+            <div class="sec" id="modalLive"></div>
+            <div class="sec" id="modalCoupons"></div>
+            <div class="sec" id="modalLinks"></div>
+        </div>
+        <div id="paneBook" hidden>
+            <div class="sec" id="modalBook"></div>
+        </div>
+        <div id="paneNews" hidden>
+            <div class="sec" id="modalNews"></div>
+        </div>
         <div class="sec" id="modalChart"></div>
     </div>
 </div>
@@ -259,7 +301,7 @@
 'use strict';
 
 /*
- * MOEX Bonds Heatmap b2 (облигации)
+ * MOEX Bonds Heatmap b3 (облигации)
  *
  *  • Данные: MOEX ISS, доски TQOB (ОФЗ и гособлигации) и TQCB (корпоративные), рублёвые облигации.
  *  • Цвет плитки — изменение ЧИСТОЙ цены (% от номинала), без учёта купонов и НКД.
@@ -268,9 +310,10 @@
  *  • Нижние блоки: изменение цены за день > 1 %, за неделю > 2 %, за месяц > 4 % (константы BLOCKS).
  */
 
-const VERSION = 'b2';
+const VERSION = 'b3';
 const STOCKS_PAGE = 'index.html';
 const NEWS_PAGE = 'news.html';
+const FAV_PAGE = 'favorites.html';
 
 const MOEX_ISS = 'https://iss.moex.com/iss';
 const BOARDS = [
@@ -318,6 +361,9 @@ const blockEls = {};
 let sortKey = 'color';
 let sortDir = -1;
 let ofzOnly = false;
+let euroOnly = false;
+let euroBonds = [];
+let euroState = { status: 'idle', note: '' };
 let searchQuery = '';
 let shown = PAGE_SIZE;
 
@@ -764,7 +810,8 @@ function cpnText(b) {
     const size = b.couponPercent !== null ? `${nf(2).format(b.couponPercent)} %`
         : b.couponValue !== null ? `${nf(2).format(b.couponValue)} ₽` : '—';
     const r = Math.round(p * 10) / 10;
-    return `Куп. ${size} · ${Number.isInteger(r) ? r : nf(1).format(r)}×/г`;
+    const cur = b.faceUnit && b.faceUnit !== 'SUR' && b.faceUnit !== 'RUB' ? ` · ${b.faceUnit}` : '';
+    return `Куп. ${size} · ${Number.isInteger(r) ? r : nf(1).format(r)}×/г${cur}`;
 }
 
 function createCard(b) {
@@ -774,7 +821,7 @@ function createCard(b) {
     card.setAttribute('role', 'button');
 
     const left = mk('div', 'card-left');
-    const nameEl = mk('div', 'name', b.name);
+    const nameEl = mk('div', 'name', (FavStore.has('b', b.secid) ? '★ ' : '') + b.name);
     nameEl.title = `${b.secname || b.name} (${b.secid})`;
     const matEl = mk('div', 'price', '—');
     const cpnEl = mk('div', 'price', '—');
@@ -1020,6 +1067,7 @@ function createCandleChart(stage, cfg) {
 
     let data = [];
     let tfKey = '1d';
+    let mode = 'candles';
     let visible = 80;
     let end = 0;
     let hover = -1;
@@ -1085,8 +1133,10 @@ function createCandleChart(stage, cfg) {
         let vmax = 0;
         for (let i = i0; i <= i1; i++) {
             const d = data[i];
-            if (d.l < lo) lo = d.l;
-            if (d.h > hi) hi = d.h;
+            const dl = mode === 'line' ? d.c : d.l;
+            const dh = mode === 'line' ? d.c : d.h;
+            if (dl < lo) lo = dl;
+            if (dh > hi) hi = dh;
             if (d.v > vmax) vmax = d.v;
         }
         if (!isFinite(lo) || !isFinite(hi)) return;
@@ -1113,18 +1163,38 @@ function createCandleChart(stage, cfg) {
             ctx.fillText(nf(dec).format(p), g.w - M.r + 4, y);
         }
 
-        // свечи и объёмы
+        // свечи / линия и объёмы
         const body = Math.max(1, Math.min(g.bw * 0.72, 22));
+        if (mode === 'line') {
+            ctx.beginPath();
+            for (let i = i0; i <= i1; i++) {
+                const x = px(i);
+                const y = py(data[i].c);
+                if (i === i0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.strokeStyle = '#1565c0';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.lineTo(px(i1), M.t + g.priceH);
+            ctx.lineTo(px(i0), M.t + g.priceH);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(21,101,192,.10)';
+            ctx.fill();
+            ctx.lineWidth = 1;
+        }
         for (let i = i0; i <= i1; i++) {
             const d = data[i];
             const x = px(i);
             const up = d.c >= d.o;
-            ctx.strokeStyle = ctx.fillStyle = up ? UP : DOWN;
-            ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, py(d.h)); ctx.lineTo(Math.round(x) + 0.5, py(d.l)); ctx.stroke();
-            const y1 = py(Math.max(d.o, d.c));
-            const y2 = py(Math.min(d.o, d.c));
-            ctx.fillRect(x - body / 2, y1, body, Math.max(1, y2 - y1));
+            if (mode !== 'line') {
+                ctx.strokeStyle = ctx.fillStyle = up ? UP : DOWN;
+                ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, py(d.h)); ctx.lineTo(Math.round(x) + 0.5, py(d.l)); ctx.stroke();
+                const y1 = py(Math.max(d.o, d.c));
+                const y2 = py(Math.min(d.o, d.c));
+                ctx.fillRect(x - body / 2, y1, body, Math.max(1, y2 - y1));
+            }
             if (d.v) {
+                ctx.fillStyle = mode === 'line' ? '#90a4ae' : up ? UP : DOWN;
                 ctx.globalAlpha = 0.45;
                 ctx.fillRect(x - body / 2, vy(d.v), body, M.t + g.priceH + 6 + g.volH - vy(d.v));
                 ctx.globalAlpha = 1;
@@ -1305,6 +1375,8 @@ function createCandleChart(stage, cfg) {
             schedule();
         },
         redraw: schedule,
+        setMode(m) { mode = m; schedule(); },
+        getMode() { return mode; },
         zoom(factor) { zoomAt(factor, M.l + geometry().plotW / 2); },
         reset() {
             visible = Math.min(Math.max(data.length, 10), CHART_DEFAULT_VISIBLE[tfKey] || 80);
@@ -1337,6 +1409,8 @@ function makeChartPanel(cfg) {
         head.append(b);
     });
 
+    const bCandles = mk('button', 'cp-btn active', 'Свечи');
+    const bLine = mk('button', 'cp-btn', 'Линия');
     const bMinus = mk('button', 'cp-btn', '−');
     const bPlus = mk('button', 'cp-btn', '+');
     const bReset = mk('button', 'cp-btn', '⟲');
@@ -1345,8 +1419,9 @@ function makeChartPanel(cfg) {
     bPlus.title = 'Увеличить';
     bReset.title = 'Сбросить масштаб';
     bFull.title = 'На весь экран';
-    tools.append(bMinus, bPlus, bReset, bFull);
-    root.append(head, tools, stage, note);
+    const bClose = mk('button', 'cp-close', '✕ Закрыть');
+    tools.append(bCandles, bLine, bMinus, bPlus, bReset, bFull);
+    root.append(bClose, head, tools, stage, note);
 
     const chart = createCandleChart(stage, cfg);
     const cache = {};
@@ -1354,12 +1429,30 @@ function makeChartPanel(cfg) {
     let full = false;
     let destroyed = false;
 
+    function setMode(m) {
+        chart.setMode(m);
+        bCandles.className = 'cp-btn' + (m === 'candles' ? ' active' : '');
+        bLine.className = 'cp-btn' + (m === 'line' ? ' active' : '');
+    }
+    bCandles.addEventListener('click', () => setMode('candles'));
+    bLine.addEventListener('click', () => setMode('line'));
     bMinus.addEventListener('click', () => chart.zoom(1.3));
     bPlus.addEventListener('click', () => chart.zoom(1 / 1.3));
     bReset.addEventListener('click', () => chart.reset());
 
+    let homeParent = null;
+    let homeNext = null;
     function setFull(on) {
+        if (on === full) return;
         full = on;
+        // Полный экран выносим в <body>: внутри прокручиваемого окна iPhone «прилипший» блок съезжает и кнопка закрытия пропадает.
+        if (on) {
+            homeParent = root.parentNode;
+            homeNext = root.nextSibling;
+            document.body.appendChild(root);
+        } else if (homeParent) {
+            homeParent.insertBefore(root, homeNext);
+        }
         root.className = 'cp' + (on ? ' cp-full' : '');
         bFull.textContent = on ? '✕' : '⛶';
         bFull.title = on ? 'Свернуть' : 'На весь экран';
@@ -1370,6 +1463,7 @@ function makeChartPanel(cfg) {
         chart.redraw();
     }
     bFull.addEventListener('click', () => setFull(!full));
+    bClose.addEventListener('click', () => setFull(false));
 
     const onKey = e => {
         if (e.key === 'Escape' && full) {
@@ -1436,11 +1530,556 @@ function makeChartPanel(cfg) {
         chart,
         destroy() {
             destroyed = true;
+            if (full) setFull(false);
+            if (root.parentNode === document.body) root.remove();
             document.removeEventListener('keydown', onKey, true);
             chart.destroy();
             try { if (full && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); } catch (_) { /* ignore */ }
         }
     };
+}
+
+
+/* ====== ВЕБ-УТИЛИТЫ: чтение чужих сайтов через CORS-прокси, RSS, HTML-таблицы, Википедия ====== */
+
+/* Браузер не даёт читать чужие сайты напрямую (CORS): пробуем напрямую → публичные прокси. */
+const WEB_PROXIES = [
+    { name: 'напрямую',   build: u => u,                                                              timeout: 6000 },
+    { name: 'allorigins', build: u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`, timeout: 15000 },
+    { name: 'corsproxy',  build: u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,          timeout: 15000 }
+];
+
+async function webBytes(url, timeout) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+        const r = await fetch(url, { cache: 'no-store', signal: controller.signal });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return new Uint8Array(await r.arrayBuffer());
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+/* Кодировка берётся из XML-заголовка / meta (бывает windows-1251). */
+function webDecode(bytes) {
+    let label = 'utf-8';
+    let head = '';
+    for (let i = 0; i < Math.min(bytes.length, 600); i++) head += String.fromCharCode(bytes[i]);
+    const m = head.match(/(?:encoding=|charset=)["']?([\w-]+)/i);
+    if (m) label = m[1].toLowerCase();
+    try {
+        return new TextDecoder(label).decode(bytes);
+    } catch (_) {
+        return new TextDecoder('utf-8').decode(bytes);
+    }
+}
+
+/* validate(text) → true, если ответ годится (иначе пробуем следующий прокси). */
+async function fetchTextViaProxies(url, validate) {
+    let lastErr = null;
+    for (const p of WEB_PROXIES) {
+        try {
+            const text = webDecode(await webBytes(p.build(url), p.timeout));
+            if (!validate || validate(text)) return { text, via: p.name };
+            lastErr = new Error('ответ не содержит нужных данных');
+        } catch (e) {
+            lastErr = e;
+        }
+    }
+    throw lastErr || new Error('нет ответа');
+}
+
+function decodeEntities(s) {
+    return s
+        .replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#39;/g, "'")
+        .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+        .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+        .replace(/&amp;/g, '&');
+}
+
+function cleanHtml(s) {
+    if (!s) return '';
+    return decodeEntities(s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+}
+
+function tagOf(block, name) {
+    const m = block.match(new RegExp(`<${name}(?:\\s[^>]*)?>([\\s\\S]*?)</${name}>`, 'i'));
+    return m ? m[1] : '';
+}
+
+function parseFeed(text) {
+    const out = [];
+    const blocks = text.match(/<(item|entry)[\s>][\s\S]*?<\/\1>/gi) || [];
+    blocks.forEach(blk => {
+        const title = cleanHtml(tagOf(blk, 'title'));
+        let link = cleanHtml(tagOf(blk, 'link'));
+        if (!link) {
+            const m = blk.match(/<link[^>]*href=["']([^"']+)["']/i);
+            link = m ? decodeEntities(m[1]) : '';
+        }
+        if (!link) link = cleanHtml(tagOf(blk, 'guid'));
+        const date = cleanHtml(tagOf(blk, 'pubDate') || tagOf(blk, 'published') || tagOf(blk, 'updated') || tagOf(blk, 'dc:date'));
+        const ts = Date.parse(date);
+        const src = cleanHtml(tagOf(blk, 'source'));
+        if (title && /^https?:\/\//i.test(link)) out.push({ title, link, ts: Number.isFinite(ts) ? ts : null, src });
+    });
+    return out;
+}
+
+const RSS2JSON = u => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(u)}`;
+
+async function fetchFeedAny(url) {
+    let lastErr = null;
+    try {
+        const r = await fetchTextViaProxies(url, t => parseFeed(t).length > 0);
+        return { list: parseFeed(r.text), via: r.via };
+    } catch (e) {
+        lastErr = e;
+    }
+    try {
+        const r = await fetch(RSS2JSON(url), { cache: 'no-store' });
+        const j = await r.json();
+        if (j && j.status === 'ok' && Array.isArray(j.items) && j.items.length) {
+            const list = j.items
+                .map(it => ({ title: cleanHtml(it.title), link: String(it.link || ''), ts: Date.parse(String(it.pubDate || '').replace(' ', 'T') + 'Z'), src: '' }))
+                .filter(it => it.title && /^https?:\/\//i.test(it.link))
+                .map(it => ({ ...it, ts: Number.isFinite(it.ts) ? it.ts : null }));
+            if (list.length) return { list, via: 'rss2json' };
+        }
+    } catch (e) {
+        lastErr = e;
+    }
+    throw lastErr || new Error('нет ответа');
+}
+
+/* Все таблицы страницы: массив таблиц, каждая — массив строк, строка — массив текстов ячеек. */
+function parseHtmlTables(html) {
+    const tables = [];
+    (html.match(/<table[\s\S]*?<\/table>/gi) || []).forEach(t => {
+        const rows = [];
+        (t.match(/<tr[\s\S]*?<\/tr>/gi) || []).forEach(tr => {
+            const cells = (tr.match(/<t[hd][\s\S]*?<\/t[hd]>/gi) || []).map(cleanHtml);
+            if (cells.some(x => x !== '')) rows.push(cells);
+        });
+        if (rows.length) tables.push(rows);
+    });
+    return tables;
+}
+
+/* Числа и даты из русских таблиц: «37,64₽», «13,6%», «1 059,5», «17.07.2026». */
+function ruNumber(s) {
+    if (s === null || s === undefined) return null;
+    const m = String(s).replace(/\u00a0/g, ' ').match(/-?\d[\d\s]*(?:[.,]\d+)?/);
+    if (!m) return null;
+    const n = Number(m[0].replace(/\s/g, '').replace(',', '.'));
+    return Number.isFinite(n) ? n : null;
+}
+
+function ruDate(s) {
+    const m = String(s || '').match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+    return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null;
+}
+
+/* Описание компании из Википедии (CORS открыт): подбор статьи по названию, может быть неточным. */
+async function wikiSummary(queries) {
+    for (const q of queries) {
+        if (!q) continue;
+        try {
+            const s = await fetchJson(
+                `https://ru.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&srlimit=3&format=json&origin=*`,
+                { retries: 1, timeout: 12000 });
+            const hits = s && s.query && s.query.search ? s.query.search : [];
+            for (const h of hits) {
+                const sum = await fetchJson(
+                    `https://ru.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(h.title.replace(/ /g, '_'))}`,
+                    { retries: 1, timeout: 12000 });
+                if (sum && sum.extract && sum.type !== 'disambiguation') {
+                    return {
+                        title: sum.title, extract: sum.extract, description: sum.description || '',
+                        url: sum.content_urls && sum.content_urls.desktop ? sum.content_urls.desktop.page : null, query: q
+                    };
+                }
+            }
+        } catch (e) {
+            console.error('wiki', q, e);
+        }
+    }
+    return null;
+}
+
+/* Новости по одной бумаге: Google News RSS по названию (через прокси). */
+async function loadSecurityNews(query) {
+    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=ru&gl=RU&ceid=RU:ru`;
+    const r = await fetchFeedAny(url);
+    const now = Date.now();
+    const seen = new Set();
+    const out = [];
+    r.list.forEach(it => {
+        let title = it.title;
+        let src = it.src;
+        const m = title.match(/^(.*)\s[-–—]\s([^-–—]{2,40})$/);
+        if (m) {
+            title = m[1];
+            if (!src) src = m[2];
+        }
+        const key = title.toLowerCase().replace(/[^a-zа-яё0-9]+/g, ' ').trim().slice(0, 70);
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push({ title, link: it.link, ts: it.ts || now, src: src || 'Google News' });
+    });
+    out.sort((a, b) => b.ts - a.ts);
+    return out;
+}
+
+function timeAgo(ts) {
+    const d = new Date(ts);
+    const diff = Date.now() - ts;
+    if (diff < 60 * 1000) return 'только что';
+    if (diff < 60 * 60 * 1000) return `${Math.round(diff / 60000)} мин назад`;
+    const pad = n => String(n).padStart(2, '0');
+    const hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return new Date().toDateString() === d.toDateString() ? `сегодня ${hm}` : `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)} ${hm}`;
+}
+
+
+/* ====== ИЗБРАННОЕ: надёжное хранение ======
+ * Список лежит в браузере под фиксированным ключом FAV_KEY (localStorage) и дублируется в IndexedDB.
+ * Обновление кода страниц его не трогает: данные принадлежат адресу сайта, а не файлам.
+ * Ключ и формат НЕ МЕНЯТЬ. Если формат когда-нибудь изменится, нужна миграция в normalize() — старые записи читаются всегда.
+ * Слияние идёт по времени изменения каждой записи (новее побеждает), удаления хранятся как «надгробия» 180 дней,
+ * поэтому копия из IndexedDB не воскрешает удалённое. Плюс экспорт/импорт резервной копии вручную.
+ */
+const FAV_KEY = 'mx.fav.v1';
+const FAV_IDB_NAME = 'mx-heatmap';
+const FAV_IDB_STORE = 'kv';
+const FAV_IDB_KEY = 'fav.v1';
+const FAV_TOMBSTONE_MS = 180 * 86400000;
+
+const FavStore = (() => {
+    let items = {};
+    const status = { ls: false, idb: false, persisted: null, saved: null };
+    const listeners = [];
+    let ready = null;
+
+    const keyOf = (k, id) => `${k}:${id}`;
+
+    function normalize(raw) {
+        const out = {};
+        if (!raw) return out;
+        if (Array.isArray(raw)) { // v0: просто массив тикеров
+            raw.forEach(id => {
+                if (typeof id === 'string' && id) out[keyOf('s', id)] = { k: 's', id, board: null, name: id, a: 1, u: 1, del: false };
+            });
+            return out;
+        }
+        const src = raw.items || raw;
+        Object.keys(src).forEach(key => {
+            const it = src[key];
+            if (it && it.id && (it.k === 's' || it.k === 'b')) {
+                out[keyOf(it.k, it.id)] = {
+                    k: it.k, id: String(it.id), board: it.board || null, name: it.name || String(it.id),
+                    a: Number(it.a) || 0, u: Number(it.u) || Number(it.a) || 0, del: !!it.del
+                };
+            }
+        });
+        return out;
+    }
+
+    function merge(a, b) {
+        const out = { ...a };
+        Object.keys(b).forEach(key => {
+            if (!out[key] || (b[key].u || 0) > (out[key].u || 0)) out[key] = b[key];
+        });
+        return out;
+    }
+
+    function readLS() {
+        try {
+            const raw = localStorage.getItem(FAV_KEY);
+            return raw ? normalize(JSON.parse(raw)) : {};
+        } catch (_) {
+            return {};
+        }
+    }
+
+    function idbOpen() {
+        return new Promise((resolve, reject) => {
+            if (typeof indexedDB === 'undefined') { reject(new Error('IndexedDB недоступна')); return; }
+            const r = indexedDB.open(FAV_IDB_NAME, 1);
+            r.onupgradeneeded = () => r.result.createObjectStore(FAV_IDB_STORE);
+            r.onsuccess = () => resolve(r.result);
+            r.onerror = () => reject(r.error);
+        });
+    }
+
+    async function idbGet() {
+        const db = await idbOpen();
+        return new Promise((resolve, reject) => {
+            const req = db.transaction(FAV_IDB_STORE, 'readonly').objectStore(FAV_IDB_STORE).get(FAV_IDB_KEY);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    async function idbPut(value) {
+        const db = await idbOpen();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(FAV_IDB_STORE, 'readwrite');
+            tx.objectStore(FAV_IDB_STORE).put(value, FAV_IDB_KEY);
+            tx.oncomplete = () => resolve(true);
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+
+    function purge() {
+        const limit = Date.now() - FAV_TOMBSTONE_MS;
+        Object.keys(items).forEach(key => { if (items[key].del && items[key].u < limit) delete items[key]; });
+    }
+
+    async function persist() {
+        purge();
+        const payload = { v: 1, saved: Date.now(), items };
+        status.saved = payload.saved;
+        try {
+            localStorage.setItem(FAV_KEY, JSON.stringify(payload));
+            status.ls = true;
+        } catch (_) {
+            status.ls = false;
+        }
+        try {
+            await idbPut(payload);
+            status.idb = true;
+        } catch (_) {
+            status.idb = false;
+        }
+    }
+
+    function emit() {
+        listeners.forEach(fn => { try { fn(); } catch (e) { console.error(e); } });
+    }
+
+    items = readLS(); // сразу, синхронно: звёздочки рисуются без ожидания
+
+    return {
+        init() {
+            if (ready) return ready;
+            ready = (async () => {
+                try {
+                    items = merge(items, normalize(await idbGet()));
+                    status.idb = true;
+                } catch (_) {
+                    status.idb = false;
+                }
+                await persist();
+                try {
+                    if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.persist) {
+                        status.persisted = await navigator.storage.persist();
+                    }
+                } catch (_) { /* ignore */ }
+                if (typeof window !== 'undefined' && window.addEventListener) {
+                    window.addEventListener('storage', e => {
+                        if (e.key !== FAV_KEY || !e.newValue) return;
+                        try {
+                            items = merge(items, normalize(JSON.parse(e.newValue)));
+                            emit();
+                        } catch (_) { /* ignore */ }
+                    });
+                }
+                emit();
+            })();
+            return ready;
+        },
+        has(k, id) {
+            const it = items[keyOf(k, id)];
+            return !!it && !it.del;
+        },
+        toggle(k, id, meta) {
+            const key = keyOf(k, id);
+            const now = Date.now();
+            const cur = items[key];
+            if (cur && !cur.del) {
+                items[key] = { ...cur, del: true, u: now };
+            } else {
+                items[key] = {
+                    k, id: String(id), board: (meta && meta.board) || (cur && cur.board) || null,
+                    name: (meta && meta.name) || (cur && cur.name) || String(id), a: now, u: now, del: false
+                };
+            }
+            persist().then(emit);
+            emit();
+            return !items[key].del;
+        },
+        list() {
+            return Object.keys(items).map(k => items[k]).filter(it => !it.del).sort((a, b) => a.a - b.a);
+        },
+        onChange(fn) { listeners.push(fn); },
+        exportText() {
+            return JSON.stringify({ v: 1, exported: new Date().toISOString(), items: this.list() }, null, 1);
+        },
+        async importText(text, replace) {
+            let raw;
+            try { raw = JSON.parse(text); } catch (_) { throw new Error('это не похоже на резервную копию (не JSON)'); }
+            let list = raw && raw.items ? raw.items : raw;
+            if (!Array.isArray(list) && list && typeof list === 'object') list = Object.keys(list).map(k => list[k]);
+            if (!Array.isArray(list)) throw new Error('в копии нет списка бумаг');
+            const now = Date.now();
+            const incoming = normalize({ items: Object.fromEntries(list.filter(x => x && x.id && (x.k === 's' || x.k === 'b')).map(x => [keyOf(x.k, x.id), { ...x, u: now + 1, del: false, a: x.a || now }])) });
+            if (replace) {
+                Object.keys(items).forEach(key => { if (!items[key].del) items[key] = { ...items[key], del: true, u: now }; });
+            }
+            items = merge(items, incoming);
+            await persist();
+            emit();
+            return Object.keys(incoming).length;
+        },
+        describe() {
+            return `Хранилище: localStorage ${status.ls ? '✓' : '✗'} · IndexedDB ${status.idb ? '✓' : '✗'}` +
+                ` · постоянное хранение: ${status.persisted === null ? 'не запрошено' : status.persisted ? 'да' : 'нет (браузер может очистить при нехватке места)'}` +
+                (status.saved ? ` · сохранено ${new Date(status.saved).toLocaleString('ru-RU')}` : '');
+        }
+    };
+})();
+
+
+/* ====== СТАКАН и НОВОСТИ БУМАГИ (общий код акций и облигаций) ====== */
+
+async function fetchOrderBook(url) {
+    const data = await fetchJson(url, { retries: 1, timeout: 12000 });
+    const blk = data.orderbook;
+    if (!blk || !Array.isArray(blk.data)) return { rows: [], updated: null };
+    const iS = col(blk.columns, 'BUYSELL');
+    const iP = col(blk.columns, 'PRICE');
+    const iQ = col(blk.columns, 'QUANTITY');
+    const iT = col(blk.columns, 'UPDATETIME');
+    const rows = blk.data
+        .map(r => ({ side: String(r[iS]).toUpperCase(), price: num(r[iP]), qty: num(r[iQ]), t: iT >= 0 ? r[iT] : null }))
+        .filter(r => r.price !== null && r.qty !== null && (r.side === 'B' || r.side === 'S'));
+    return { rows, updated: rows.length && rows[0].t ? rows[0].t : null };
+}
+
+/* cfg: { url, dec, bid, offer, bcsUrl } — продавцы красным, покупатели зелёным, максимальная глубина, которую отдаёт MOEX */
+function renderOrderBook(box, cfg) {
+    const fmt = v => nf(cfg.dec).format(v);
+    box.replaceChildren(mk('div', 'note', 'Загрузка стакана...'));
+
+    const refresh = mk('button', 'btn', '↻ Обновить стакан');
+    refresh.addEventListener('click', () => renderOrderBook(box, cfg));
+
+    fetchOrderBook(cfg.url).then(res => {
+        const parts = [mk('h4', null, 'Стакан заявок')];
+        const sells = res.rows.filter(r => r.side === 'S').sort((a, b) => b.price - a.price);
+        const buys = res.rows.filter(r => r.side === 'B').sort((a, b) => b.price - a.price);
+
+        if (!sells.length && !buys.length) {
+            parts.push(mk('div', 'note',
+                'MOEX не отдаёт стакан в бесплатном (задержанном) доступе, поэтому полноценной глубины здесь нет. ' +
+                'Лучшие цены из котировок ниже, а живой стакан смотрите в приложении брокера.'));
+            if (cfg.bid !== null && cfg.bid !== undefined) parts.push(rowEl('Лучшая цена покупки (бид)', fmt(cfg.bid), 'pos'));
+            if (cfg.offer !== null && cfg.offer !== undefined) parts.push(rowEl('Лучшая цена продажи (оффер)', fmt(cfg.offer), 'neg'));
+            if (cfg.bcsUrl) {
+                const a = mk('a', 'btn primary', 'Открыть стакан в БКС');
+                a.href = cfg.bcsUrl;
+                a.target = '_blank';
+                a.rel = 'noopener';
+                parts.push(a);
+            }
+            parts.push(refresh);
+            box.replaceChildren(...parts);
+            return;
+        }
+
+        const maxQty = Math.max(...res.rows.map(r => r.qty), 1);
+        const head = mk('div', 'ob-head');
+        head.append(mk('span', null, 'Цена'), mk('span', null, 'Объём (шт.)'));
+        parts.push(head);
+
+        const rowEl2 = (r, cls) => {
+            const row = mk('div', 'ob-row ' + cls);
+            const bar = mk('div', 'ob-bar');
+            bar.style.width = `${Math.max(2, (r.qty / maxQty) * 100)}%`;
+            row.append(bar, mk('span', null, fmt(r.price)), mk('span', null, nf(0).format(r.qty)));
+            return row;
+        };
+        sells.forEach(r => parts.push(rowEl2(r, 'ob-sell')));
+        if (sells.length && buys.length) {
+            const bestAsk = sells[sells.length - 1].price;
+            const bestBid = buys[0].price;
+            const sp = bestAsk - bestBid;
+            parts.push(mk('div', 'ob-spread', `Спред: ${fmt(sp)} (${nf(2).format((sp / bestAsk) * 100)} %)`));
+        }
+        buys.forEach(r => parts.push(rowEl2(r, 'ob-buy')));
+
+        const sumS = sells.reduce((s, r) => s + r.qty, 0);
+        const sumB = buys.reduce((s, r) => s + r.qty, 0);
+        parts.push(rowEl('Продавцов всего (шт.)', nf(0).format(sumS), 'neg'));
+        parts.push(rowEl('Покупателей всего (шт.)', nf(0).format(sumB), 'pos'));
+        parts.push(mk('div', 'note', `Уровней: ${sells.length} на продажу, ${buys.length} на покупку${res.updated ? `; обновлено ${res.updated}` : ''}. Глубина — максимум, который отдаёт MOEX.`));
+        parts.push(refresh);
+        box.replaceChildren(...parts);
+    }).catch(e => {
+        console.error(e);
+        const parts = [mk('h4', null, 'Стакан заявок'), mk('div', 'note', `Не удалось получить стакан: ${e.message}`)];
+        if (cfg.bcsUrl) {
+            const a = mk('a', 'btn primary', 'Открыть стакан в БКС');
+            a.href = cfg.bcsUrl;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            parts.push(a);
+        }
+        parts.push(refresh);
+        box.replaceChildren(...parts);
+    });
+}
+
+/* Вкладка «Новости»: только про эту бумагу. matcher(title) — отбор по названию/тикеру, если подходящих достаточно. */
+function renderNewsTab(box, query, matcher) {
+    box.replaceChildren(mk('h4', null, 'Новости по бумаге'), mk('div', 'note', 'Загрузка новостей...'));
+    loadSecurityNews(query).then(all => {
+        let list = all;
+        if (matcher) {
+            const f = all.filter(it => matcher(it.title));
+            if (f.length >= 3) list = f;
+        }
+        list = list.slice(0, 25);
+        const parts = [mk('h4', null, 'Новости по бумаге')];
+        if (!list.length) {
+            parts.push(mk('div', 'note', 'Свежих новостей не найдено.'));
+        } else {
+            list.forEach(it => {
+                const a = mk('a', 'news-line');
+                a.href = it.link;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.append(mk('div', 't', it.title));
+                const m = mk('div', 'm');
+                m.append(mk('b', null, it.src), ` · ${timeAgo(it.ts)}`);
+                a.append(m);
+                parts.push(a);
+            });
+        }
+        parts.push(mk('div', 'note', `Поиск новостей: «${query}» (Google News через прокси). Заголовки и ссылки принадлежат изданиям.`));
+        const again = mk('button', 'btn', '↻ Обновить новости');
+        again.addEventListener('click', () => renderNewsTab(box, query, matcher));
+        parts.push(again);
+        box.replaceChildren(...parts);
+    }).catch(e => {
+        console.error(e);
+        const again = mk('button', 'btn', '↻ Повторить');
+        again.addEventListener('click', () => renderNewsTab(box, query, matcher));
+        box.replaceChildren(mk('h4', null, 'Новости по бумаге'),
+            mk('div', 'note', `Не удалось загрузить новости: ${e.message}. Прокси могли быть недоступны (проверьте сеть и VPN).`), again);
+    });
+}
+
+/* Название для поиска: без «ПАО», «ао», «ап», серий и т.п. */
+function cleanCompanyName(name) {
+    return String(name || '')
+        .replace(/\b(ПАО|АО|ОАО|ЗАО|ООО|МКПАО|ао|ап|п|ап\.|ао\.|акции|обыкновенные|привилегированные|[0-9]+[-\s]?[ао]{2}|-ао|-ап|-п)\b/gi, ' ')
+        .replace(/[«»"()]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
 
@@ -1519,6 +2158,11 @@ async function loadCoupons(secid) {
     return res;
 }
 
+const MODAL_TABS = ['summary', 'book', 'news'];
+let modalTab = 'summary';
+let newsFor = null;
+let newsAt = 0;
+
 function openBond(secid) {
     const b = bondById[secid];
     if (!b) return;
@@ -1528,6 +2172,8 @@ function openBond(secid) {
     document.getElementById('modalTitle').textContent = `${b.name} (${b.secid})`;
     document.getElementById('modalSub').textContent = b.secname || '';
 
+    setModalTab('summary');
+    renderStar();
     renderBondLive();
     renderBondCoupons();
     renderBondLinks();
@@ -1539,9 +2185,53 @@ function openBond(secid) {
         historyBase: `${MOEX_ISS}/history/engines/stock/markets/bonds/boards/${b.board}/securities/${enc}`,
         decimals: 2
     });
-    document.getElementById('modalChart').replaceChildren(mk('h4', null, 'График цены, % от номинала (японские свечи)'), chartPanel.el);
+    document.getElementById('modalChart').replaceChildren(mk('h4', null, 'График цены, % от номинала'), chartPanel.el);
 
     loadCoupons(secid).then(() => { if (modalSecid === secid) renderBondCoupons(); });
+}
+
+function setModalTab(tab) {
+    modalTab = tab;
+    MODAL_TABS.forEach(t => {
+        const cap = t[0].toUpperCase() + t.slice(1);
+        document.getElementById('pane' + cap).hidden = t !== tab;
+        document.getElementById('tab' + cap).className = 'tab' + (t === tab ? ' active' : '');
+    });
+    if (!modalSecid) return;
+    if (tab === 'book') renderBondBook();
+    if (tab === 'news') renderBondNews();
+}
+
+function renderStar() {
+    const b = document.getElementById('modalStar');
+    if (!modalSecid) return;
+    const on = FavStore.has('b', modalSecid);
+    b.className = 'star-btn' + (on ? ' on' : '');
+    b.textContent = on ? '★' : '☆';
+    b.title = on ? 'Убрать из избранного' : 'Добавить в избранное';
+}
+
+function renderBondBook() {
+    const b = modalSecid && bondById[modalSecid];
+    if (!b) return;
+    renderOrderBook(document.getElementById('modalBook'), {
+        url: `${MOEX_ISS}/engines/stock/markets/bonds/boards/${b.board}/securities/${encodeURIComponent(b.secid)}/orderbook.json?iss.meta=off`,
+        dec: 2, bid: null, offer: null, bcsUrl: bondUrl(b)
+    });
+}
+
+function renderBondNews() {
+    const b = modalSecid && bondById[modalSecid];
+    if (!b) return;
+    if (newsFor === b.secid && Date.now() - newsAt < 60000) return;
+    newsFor = b.secid;
+    newsAt = Date.now();
+    const nm = b.isOfz ? b.name : (cleanCompanyName(b.secname || b.name) || b.name);
+    const stem = nm.toLowerCase().replace(/[^a-zа-яё0-9 ]+/g, '').slice(0, 6);
+    renderNewsTab(document.getElementById('modalNews'), `${nm} облигации`, title => {
+        const t = title.toLowerCase();
+        return t.includes(b.secid.toLowerCase()) || (stem && t.includes(stem));
+    });
 }
 
 function closeBond() {
@@ -1551,6 +2241,7 @@ function closeBond() {
     }
     document.getElementById('modalChart').replaceChildren();
     modalSecid = null;
+    newsFor = null;
     document.getElementById('modal').hidden = true;
     document.body.style.overflow = '';
 }
@@ -1700,7 +2391,7 @@ function sortBonds(list) {
 }
 
 function visibleBonds() {
-    return allBonds.filter(b => {
+    return (euroOnly ? euroBonds : allBonds).filter(b => {
         if (ofzOnly && !b.isOfz) return false;
         if (searchQuery) {
             const hay = `${b.name} ${b.secid} ${b.secname || ''}`.toLowerCase();
@@ -1734,6 +2425,71 @@ function renderList() {
     }
 }
 
+/* ---------- еврооблигации (облигации в валюте) ---------- */
+
+const EURO_FALLBACK_BOARDS = ['TQOD', 'TQOE', 'TQOY', 'TQIU', 'TQIE', 'TQCD'];
+
+/* Доски облигаций в валюте ищем на MOEX по названию (USD, EUR, CNY, «евро», «доллар»...), плюс запасной список. */
+async function discoverEuroBoards() {
+    const known = new Set(BOARDS.map(b => b.id));
+    const found = [];
+    try {
+        const data = await fetchJson(`${MOEX_ISS}/engines/stock/markets/bonds/boards.json?iss.meta=off&iss.only=boards`, { retries: 1, timeout: 15000 });
+        const d = data.boards;
+        if (d && Array.isArray(d.data)) {
+            const iId = col(d.columns, 'boardid');
+            const iT = col(d.columns, 'title');
+            const iTr = col(d.columns, 'is_traded');
+            d.data.forEach(r => {
+                const id = String(r[iId]);
+                const title = String(r[iT] || '');
+                if (known.has(id)) return;
+                if (iTr >= 0 && Number(r[iTr]) === 0) return;
+                if (/(usd|eur|cny|chf|gbp|hkd|евро|доллар|юан|валют|иностр)/i.test(title) || EURO_FALLBACK_BOARDS.includes(id)) found.push({ id, label: title || id });
+            });
+        }
+    } catch (e) {
+        console.error('boards', e);
+    }
+    if (!found.length) EURO_FALLBACK_BOARDS.forEach(id => found.push({ id, label: id }));
+    return found;
+}
+
+async function loadEuroBonds() {
+    if (euroState.status === 'loading' || euroState.status === 'done') return;
+    euroState = { status: 'loading', note: 'Поиск досок с еврооблигациями...' };
+    renderEuroNote();
+    try {
+        const boards = await discoverEuroBoards();
+        const results = await Promise.allSettled(boards.map(fetchBoard));
+        const list = [];
+        const used = [];
+        results.forEach((r, i) => {
+            if (r.status !== 'fulfilled') return;
+            let n = 0;
+            r.value.forEach(b => {
+                const foreign = b.faceUnit && b.faceUnit !== 'SUR' && b.faceUnit !== 'RUB';
+                if (foreign && bondPrice(b) !== null) { b.isEuro = true; list.push(b); bondById[b.secid] = b; n++; }
+            });
+            if (n) used.push(`${boards[i].id} (${n})`);
+        });
+        euroBonds = list;
+        euroState = { status: 'done', note: list.length
+            ? `Еврооблигаций (облигаций в валюте): ${list.length}. Доски: ${used.join(', ')}. Для них доступно изменение за день; за неделю и месяц — только по рублёвым.`
+            : `Облигаций в валюте не найдено (проверены доски: ${boards.map(b => b.id).join(', ')}). Возможно, торги ими на MOEX не ведутся или названия досок изменились.` };
+    } catch (e) {
+        console.error(e);
+        euroState = { status: 'error', note: `Не удалось загрузить еврооблигации: ${e.message}` };
+    }
+    renderEuroNote();
+    renderList();
+    renderSummary();
+}
+
+function renderEuroNote() {
+    document.getElementById('euroNote').textContent = euroOnly ? euroState.note : '';
+}
+
 /* ---------- controls ---------- */
 
 function renderSorts() {
@@ -1759,15 +2515,32 @@ function renderSorts() {
     ofz.addEventListener('click', () => {
         ofzOnly = !ofzOnly;
         if (ofzOnly) {          // ОФЗ — по стоимости (цене), от дорогих к дешёвым
+            euroOnly = false;
             sortKey = 'price';
             sortDir = -1;
         }
         shown = PAGE_SIZE;
+        renderEuroNote();
         renderSorts();
         renderList();
         renderSummary();
     });
     parts.push(ofz);
+
+    const euro = mk('button', euroOnly ? 'active' : null, 'Только Еврооблигации');
+    euro.addEventListener('click', () => {
+        euroOnly = !euroOnly;
+        if (euroOnly) {
+            ofzOnly = false;
+            loadEuroBonds();
+        }
+        shown = PAGE_SIZE;
+        renderEuroNote();
+        renderSorts();
+        renderList();
+        renderSummary();
+    });
+    parts.push(euro);
 
     box.replaceChildren(...parts);
 }
@@ -1788,7 +2561,7 @@ function renderSummary() {
     }
     box.hidden = false;
 
-    const list = ofzOnly ? allBonds.filter(b => b.isOfz) : allBonds;
+    const list = euroOnly ? euroBonds : ofzOnly ? allBonds.filter(b => b.isOfz) : allBonds;
     let up = 0;
     let down = 0;
     let flat = 0;
@@ -1986,6 +2759,12 @@ async function start() {
     isStarting = false;
 
     const updated = applySnapshot(snapshot);
+    const qs = new URLSearchParams(location.search);
+    const openParam = qs.get('open');
+    if (openParam) {
+        if (bondById[openParam]) openBond(openParam);
+        else if (qs.get('euro')) loadEuroBonds().then(() => { if (bondById[openParam]) openBond(openParam); });
+    }
     if (currentPeriod === 'day') {
         setStatus(partialNote ? 'warn' : 'ok', okStatusText(updated) + (partialNote ? ` · ${partialNote}` : ''));
     } else {
@@ -1998,6 +2777,19 @@ async function start() {
 
 document.getElementById('stocksLink').href = STOCKS_PAGE;
 document.getElementById('newsLink').href = NEWS_PAGE;
+document.getElementById('favLink').href = FAV_PAGE;
+document.getElementById('modalStar').addEventListener('click', () => {
+    if (!modalSecid) return;
+    const b = bondById[modalSecid];
+    FavStore.toggle('b', modalSecid, { name: b ? b.name : modalSecid, board: b ? b.board : null });
+    renderStar();
+    renderList();
+});
+FavStore.onChange(() => { renderStar(); if (isInitialized) renderList(); });
+FavStore.init();
+MODAL_TABS.forEach(t => {
+    document.getElementById('tab' + t[0].toUpperCase() + t.slice(1)).addEventListener('click', () => setModalTab(t));
+});
 document.getElementById('logoutLink').addEventListener('click', e => {
     e.preventDefault();
     try { sessionStorage.removeItem('mx_k'); } catch (_) { /* ignore */ }
