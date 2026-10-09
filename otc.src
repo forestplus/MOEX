@@ -1,0 +1,1967 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Cdefs%3E%3ClinearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%220%22 y2=%221%22%3E%3Cstop offset=%220%22 stop-color=%22%2343a047%22/%3E%3Cstop offset=%221%22 stop-color=%22%23285e24%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22url(%23g)%22/%3E%3Ctext x=%2232%22 y=%2247%22 text-anchor=%22middle%22 font-family=%22Arial,Helvetica,sans-serif%22 font-weight=%22700%22 font-size=%2246%22 fill=%22%23fff%22%3E%24%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,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">
+<link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,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">
+<meta name="theme-color" content="#2e7d32">
+    <title>Внебиржевой рынок акций</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: #fff;
+            padding: 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.1);
+        }
+        .nav { display: flex; gap: 8px; margin-bottom: 10px; font-size: 14px; }
+        .nav a {
+            padding: 4px 14px; border: 1px solid #ccc; border-radius: 16px;
+            color: #333; text-decoration: none; background: #fff;
+        }
+        .nav a.active { background: #2e7d32; color: #fff; border-color: #2e7d32; }
+        .nav a.logout { margin-left: auto; color: #777; }
+        .header button.toggle.active { background: #1565c0; border-color: #1565c0; color: #fff; }
+        .tabs { display: flex; gap: 6px; margin-top: 12px; }
+        .tab {
+            flex: 1; padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px;
+            background: #fff; font-size: 14px; cursor: pointer; color: #333;
+        }
+        .tab.active { background: #1565c0; border-color: #1565c0; color: #fff; }
+        .row.head span:first-child, .row.head span:last-child { font-weight: bold; color: #333; }
+        .sub-h { font-size: 12px; font-weight: bold; color: #555; margin: 10px 0 2px; }
+        .upcoming { border: 2px solid #43a047; background: #f1f8e9; border-radius: 8px; padding: 8px 10px; }
+        .estimate { border: 2px dashed #f9a825; background: #fffde7; border-radius: 8px; padding: 8px 10px; }
+        .header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #333;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .header select, .header button, .header input {
+            padding: 4px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            background: #fff;
+        }
+        .header select, .header button { cursor: pointer; }
+        .header input { width: 150px; }
+        .header button:hover { background: #f5f5f5; }
+        .status { font-size: 12px; color: #666; }
+        .status.error { color: #c00; font-weight: bold; }
+        .status.ok { color: #2e7d32; }
+        .status.warn { color: #b26a00; }
+        .status.loading { color: #f57c00; }
+
+        .summary {
+            margin: 0 0 10px; padding: 8px 10px; background: #fafafa;
+            border: 1px solid #eee; border-radius: 4px; font-size: 12px; color: #333; line-height: 1.5;
+        }
+        .summary .pos, .sheet .pos { color: #2e7d32; font-weight: bold; }
+        .summary .neg, .sheet .neg { color: #c62828; font-weight: bold; }
+        .breadth { display: flex; height: 6px; margin: 4px 0; border-radius: 3px; overflow: hidden; background: #ddd; }
+        .breadth span { display: block; height: 100%; }
+
+        .debug {
+            white-space: pre-wrap;
+            margin-bottom: 8px;
+            padding: 6px 8px;
+            background: #f7f7f7;
+            border: 1px solid #e5e5e5;
+            border-radius: 4px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 2px;
+            background: #fff;
+        }
+        .card {
+            padding: 6px 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch;
+            min-height: 58px;
+            color: #fff;
+            font-size: 12px;
+            line-height: 1.2;
+            transition: background-color .3s ease, transform .1s ease, filter .1s ease;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        @media (hover: hover) {
+            .card:hover { transform: scale(1.02); filter: brightness(1.1); z-index: 1; }
+        }
+        .card:focus-visible { outline: 2px solid #1565c0; outline-offset: -2px; }
+        .card-left {
+            display: flex; flex-direction: column; justify-content: space-between;
+            flex: 1; min-width: 0; padding-right: 6px; overflow: hidden;
+        }
+        .card-right {
+            display: flex; flex-direction: column; justify-content: space-between;
+            align-items: flex-end; text-align: right; white-space: nowrap;
+        }
+        .name { font-weight: bold; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .price { font-size: 11px; opacity: .95; font-variant-numeric: tabular-nums; }
+        .change { font-size: 13px; font-weight: bold; font-variant-numeric: tabular-nums; }
+        .delta { font-size: 10px; opacity: .9; font-variant-numeric: tabular-nums; }
+
+        .block-title { font-size: 14px; font-weight: bold; color: #333; margin: 18px 0 4px; }
+        .block-note { font-size: 12px; color: #666; margin: 0 0 6px; }
+
+        .bg-pos-5 { background-color: #2e7d32; }
+        .bg-pos-4 { background-color: #388e3c; }
+        .bg-pos-3 { background-color: #43a047; }
+        .bg-pos-2 { background-color: #81c784; color: #1a1a1a; }
+        .bg-pos-1 { background-color: #c8e6c9; color: #1a1a1a; }
+        .bg-neg-1 { background-color: #ef9a9a; color: #1a1a1a; }
+        .bg-neg-2 { background-color: #e57373; color: #1a1a1a; }
+        .bg-neg-3 { background-color: #d32f2f; }
+        .bg-neg-4 { background-color: #c62828; }
+        .bg-neg-5 { background-color: #8e0000; }
+        .bg-neutral { background-color: #9e9e9e; color: #fff; }
+
+        /* карточка бумаги */
+        .modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,.55);
+            display: flex; align-items: flex-end; justify-content: center; z-index: 100;
+        }
+        .modal[hidden] { display: none; }
+        .sheet {
+            background: #fff; width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto;
+            border-radius: 14px 14px 0 0; padding: 14px 16px 28px; -webkit-overflow-scrolling: touch;
+            color: #222;
+        }
+        @media (min-width: 700px) { .modal { align-items: center; } .sheet { border-radius: 14px; } }
+        .sheet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+        .sheet-title { font-size: 17px; font-weight: bold; }
+        .sheet-sub { font-size: 12px; color: #777; margin-top: 2px; }
+        .sheet-close {
+            border: none; background: #eee; border-radius: 50%; width: 34px; height: 34px;
+            font-size: 18px; cursor: pointer; flex: none;
+        }
+        .sec { margin-top: 14px; }
+        .sec h4 { margin: 0 0 6px; font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: .3px; }
+        .row {
+            display: flex; justify-content: space-between; gap: 12px; padding: 5px 0;
+            border-bottom: 1px solid #f0f0f0; font-size: 13px;
+        }
+        .row span:first-child { color: #666; }
+        .row span:last-child { font-weight: bold; text-align: right; font-variant-numeric: tabular-nums; }
+        .hist-box { border: 2px solid #f9a825; background: #fffde7; border-radius: 8px; padding: 8px 10px; }
+        .note { font-size: 11px; color: #777; margin-top: 6px; line-height: 1.4; }
+        .forecast-form { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .forecast-form input, .forecast-form select, .forecast-form button, .btn {
+            padding: 6px 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; background: #fff;
+        }
+        .forecast-form input { width: 110px; }
+        .btn { display: inline-block; text-decoration: none; color: #1565c0; cursor: pointer; margin: 4px 6px 0 0; }
+        .btn.primary { background: #1565c0; color: #fff; border-color: #1565c0; }
+
+        /* ---- свечной график ---- */
+        .cp { margin-top: 6px; background: #fff; }
+        .cp-head, .cp-tools { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+        .cp-btn {
+            padding: 5px 9px; border: 1px solid #ccc; border-radius: 6px; background: #fff;
+            font-size: 13px; cursor: pointer; color: #333; min-width: 34px;
+        }
+        .cp-btn.active { background: #1565c0; border-color: #1565c0; color: #fff; }
+        .cp-stage { position: relative; width: 100%; height: 300px; background: #fff; border: 1px solid #e5e5e5; border-radius: 6px; overflow: hidden; }
+        .cp-canvas { display: block; width: 100%; height: 100%; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+        .cp-tip {
+            position: absolute; top: 8px; z-index: 5; width: 172px; padding: 6px 8px; pointer-events: none;
+            background: rgba(255,255,255,.86); border: 1px solid rgba(0,0,0,.18); border-radius: 6px;
+            font-size: 11px; line-height: 1.45; color: #222; box-shadow: 0 2px 8px rgba(0,0,0,.12);
+        }
+        .cp-tip[hidden] { display: none; }
+        .cp-tip b { display: block; margin-bottom: 2px; }
+        .cp-tip .r { display: flex; justify-content: space-between; gap: 8px; }
+        .cp-tip .up { color: #2e7d32; font-weight: bold; }
+        .cp-tip .down { color: #c62828; font-weight: bold; }
+        .cp-close { display: none; }
+        .cp.cp-full {
+            position: fixed; inset: 0; z-index: 500; margin: 0; display: flex; flex-direction: column;
+            padding: calc(env(safe-area-inset-top, 0px) + 56px) 10px calc(env(safe-area-inset-bottom, 0px) + 10px);
+        }
+        .cp.cp-full .cp-close {
+            display: block; position: absolute; top: calc(env(safe-area-inset-top, 0px) + 8px); right: 10px; z-index: 2;
+            padding: 11px 16px; font-size: 16px; font-weight: bold; color: #fff; background: #c62828;
+            border: none; border-radius: 10px; cursor: pointer;
+        }
+        .cp.cp-full .cp-stage { flex: 1; height: auto; min-height: 0; }
+        .ob-row { position: relative; display: flex; justify-content: space-between; padding: 4px 8px; font-size: 13px; font-variant-numeric: tabular-nums; overflow: hidden; }
+        .ob-row span { position: relative; z-index: 1; }
+        .ob-bar { position: absolute; top: 0; bottom: 0; right: 0; opacity: .22; }
+        .ob-sell .ob-bar { background: #c62828; } .ob-sell span:first-child { color: #c62828; font-weight: bold; }
+        .ob-buy .ob-bar { background: #2e7d32; } .ob-buy span:first-child { color: #2e7d32; font-weight: bold; }
+        .ob-head { display: flex; justify-content: space-between; padding: 4px 8px; font-size: 11px; color: #777; }
+        .ob-spread { text-align: center; padding: 6px; font-size: 12px; background: #f5f5f5; color: #555; margin: 2px 0; }
+        .news-line { display: block; padding: 8px 2px; border-bottom: 1px solid #eee; text-decoration: none; color: #1a1a1a; }
+        .news-line .t { font-size: 14px; line-height: 1.35; font-weight: bold; }
+        .news-line .m { font-size: 11px; color: #777; margin-top: 2px; }
+        .news-line .m b { color: #1565c0; }
+        .star-btn { border: none; background: #eee; border-radius: 50%; width: 34px; height: 34px; font-size: 19px; cursor: pointer; flex: none; color: #9e9e9e; line-height: 1; }
+        .star-btn.on { background: #fff8e1; color: #f9a825; }
+        .rates { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .rate { border: 1px solid #ddd; border-radius: 8px; background: #fafafa; padding: 5px 9px; cursor: pointer; font-size: 11px; text-align: left; line-height: 1.25; color: #444; }
+        .rate b { display: block; font-size: 14px; color: #111; }
+        .rate .rc.up { color: #2e7d32; font-weight: bold; }
+        .rate .rc.down { color: #c62828; font-weight: bold; }
+        .head-btns { display: flex; gap: 8px; flex: none; }
+        .tabs { flex-wrap: wrap; }
+        .tab { flex: 1 1 auto; font-size: 13px; padding: 7px 8px; }
+        .info-text { font-size: 13px; line-height: 1.45; margin: 4px 0 6px; }
+        table.dt { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+        table.dt th { text-align: right; color: #555; font-weight: bold; padding: 4px 3px; border-bottom: 1px solid #ddd; }
+        table.dt th:first-child, table.dt td:first-child { text-align: left; }
+        table.dt td { text-align: right; padding: 4px 3px; border-bottom: 1px solid #f0f0f0; font-variant-numeric: tabular-nums; }
+        @media (max-width: 1000px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 768px) {
+            body { padding: 8px; }
+            .grid { grid-template-columns: repeat(3, 1fr); }
+            .card { min-height: 52px; padding: 5px 6px; }
+            .name { font-size: 10px; }
+            .price { font-size: 9px; }
+            .change { font-size: 12px; }
+            .delta { font-size: 9px; }
+        }
+        @media (max-width: 480px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    
+        .sorts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; align-items: center; }
+        .sorts button { padding: 6px 12px; border: 1px solid #bbb; border-radius: 16px; background: #fff; font-size: 13px; cursor: pointer; color: #333; }
+        .sorts button.active { background: #1565c0; border-color: #1565c0; color: #fff; }
+        .otc-note { font-size: 12px; color: #666; margin: 0 0 10px; line-height: 1.4; }
+        .nav { flex-wrap: wrap; }
+        .nav a.logout { margin-left: auto; color: #777; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="nav">
+        <a href="index.html" id="stocksLink">Акции</a>
+        <a href="bonds.html" id="bondsLink">Облигации</a>
+        <a href="favorites.html" id="favLink">Избранное</a>
+        <a href="news.html" id="newsLink">Новости</a>
+        <a href="otc.html?type=ru" id="navRu">Внебиржа РФ</a>
+        <a href="otc.html?type=foreign" id="navFn">Внебиржа ин.</a>
+        <a href="#" id="logoutLink" class="logout">Выйти</a>
+    </div>
+    <div class="header">
+        <button id="refreshBtn" title="Обновить сейчас">↻ Обновить</button>
+        <input id="searchInput" type="search" placeholder="Поиск: тикер, имя, ISIN" autocomplete="off">
+        <span id="status" class="status">Загрузка данных...</span>
+    </div>
+    <div class="sorts" id="typeSwitch"></div>
+    <div class="sorts" id="sorts"></div>
+    <div class="otc-note" id="otcNote"></div>
+    <div class="grid" id="grid"></div>
+</div>
+
+<div id="modal" class="modal" hidden>
+    <div class="sheet" role="dialog" aria-modal="true">
+        <div class="sheet-head">
+            <div>
+                <div class="sheet-title" id="modalTitle"></div>
+                <div class="sheet-sub" id="modalSub"></div>
+            </div>
+            <div class="head-btns">
+                <button class="sheet-close" id="modalClose" aria-label="Закрыть">✕</button>
+            </div>
+        </div>
+        <div class="tabs">
+            <button class="tab active" id="tabSummary">Сводка</button>
+            <button class="tab" id="tabNews">Новости</button>
+        </div>
+        <div id="paneSummary">
+            <div class="sec" id="modalLive"></div>
+        </div>
+        <div id="paneNews" hidden>
+            <div class="sec" id="modalNews"></div>
+        </div>
+        <div class="sec" id="modalChart"></div>
+    </div>
+</div>
+
+<script>
+'use strict';
+
+/* ---------- network ---------- */
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+async function fetchWithTimeout(url, timeout) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+        return await fetch(url, { cache: 'no-store', signal: controller.signal });
+    } catch (e) {
+        if (e && e.name === 'AbortError') throw new Error('MOEX не ответил вовремя');
+        throw new Error('нет связи с MOEX (сеть или блокировка)');
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+async function fetchJson(url, { timeout = FETCH_TIMEOUT, retries = FETCH_RETRIES } = {}) {
+    let lastErr;
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const response = await fetchWithTimeout(url, timeout);
+            if (!response.ok) {
+                const err = new Error(`HTTP ${response.status}`);
+                err.status = response.status;
+                throw err;
+            }
+            try {
+                return await response.json();
+            } catch (_) {
+                throw new Error('MOEX вернул некорректный ответ');
+            }
+        } catch (e) {
+            lastErr = e;
+            const clientErr = e.status >= 400 && e.status < 500 && e.status !== 429;
+            if (clientErr || attempt === retries) break;
+            await sleep(1000 * attempt);
+        }
+    }
+    throw lastErr;
+}
+
+/* ---------- utilities ---------- */
+
+function num(v) {
+    if (v === null || v === undefined || v === '') return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+}
+
+function setStatus(cls, text) {
+    const box = document.getElementById('status');
+    box.className = 'status' + (cls ? ' ' + cls : '');
+    box.textContent = text;
+}
+
+function showProgress(label) {
+    const t0 = Date.now();
+    const tick = () => setStatus('loading', `${label}... ${Math.round((Date.now() - t0) / 1000)} с`);
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+}
+
+function moscowDateStr(date) {
+    return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Moscow' }).format(date);
+}
+
+/* Календарный сдвиг без переполнения: 31 окт − 1 мес = 30 сен. */
+function shiftDateStr(dateStr, { days = 0, months = 0 } = {}) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    let dt;
+    if (months) {
+        const total = y * 12 + (m - 1) + months;
+        const ny = Math.floor(total / 12);
+        const nm = total % 12;
+        const lastDay = new Date(Date.UTC(ny, nm + 1, 0)).getUTCDate();
+        dt = new Date(Date.UTC(ny, nm, Math.min(d, lastDay)));
+    } else {
+        dt = new Date(Date.UTC(y, m - 1, d));
+    }
+    if (days) dt.setUTCDate(dt.getUTCDate() + days);
+    return dt.toISOString().slice(0, 10);
+}
+
+function humanDate(dateStr) {
+    if (!dateStr) return '—';
+    const [y, m, d] = String(dateStr).slice(0, 10).split('-');
+    return `${d}.${m}.${y}`;
+}
+
+function isValidStock(name, sectype) {
+    if (!ALLOWED_SECTYPES.has(Number(sectype))) return false;
+    const n = (name || '').toUpperCase();
+    if (n.includes('ETF')) return false;
+    if (n.includes('ПИФ')) return false;
+    return true;
+}
+
+function readJson(key) {
+    try { return JSON.parse(localStorage.getItem(key)); } catch (_) { return null; }
+}
+
+function writeJson(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) { /* квота / приватный режим */ }
+}
+
+function mk(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined && text !== null) e.textContent = text;
+    return e;
+}
+
+/* ---------- formatting ---------- */
+
+const nfCache = {};
+
+function nf(decimals) {
+    if (!nfCache[decimals]) {
+        nfCache[decimals] = new Intl.NumberFormat('ru-RU', {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals
+        });
+    }
+    return nfCache[decimals];
+}
+
+function defaultDecimals(price) {
+    const a = Math.abs(price);
+    if (a < 1) return 4;
+    if (a < 10) return 3;
+    return 2;
+}
+
+function formatPrice(price, decimals) {
+    if (price === null || price === undefined || isNaN(price)) return '—';
+    const dec = Number.isInteger(decimals) ? decimals : defaultDecimals(price);
+    return nf(dec).format(price);
+}
+
+function formatChange(change) {
+    if (change === null || change === undefined || isNaN(change)) return '—';
+    const rounded = Math.round(change * 100) / 100;
+    if (rounded === 0) return '0,00 %';
+    const sign = rounded > 0 ? '+' : '−';
+    return sign + nf(2).format(Math.abs(rounded)) + ' %';
+}
+
+function formatRubDelta(delta, decimals, price) {
+    if (delta === null || delta === undefined || isNaN(delta)) return '—';
+    const dec = Number.isInteger(decimals) ? decimals : defaultDecimals(price ?? delta);
+    const factor = Math.pow(10, dec);
+    const rounded = Math.round(delta * factor) / factor;
+    if (rounded === 0) return nf(dec).format(0) + ' ₽';
+    const sign = rounded > 0 ? '+' : '−';
+    return sign + nf(dec).format(Math.abs(rounded)) + ' ₽';
+}
+
+function formatMoney(v) {
+    if (v === null || v === undefined || isNaN(v)) return '—';
+    if (v >= 1e12) return nf(2).format(v / 1e12) + ' трлн ₽';
+    if (v >= 1e9) return nf(2).format(v / 1e9) + ' млрд ₽';
+    if (v >= 1e6) return nf(1).format(v / 1e6) + ' млн ₽';
+    return nf(0).format(v) + ' ₽';
+}
+
+function formatInt(v) {
+    if (v === null || v === undefined || isNaN(v)) return '—';
+    return nf(0).format(v);
+}
+
+function signCls(v) {
+    if (v === null || v === undefined || isNaN(v)) return '';
+    const r = Math.round(v * 100) / 100;
+    return r > 0 ? 'pos' : r < 0 ? 'neg' : '';
+}
+
+/* ---------- color ---------- */
+
+function getBgClass(change, period = currentPeriod) {
+    if (change === null || change === undefined || isNaN(change)) return 'bg-neutral';
+    if (Math.round(change * 100) / 100 === 0) return 'bg-neutral';
+
+    const k = COLOR_SCALE[period] || 1;
+    const abs = Math.abs(change) / k;
+
+    let level;
+    if (abs >= 5) level = 5;
+    else if (abs >= 2) level = 4;
+    else if (abs >= 1) level = 3;
+    else if (abs >= 0.5) level = 2;
+    else level = 1;
+
+    return (change > 0 ? 'bg-pos-' : 'bg-neg-') + level;
+}
+
+
+/* ====== СВЕЧНОЙ ГРАФИК (общий код акций и облигаций) ====== */
+
+/* Поиск колонки без учёта регистра: MOEX отдаёт имена то строчными, то заглавными. */
+function col(columns, name) {
+    const n = String(name).toLowerCase();
+    return (columns || []).findIndex(c => String(c).toLowerCase() === n);
+}
+
+/* ISS умеет свечи 1 / 10 / 60 мин, день, неделя, месяц. 5 и 15 минут собираем из минутных. */
+const CHART_TF = [
+    { key: '1m',  label: '1м',      kind: 'intra',  agg: 1,  days: 1 },
+    { key: '5m',  label: '5м',      kind: 'intra',  agg: 5,  days: 2 },
+    { key: '15m', label: '15м',     kind: 'intra',  agg: 15, days: 3 },
+    { key: '1h',  label: '1ч',      kind: 'native', interval: 60 },
+    { key: '1d',  label: 'День',    kind: 'native', interval: 24 },
+    { key: '1w',  label: 'Неделя',  kind: 'native', interval: 7 },
+    { key: '1M',  label: 'Месяц',   kind: 'native', interval: 31 }
+];
+const CHART_TF_MAP = Object.fromEntries(CHART_TF.map(t => [t.key, t]));
+const CHART_DEFAULT_VISIBLE = { '1m': 120, '5m': 90, '15m': 80, '1h': 80, '1d': 90, '1w': 104, '1M': 60 };
+const tradesCache = {};
+
+async function fetchCandlePages(base, query) {
+    const out = [];
+    let start = 0;
+    for (let page = 0; page < 14; page++) {
+        const url = `${base}/candles.json?${query}&start=${start}&iss.meta=off&iss.only=candles` +
+            `&candles.columns=begin,open,close,high,low,value,volume`;
+        const data = await fetchJson(url, { retries: 2, timeout: 20000 });
+        const c = data.candles;
+        if (!c || !Array.isArray(c.data)) break;
+        const iB = col(c.columns, 'begin');
+        const iO = col(c.columns, 'open');
+        const iC = col(c.columns, 'close');
+        const iH = col(c.columns, 'high');
+        const iL = col(c.columns, 'low');
+        const iV = col(c.columns, 'volume');
+        const iVal = col(c.columns, 'value');
+        c.data.forEach(r => {
+            const o = num(r[iO]);
+            const cl = num(r[iC]);
+            const h = num(r[iH]);
+            const l = num(r[iL]);
+            if (o === null || cl === null || h === null || l === null) return;
+            out.push({ t: String(r[iB]).replace('T', ' '), o, c: cl, h, l, v: num(r[iV]), val: num(r[iVal]) });
+        });
+        if (c.data.length < 500) break; // ISS отдаёт максимум 500 свечей за запрос
+        start += c.data.length;
+    }
+    return out;
+}
+
+function aggregateCandles(rows, agg) {
+    const out = [];
+    let cur = null;
+    let curKey = null;
+    rows.forEach(r => {
+        const day = r.t.slice(0, 10);
+        const mins = Number(r.t.slice(11, 13)) * 60 + Number(r.t.slice(14, 16));
+        const bucket = Math.floor(mins / agg);
+        const key = `${day}#${bucket}`;
+        if (key !== curKey) {
+            const bm = bucket * agg;
+            const hh = String(Math.floor(bm / 60)).padStart(2, '0');
+            const mm = String(bm % 60).padStart(2, '0');
+            cur = { t: `${day} ${hh}:${mm}:00`, o: r.o, c: r.c, h: r.h, l: r.l, v: r.v || 0, val: r.val || 0 };
+            out.push(cur);
+            curKey = key;
+        } else {
+            cur.h = Math.max(cur.h, r.h);
+            cur.l = Math.min(cur.l, r.l);
+            cur.c = r.c;
+            cur.v += r.v || 0;
+            cur.val += r.val || 0;
+        }
+    });
+    return out;
+}
+
+async function loadChartData(cfg, tf) {
+    const today = moscowDateStr(new Date());
+    const enc = encodeURIComponent;
+
+    if (tf.kind === 'intra') {
+        const chunks = [];
+        let found = 0;
+        for (let i = 0; i < 10 && found < tf.days; i++) {
+            const d = shiftDateStr(today, { days: -i });
+            const rows = await fetchCandlePages(cfg.candlesBase,
+                `interval=1&from=${enc(d + ' 00:00:00')}&till=${enc(d + ' 23:59:59')}`);
+            if (rows.length) {
+                chunks.unshift(rows);
+                found++;
+            }
+        }
+        let rows = chunks.flat();
+        if (tf.agg > 1) rows = aggregateCandles(rows, tf.agg);
+        const what = tf.agg > 1 ? `Свечи ${tf.agg} мин собраны из минутных` : 'Минутные свечи';
+        return { candles: rows, note: `${what}: ${found} торг. дн. (последние). Время московское.` };
+    }
+
+    let from;
+    let span;
+    if (tf.key === '1h') { from = shiftDateStr(today, { days: -30 }); span = '30 дней'; }
+    else if (tf.key === '1d') { from = shiftDateStr(today, { months: -36 }); span = '3 года'; }
+    else if (tf.key === '1w') { from = shiftDateStr(today, { months: -120 }); span = '10 лет'; }
+    else { from = '1990-01-01'; span = 'вся история'; }
+
+    const rows = await fetchCandlePages(cfg.candlesBase,
+        `interval=${tf.interval}&from=${from}&till=${enc(today + ' 23:59:59')}`);
+    return { candles: rows, note: `Свечи MOEX (${span}). Время московское.` };
+}
+
+/* Число сделок ISS отдаёт только в дневных итогах — подтягиваем для дневных, недельных и месячных свечей (последние 2 года). */
+async function fetchTradesMap(cfg) {
+    if (tradesCache[cfg.historyBase]) return tradesCache[cfg.historyBase];
+
+    const from = shiftDateStr(moscowDateStr(new Date()), { months: -24 });
+    const url = start =>
+        `${cfg.historyBase}.json?iss.meta=off&iss.only=history,history.cursor` +
+        `&history.columns=TRADEDATE,NUMTRADES&from=${from}&start=${start}`;
+    const map = {};
+    const eat = data => {
+        const h = data.history;
+        if (!h || !Array.isArray(h.data)) return 0;
+        const iD = col(h.columns, 'TRADEDATE');
+        const iN = col(h.columns, 'NUMTRADES');
+        h.data.forEach(r => { const n = num(r[iN]); if (n !== null) map[String(r[iD]).slice(0, 10)] = n; });
+        return h.data.length;
+    };
+
+    const first = await fetchJson(url(0), { retries: 1 });
+    const n = eat(first);
+    const cur = first['history.cursor'];
+    let total = n;
+    let pageSize = n;
+    if (cur && cur.data && cur.data.length) {
+        total = num(cur.data[0][col(cur.columns, 'TOTAL')]) || n;
+        pageSize = num(cur.data[0][col(cur.columns, 'PAGESIZE')]) || n;
+    }
+    const starts = [];
+    for (let s = pageSize; pageSize > 0 && s < total; s += pageSize) starts.push(s);
+    for (let i = 0; i < starts.length; i += 6) {
+        const pages = await Promise.all(starts.slice(i, i + 6).map(s => fetchJson(url(s), { retries: 1 }).catch(() => null)));
+        pages.forEach(p => { if (p) eat(p); });
+    }
+    const res = { map, from };
+    tradesCache[cfg.historyBase] = res;
+    return res;
+}
+
+function chartDec(price, cfg) {
+    if (cfg && Number.isInteger(cfg.decimals)) return cfg.decimals;
+    const a = Math.abs(price);
+    return a < 1 ? 4 : a < 10 ? 3 : 2;
+}
+
+function formatVolume(v) {
+    if (v === null || v === undefined || isNaN(v)) return '—';
+    if (v >= 1e9) return nf(2).format(v / 1e9) + ' млрд';
+    if (v >= 1e6) return nf(2).format(v / 1e6) + ' млн';
+    return nf(0).format(v);
+}
+
+function chartTimeLabel(t, key, prevT) {
+    const day = t.slice(0, 10);
+    if (key === '1m' || key === '5m' || key === '15m') {
+        const hm = t.slice(11, 16);
+        return !prevT || prevT.slice(0, 10) !== day ? `${t.slice(8, 10)}.${t.slice(5, 7)} ${hm}` : hm;
+    }
+    if (key === '1h') return `${t.slice(8, 10)}.${t.slice(5, 7)} ${t.slice(11, 16)}`;
+    if (key === '1M') return `${t.slice(5, 7)}.${t.slice(0, 4)}`;
+    return `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(2, 4)}`;
+}
+
+function chartTipTitle(t, key) {
+    const d = `${t.slice(8, 10)}.${t.slice(5, 7)}.${t.slice(0, 4)}`;
+    if (key === '1m' || key === '5m' || key === '15m' || key === '1h') return `${d} ${t.slice(11, 16)}`;
+    if (key === '1w') return `Неделя с ${d}`;
+    if (key === '1M') return `Месяц ${t.slice(5, 7)}.${t.slice(0, 4)}`;
+    return d;
+}
+
+function createCandleChart(stage, cfg) {
+    const canvas = document.createElement('canvas');
+    canvas.className = 'cp-canvas';
+    const tip = mk('div', 'cp-tip');
+    tip.hidden = true;
+    stage.append(canvas, tip);
+
+    const M = { l: 6, r: 62, t: 10, b: 22 };
+    const UP = '#2e7d32';
+    const DOWN = '#c62828';
+    const raf = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : f => setTimeout(f, 0);
+
+    let data = [];
+    let tfKey = '1d';
+    let mode = 'candles';
+    let visible = 80;
+    let end = 0;
+    let hover = -1;
+    let drag = null;
+    let pinch = null;
+    let pending = false;
+
+    function dims() {
+        const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
+        const w = stage.clientWidth || 320;
+        const h = stage.clientHeight || 280;
+        const pw = Math.round(w * dpr);
+        const ph = Math.round(h * dpr);
+        if (canvas.width !== pw || canvas.height !== ph) {
+            canvas.width = pw;
+            canvas.height = ph;
+        }
+        return { w, h, dpr };
+    }
+
+    function clampView() {
+        const n = data.length;
+        visible = Math.max(8, Math.min(visible, Math.max(n + 6, 16)));
+        const lo = visible - 4;
+        const hi = n + 4;
+        end = Math.min(Math.max(end, Math.min(lo, hi)), hi);
+    }
+
+    function schedule() {
+        if (pending) return;
+        pending = true;
+        raf(() => { pending = false; draw(); });
+    }
+
+    function geometry() {
+        const { w, h, dpr } = dims();
+        const volH = Math.round((h - M.t - M.b) * 0.2);
+        const priceH = h - M.t - M.b - volH - 6;
+        const plotW = w - M.l - M.r;
+        return { w, h, dpr, volH, priceH, plotW, bw: plotW / visible, start: end - visible };
+    }
+
+    function draw() {
+        const g = geometry();
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(g.dpr, 0, 0, g.dpr, 0, 0);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, g.w, g.h);
+
+        const n = data.length;
+        if (!n) {
+            ctx.fillStyle = '#888';
+            ctx.font = '13px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Нет данных для графика', g.w / 2, g.h / 2);
+            return;
+        }
+
+        const i0 = Math.max(0, Math.floor(g.start));
+        const i1 = Math.min(n - 1, Math.ceil(end) - 1);
+        let lo = Infinity;
+        let hi = -Infinity;
+        let vmax = 0;
+        for (let i = i0; i <= i1; i++) {
+            const d = data[i];
+            const dl = mode === 'line' ? d.c : d.l;
+            const dh = mode === 'line' ? d.c : d.h;
+            if (dl < lo) lo = dl;
+            if (dh > hi) hi = dh;
+            if (d.v > vmax) vmax = d.v;
+        }
+        if (!isFinite(lo) || !isFinite(hi)) return;
+        const pad = ((hi - lo) || Math.abs(hi) * 0.01 || 1) * 0.07;
+        lo -= pad;
+        hi += pad;
+
+        const py = p => M.t + ((hi - p) / (hi - lo)) * g.priceH;
+        const vy = v => M.t + g.priceH + 6 + g.volH - (vmax ? (v / vmax) * g.volH : 0);
+        const px = i => M.l + (i + 0.5 - g.start) * g.bw;
+        const dec = chartDec(data[Math.min(n - 1, i1)].c, cfg);
+
+        // сетка и подписи цены
+        ctx.font = '11px Arial';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.lineWidth = 1;
+        for (let k = 0; k <= 4; k++) {
+            const p = lo + ((hi - lo) * k) / 4;
+            const y = Math.round(py(p)) + 0.5;
+            ctx.strokeStyle = '#eee';
+            ctx.beginPath(); ctx.moveTo(M.l, y); ctx.lineTo(g.w - M.r, y); ctx.stroke();
+            ctx.fillStyle = '#666';
+            ctx.fillText(nf(dec).format(p), g.w - M.r + 4, y);
+        }
+
+        // свечи / линия и объёмы
+        const body = Math.max(1, Math.min(g.bw * 0.72, 22));
+        if (mode === 'line') {
+            ctx.beginPath();
+            for (let i = i0; i <= i1; i++) {
+                const x = px(i);
+                const y = py(data[i].c);
+                if (i === i0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.strokeStyle = '#1565c0';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.lineTo(px(i1), M.t + g.priceH);
+            ctx.lineTo(px(i0), M.t + g.priceH);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(21,101,192,.10)';
+            ctx.fill();
+            ctx.lineWidth = 1;
+        }
+        for (let i = i0; i <= i1; i++) {
+            const d = data[i];
+            const x = px(i);
+            const up = d.c >= d.o;
+            if (mode !== 'line') {
+                ctx.strokeStyle = ctx.fillStyle = up ? UP : DOWN;
+                ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, py(d.h)); ctx.lineTo(Math.round(x) + 0.5, py(d.l)); ctx.stroke();
+                const y1 = py(Math.max(d.o, d.c));
+                const y2 = py(Math.min(d.o, d.c));
+                ctx.fillRect(x - body / 2, y1, body, Math.max(1, y2 - y1));
+            }
+            if (d.v) {
+                ctx.fillStyle = mode === 'line' ? '#90a4ae' : up ? UP : DOWN;
+                ctx.globalAlpha = 0.45;
+                ctx.fillRect(x - body / 2, vy(d.v), body, M.t + g.priceH + 6 + g.volH - vy(d.v));
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // ось времени
+        ctx.fillStyle = '#666';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        const step = Math.max(1, Math.ceil(84 / g.bw));
+        for (let i = i0 - (i0 % step); i <= i1; i += step) {
+            if (i < 0) continue;
+            const x = px(i);
+            if (x < M.l + 20 || x > g.w - M.r - 20) continue;
+            ctx.fillText(chartTimeLabel(data[i].t, tfKey, i > 0 ? data[i - 1].t : null), x, g.h - M.b + 5);
+        }
+
+        // перекрестие
+        if (hover >= 0 && hover < n) {
+            const d = data[hover];
+            const x = Math.round(px(hover)) + 0.5;
+            ctx.strokeStyle = 'rgba(0,0,0,.35)';
+            ctx.setLineDash([4, 3]);
+            ctx.beginPath(); ctx.moveTo(x, M.t); ctx.lineTo(x, g.h - M.b); ctx.stroke();
+            const y = Math.round(py(d.c)) + 0.5;
+            ctx.beginPath(); ctx.moveTo(M.l, y); ctx.lineTo(g.w - M.r, y); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = d.c >= d.o ? UP : DOWN;
+            ctx.fillRect(g.w - M.r, y - 8, M.r - 2, 16);
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(nf(dec).format(d.c), g.w - M.r + 3, y);
+        }
+    }
+
+    function showTip(i, xPix) {
+        if (i < 0 || i >= data.length) { tip.hidden = true; return; }
+        const d = data[i];
+        const dec = chartDec(d.c, cfg);
+        const ch = d.o ? ((d.c / d.o - 1) * 100) : null;
+        const line = (a, b, cls) => {
+            const r = mk('div', 'r');
+            r.append(mk('span', null, a), mk('span', cls || null, b));
+            return r;
+        };
+        const rows = [
+            mk('b', null, chartTipTitle(d.t, tfKey)),
+            line('Открытие', nf(dec).format(d.o)),
+            line('Закрытие', nf(dec).format(d.c), d.c >= d.o ? 'up' : 'down'),
+            line('Минимум', nf(dec).format(d.l)),
+            line('Максимум', nf(dec).format(d.h)),
+            line('Объём', d.v ? `${formatVolume(d.v)} шт.` : '—'),
+            line('Сделок', d.n !== undefined && d.n !== null ? nf(0).format(d.n) : '—')
+        ];
+        if (ch !== null) rows.push(line('Изменение', (ch >= 0 ? '+' : '−') + nf(2).format(Math.abs(ch)) + ' %', ch >= 0 ? 'up' : 'down'));
+        tip.replaceChildren(...rows);
+        const sw = stage.clientWidth || 320;
+        tip.style.left = (xPix > sw / 2 ? 8 : Math.max(8, sw - 180)) + 'px';
+        tip.hidden = false;
+    }
+
+    function idxAtX(xPix) {
+        const g = geometry();
+        return Math.floor(g.start + (xPix - M.l) / g.bw);
+    }
+
+    function relX(clientX) {
+        const r = canvas.getBoundingClientRect();
+        return clientX - r.left;
+    }
+
+    function zoomAt(factor, xPix) {
+        const g = geometry();
+        const frac = Math.max(0, Math.min(1, (xPix - M.l) / g.plotW));
+        const anchor = g.start + frac * visible;
+        visible = visible * factor;
+        const n = data.length;
+        visible = Math.max(8, Math.min(visible, Math.max(n + 6, 16)));
+        end = anchor - frac * visible + visible;
+        clampView();
+        schedule();
+    }
+
+    function panBy(dxPix) {
+        const g = geometry();
+        end -= dxPix / g.bw;
+        clampView();
+        schedule();
+    }
+
+    // мышь
+    canvas.addEventListener('mousemove', e => {
+        const x = relX(e.clientX);
+        if (drag && drag.mouse) {
+            panBy(x - drag.x);
+            drag.x = x;
+            drag.moved = true;
+            return;
+        }
+        hover = idxAtX(x);
+        showTip(hover, x);
+        schedule();
+    });
+    canvas.addEventListener('mouseleave', () => { hover = -1; tip.hidden = true; drag = null; schedule(); });
+    canvas.addEventListener('mousedown', e => { drag = { mouse: true, x: relX(e.clientX), moved: false }; });
+    canvas.addEventListener('mouseup', () => { drag = null; });
+    canvas.addEventListener('wheel', e => {
+        if (e.preventDefault) e.preventDefault();
+        zoomAt(e.deltaY < 0 ? 0.85 : 1 / 0.85, relX(e.clientX));
+    }, { passive: false });
+
+    // касания: один палец — сдвиг (горизонтально) или тап = подсказка; два пальца — масштаб
+    const dist = ts => Math.hypot(ts[0].clientX - ts[1].clientX, ts[0].clientY - ts[1].clientY);
+    canvas.addEventListener('touchstart', e => {
+        if (e.touches.length === 2) {
+            pinch = { d: dist(e.touches), v: visible };
+            drag = null;
+        } else if (e.touches.length === 1) {
+            const t = e.touches[0];
+            drag = { x: t.clientX, y: t.clientY, sx: t.clientX, sy: t.clientY, moved: false };
+        }
+    }, { passive: true });
+    canvas.addEventListener('touchmove', e => {
+        if (e.touches.length === 2 && pinch) {
+            const g = geometry();
+            const mid = relX((e.touches[0].clientX + e.touches[1].clientX) / 2);
+            const target = Math.max(8, pinch.v * (pinch.d / Math.max(1, dist(e.touches))));
+            zoomAt(target / visible, mid);
+            if (e.preventDefault) e.preventDefault();
+            return;
+        }
+        if (drag && e.touches.length === 1) {
+            const t = e.touches[0];
+            const dx = t.clientX - drag.x;
+            const horizontal = Math.abs(t.clientX - drag.sx) > Math.abs(t.clientY - drag.sy);
+            if (Math.abs(t.clientX - drag.sx) > 6 || Math.abs(t.clientY - drag.sy) > 6) drag.moved = true;
+            if (horizontal) {
+                panBy(dx);
+                tip.hidden = true;
+                hover = -1;
+                if (e.preventDefault) e.preventDefault();
+            }
+            drag.x = t.clientX;
+            drag.y = t.clientY;
+        }
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => {
+        if (drag && !drag.moved) {
+            const x = relX(drag.sx);
+            hover = idxAtX(x);
+            showTip(hover, x);
+            schedule();
+        }
+        drag = null;
+        pinch = null;
+    });
+
+    let ro = null;
+    const onResize = () => schedule();
+    if (typeof ResizeObserver !== 'undefined') {
+        ro = new ResizeObserver(onResize);
+        ro.observe(stage);
+    } else if (typeof window !== 'undefined' && window.addEventListener) {
+        window.addEventListener('resize', onResize);
+    }
+
+    return {
+        setData(candles, key) {
+            data = candles || [];
+            tfKey = key;
+            hover = -1;
+            tip.hidden = true;
+            visible = Math.min(Math.max(data.length, 10), CHART_DEFAULT_VISIBLE[key] || 80);
+            end = data.length + 2;
+            clampView();
+            schedule();
+        },
+        redraw: schedule,
+        setMode(m) { mode = m; schedule(); },
+        getMode() { return mode; },
+        zoom(factor) { zoomAt(factor, M.l + geometry().plotW / 2); },
+        reset() {
+            visible = Math.min(Math.max(data.length, 10), CHART_DEFAULT_VISIBLE[tfKey] || 80);
+            end = data.length + 2;
+            clampView();
+            schedule();
+        },
+        hoverAt(i) { hover = i; showTip(i, 0); schedule(); }, // для тестов и программного вызова
+        view() { return { visible, end, n: data.length }; },
+        destroy() {
+            if (ro) ro.disconnect();
+            else if (typeof window !== 'undefined' && window.removeEventListener) window.removeEventListener('resize', onResize);
+        }
+    };
+}
+
+/* Панель: кнопки таймфреймов, масштаб, полный экран, график, сноска. cfg: { candlesBase, historyBase, decimals } */
+function makeChartPanel(cfg) {
+    const root = mk('div', 'cp');
+    const head = mk('div', 'cp-head');
+    const tools = mk('div', 'cp-tools');
+    const stage = mk('div', 'cp-stage');
+    const note = mk('div', 'note', '');
+
+    const tfBtns = {};
+    CHART_TF.forEach(tf => {
+        const b = mk('button', 'cp-btn', tf.label);
+        b.addEventListener('click', () => select(tf.key));
+        tfBtns[tf.key] = b;
+        head.append(b);
+    });
+
+    const bCandles = mk('button', 'cp-btn active', 'Свечи');
+    const bLine = mk('button', 'cp-btn', 'Линия');
+    const bMinus = mk('button', 'cp-btn', '−');
+    const bPlus = mk('button', 'cp-btn', '+');
+    const bReset = mk('button', 'cp-btn', '⟲');
+    const bFull = mk('button', 'cp-btn', '⛶');
+    bMinus.title = 'Уменьшить';
+    bPlus.title = 'Увеличить';
+    bReset.title = 'Сбросить масштаб';
+    bFull.title = 'На весь экран';
+    const bClose = mk('button', 'cp-close', '✕ Закрыть');
+    tools.append(bCandles, bLine, bMinus, bPlus, bReset, bFull);
+    root.append(bClose, head, tools, stage, note);
+
+    const chart = createCandleChart(stage, cfg);
+    const cache = {};
+    let token = 0;
+    let full = false;
+    let destroyed = false;
+
+    function setMode(m) {
+        chart.setMode(m);
+        bCandles.className = 'cp-btn' + (m === 'candles' ? ' active' : '');
+        bLine.className = 'cp-btn' + (m === 'line' ? ' active' : '');
+    }
+    bCandles.addEventListener('click', () => setMode('candles'));
+    bLine.addEventListener('click', () => setMode('line'));
+    bMinus.addEventListener('click', () => chart.zoom(1.3));
+    bPlus.addEventListener('click', () => chart.zoom(1 / 1.3));
+    bReset.addEventListener('click', () => chart.reset());
+
+    let homeParent = null;
+    let homeNext = null;
+    function setFull(on) {
+        if (on === full) return;
+        full = on;
+        // Полный экран выносим в <body>: внутри прокручиваемого окна iPhone «прилипший» блок съезжает и кнопка закрытия пропадает.
+        if (on) {
+            homeParent = root.parentNode;
+            homeNext = root.nextSibling;
+            document.body.appendChild(root);
+        } else if (homeParent) {
+            homeParent.insertBefore(root, homeNext);
+        }
+        root.className = 'cp' + (on ? ' cp-full' : '');
+        bFull.textContent = on ? '✕' : '⛶';
+        bFull.title = on ? 'Свернуть' : 'На весь экран';
+        try {
+            if (on && root.requestFullscreen) root.requestFullscreen().catch(() => {});
+            else if (!on && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+        } catch (_) { /* на iPhone Fullscreen API нет — работает режим «поверх страницы» */ }
+        chart.redraw();
+    }
+    bFull.addEventListener('click', () => setFull(!full));
+    bClose.addEventListener('click', () => setFull(false));
+
+    const onKey = e => {
+        if (e.key === 'Escape' && full) {
+            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+            setFull(false);
+        }
+    };
+    document.addEventListener('keydown', onKey, true);
+
+    async function attachTrades(key, candles) {
+        if (!cfg.historyBase || (key !== '1d' && key !== '1w' && key !== '1M')) return;
+        try {
+            const res = await fetchTradesMap(cfg);
+            if (destroyed || !res) return;
+            const dates = Object.keys(res.map).sort();
+            candles.forEach((c, i) => {
+                const d0 = c.t.slice(0, 10);
+                if (d0 < res.from) return;
+                if (key === '1d') {
+                    if (res.map[d0] !== undefined) c.n = res.map[d0];
+                    return;
+                }
+                const d1 = i + 1 < candles.length ? candles[i + 1].t.slice(0, 10) : '9999-12-31';
+                let sum = 0;
+                let any = false;
+                dates.forEach(d => { if (d >= d0 && d < d1) { sum += res.map[d]; any = true; } });
+                if (any) c.n = sum;
+            });
+            chart.redraw();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function select(key) {
+        Object.keys(tfBtns).forEach(k => { tfBtns[k].className = 'cp-btn' + (k === key ? ' active' : ''); });
+        const my = ++token;
+        note.textContent = 'Загрузка свечей...';
+        try {
+            let res = cache[key];
+            if (!res || Date.now() - res.t > 60000) {
+                res = await loadChartData(cfg, CHART_TF_MAP[key]);
+                res.t = Date.now();
+                cache[key] = res;
+            }
+            if (my !== token || destroyed) return;
+            chart.setData(res.candles, key);
+            note.textContent = res.candles.length
+                ? `${res.note} Свечей: ${res.candles.length}. Колесо / щипок — масштаб, перетаскивание — сдвиг, наведение или тап — подробности.` +
+                  (key === '1d' || key === '1w' || key === '1M' ? ' Число сделок — только за последние 2 года.' : ' Число сделок для этого таймфрейма MOEX не публикует.')
+                : 'Свечей за этот период нет (возможно, торги не проводились).';
+            attachTrades(key, res.candles);
+        } catch (e) {
+            console.error(e);
+            if (my === token) note.textContent = `Не удалось загрузить свечи: ${e.message}`;
+        }
+    }
+
+    select('1d');
+
+    return {
+        el: root,
+        select,
+        chart,
+        destroy() {
+            destroyed = true;
+            if (full) setFull(false);
+            if (root.parentNode === document.body) root.remove();
+            document.removeEventListener('keydown', onKey, true);
+            chart.destroy();
+            try { if (full && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen(); } catch (_) { /* ignore */ }
+        }
+    };
+}
+
+
+/* ====== ВЕБ-УТИЛИТЫ: чтение чужих сайтов через CORS-прокси, RSS, HTML-таблицы, Википедия ====== */
+
+/* Своя прокси-функция (например, Cloudflare Worker): шаблон адреса с {url}, хранится в браузере, задаётся на странице «Избранное». */
+function customProxyTemplate() {
+    try {
+        const t = String(localStorage.getItem('mx.proxy') || '').trim();
+        return t.includes('{url}') ? t : null;
+    } catch (_) {
+        return null;
+    }
+}
+
+/* Браузер не даёт читать чужие сайты напрямую (CORS), поэтому идём через прокси. Публичные прокси нестабильны,
+   поэтому пробуем все сразу и берём первый подходящий ответ. */
+function webProxyList() {
+    const list = [];
+    const custom = customProxyTemplate();
+    if (custom) list.push({ name: 'свой прокси', build: u => custom.replace('{url}', encodeURIComponent(u)), timeout: 20000 });
+    list.push(
+        { name: 'напрямую',   build: u => u,                                                               timeout: 6000 },
+        { name: 'allorigins', build: u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,  timeout: 15000 },
+        { name: 'jina',       build: u => `https://r.jina.ai/${u}`,                                        timeout: 25000 },
+        { name: 'codetabs',   build: u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`, timeout: 15000 },
+        { name: 'thingproxy', build: u => `https://thingproxy.freeboard.io/fetch/${u}`,                   timeout: 15000 }
+    );
+    return list;
+}
+const WEB_PROXIES = webProxyList();
+
+async function webBytes(url, timeout) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+        const r = await fetch(url, { cache: 'no-store', signal: controller.signal });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return new Uint8Array(await r.arrayBuffer());
+    } catch (e) {
+        if (e && e.name === 'AbortError') throw new Error('таймаут');
+        if (e instanceof TypeError) throw new Error('нет доступа (сеть/CORS)');
+        throw e;
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+/* Кодировка берётся из XML-заголовка / meta (бывает windows-1251). */
+function webDecode(bytes) {
+    let label = 'utf-8';
+    let head = '';
+    for (let i = 0; i < Math.min(bytes.length, 600); i++) head += String.fromCharCode(bytes[i]);
+    const m = head.match(/(?:encoding=|charset=)["']?([\w-]+)/i);
+    if (m) label = m[1].toLowerCase();
+    try {
+        return new TextDecoder(label).decode(bytes);
+    } catch (_) {
+        return new TextDecoder('utf-8').decode(bytes);
+    }
+}
+
+/* validate(text) → true, если ответ годится. Запросы идут параллельно; при неудаче в ошибке перечислены все прокси. */
+function fetchTextViaProxies(url, validate) {
+    const list = webProxyList();
+    const errors = [];
+    return new Promise((resolve, reject) => {
+        let pending = list.length;
+        let done = false;
+        list.forEach(p => {
+            (async () => {
+                try {
+                    const text = webDecode(await webBytes(p.build(url), p.timeout));
+                    if (validate && !validate(text)) throw new Error('ответ без нужных данных');
+                    if (!done) {
+                        done = true;
+                        resolve({ text, via: p.name });
+                    }
+                } catch (e) {
+                    errors.push(`${p.name}: ${e.message}`);
+                } finally {
+                    pending--;
+                    if (pending === 0 && !done) reject(new Error(errors.join('; ')));
+                }
+            })();
+        });
+    });
+}
+
+function decodeEntities(s) {
+    return s
+        .replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&#39;/g, "'")
+        .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+        .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+        .replace(/&amp;/g, '&');
+}
+
+function cleanHtml(s) {
+    if (!s) return '';
+    return decodeEntities(s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+}
+
+function tagOf(block, name) {
+    const m = block.match(new RegExp(`<${name}(?:\\s[^>]*)?>([\\s\\S]*?)</${name}>`, 'i'));
+    return m ? m[1] : '';
+}
+
+function parseFeed(text) {
+    const out = [];
+    const blocks = text.match(/<(item|entry)[\s>][\s\S]*?<\/\1>/gi) || [];
+    blocks.forEach(blk => {
+        const title = cleanHtml(tagOf(blk, 'title'));
+        let link = cleanHtml(tagOf(blk, 'link'));
+        if (!link) {
+            const m = blk.match(/<link[^>]*href=["']([^"']+)["']/i);
+            link = m ? decodeEntities(m[1]) : '';
+        }
+        if (!link) link = cleanHtml(tagOf(blk, 'guid'));
+        const date = cleanHtml(tagOf(blk, 'pubDate') || tagOf(blk, 'published') || tagOf(blk, 'updated') || tagOf(blk, 'dc:date'));
+        const ts = Date.parse(date);
+        const src = cleanHtml(tagOf(blk, 'source'));
+        if (title && /^https?:\/\//i.test(link)) out.push({ title, link, ts: Number.isFinite(ts) ? ts : null, src });
+    });
+    return out;
+}
+
+const RSS2JSON = u => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(u)}`;
+
+async function fetchFeedAny(url) {
+    let lastErr = null;
+    try {
+        const r = await fetchTextViaProxies(url, t => parseFeed(t).length > 0);
+        return { list: parseFeed(r.text), via: r.via };
+    } catch (e) {
+        lastErr = e;
+    }
+    try {
+        const r = await fetch(RSS2JSON(url), { cache: 'no-store' });
+        const j = await r.json();
+        if (j && j.status === 'ok' && Array.isArray(j.items) && j.items.length) {
+            const list = j.items
+                .map(it => ({ title: cleanHtml(it.title), link: String(it.link || ''), ts: Date.parse(String(it.pubDate || '').replace(' ', 'T') + 'Z'), src: '' }))
+                .filter(it => it.title && /^https?:\/\//i.test(it.link))
+                .map(it => ({ ...it, ts: Number.isFinite(it.ts) ? it.ts : null }));
+            if (list.length) return { list, via: 'rss2json' };
+        }
+    } catch (e) {
+        lastErr = e;
+    }
+    throw lastErr || new Error('нет ответа');
+}
+
+/* Есть ли в тексте таблица: HTML или markdown (так отвечает прокси jina). */
+function hasTable(t) {
+    return /<table/i.test(t) || /^\s*\|.+\|\s*$/m.test(t);
+}
+
+function mdClean(s) {
+    return String(s)
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+        .replace(/[*`]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function parseMarkdownTables(text) {
+    const tables = [];
+    let cur = null;
+    text.split(/\r?\n/).forEach(line => {
+        const t = line.trim();
+        if (/^\|.*\|$/.test(t)) {
+            const cells = t.slice(1, -1).split('|').map(mdClean);
+            if (cells.every(c => c === '' || /^:?-{2,}:?$/.test(c))) return; // строка-разделитель
+            if (!cur) { cur = []; tables.push(cur); }
+            cur.push(cells);
+        } else {
+            cur = null;
+        }
+    });
+    return tables.filter(t => t.length);
+}
+
+/* Все таблицы страницы (HTML и markdown): массив таблиц, каждая — массив строк, строка — массив текстов ячеек. */
+function parseHtmlTables(html) {
+    const tables = [];
+    (html.match(/<table[\s\S]*?<\/table>/gi) || []).forEach(t => {
+        const rows = [];
+        (t.match(/<tr[\s\S]*?<\/tr>/gi) || []).forEach(tr => {
+            const cells = (tr.match(/<t[hd][\s\S]*?<\/t[hd]>/gi) || []).map(cleanHtml);
+            if (cells.some(x => x !== '')) rows.push(cells);
+        });
+        if (rows.length) tables.push(rows);
+    });
+    return tables.concat(parseMarkdownTables(html));
+}
+
+/* Числа и даты из русских таблиц: «37,64₽», «13,6%», «1 059,5», «17.07.2026». */
+function ruNumber(s) {
+    if (s === null || s === undefined) return null;
+    const m = String(s).replace(/\u00a0/g, ' ').match(/-?\d[\d\s]*(?:[.,]\d+)?/);
+    if (!m) return null;
+    const n = Number(m[0].replace(/\s/g, '').replace(',', '.'));
+    return Number.isFinite(n) ? n : null;
+}
+
+function ruDate(s) {
+    const m = String(s || '').match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+    return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null;
+}
+
+/* Описание компании из Википедии (CORS открыт): подбор статьи по названию, может быть неточным. */
+async function wikiSummary(queries) {
+    for (const q of queries) {
+        if (!q) continue;
+        try {
+            const s = await fetchJson(
+                `https://ru.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&srlimit=3&format=json&origin=*`,
+                { retries: 1, timeout: 12000 });
+            const hits = s && s.query && s.query.search ? s.query.search : [];
+            for (const h of hits) {
+                const sum = await fetchJson(
+                    `https://ru.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(h.title.replace(/ /g, '_'))}`,
+                    { retries: 1, timeout: 12000 });
+                if (sum && sum.extract && sum.type !== 'disambiguation') {
+                    return {
+                        title: sum.title, extract: sum.extract, description: sum.description || '',
+                        url: sum.content_urls && sum.content_urls.desktop ? sum.content_urls.desktop.page : null, query: q
+                    };
+                }
+            }
+        } catch (e) {
+            console.error('wiki', q, e);
+        }
+    }
+    return null;
+}
+
+/* Новости по одной бумаге: Google News RSS по названию (через прокси). */
+async function loadSecurityNews(query) {
+    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=ru&gl=RU&ceid=RU:ru`;
+    const r = await fetchFeedAny(url);
+    const now = Date.now();
+    const seen = new Set();
+    const out = [];
+    r.list.forEach(it => {
+        let title = it.title;
+        let src = it.src;
+        const m = title.match(/^(.*)\s[-–—]\s([^-–—]{2,40})$/);
+        if (m) {
+            title = m[1];
+            if (!src) src = m[2];
+        }
+        const key = title.toLowerCase().replace(/[^a-zа-яё0-9]+/g, ' ').trim().slice(0, 70);
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push({ title, link: it.link, ts: it.ts || now, src: src || 'Google News' });
+    });
+    out.sort((a, b) => b.ts - a.ts);
+    return out;
+}
+
+function timeAgo(ts) {
+    const d = new Date(ts);
+    const diff = Date.now() - ts;
+    if (diff < 60 * 1000) return 'только что';
+    if (diff < 60 * 60 * 1000) return `${Math.round(diff / 60000)} мин назад`;
+    const pad = n => String(n).padStart(2, '0');
+    const hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return new Date().toDateString() === d.toDateString() ? `сегодня ${hm}` : `${pad(d.getDate())}.${pad(d.getMonth() + 1)}.${String(d.getFullYear()).slice(2)} ${hm}`;
+}
+
+
+/* ====== СТАКАН и НОВОСТИ БУМАГИ (общий код акций и облигаций) ====== */
+
+async function fetchOrderBook(url) {
+    const data = await fetchJson(url, { retries: 1, timeout: 12000 });
+    const blk = data.orderbook;
+    if (!blk || !Array.isArray(blk.data)) return { rows: [], updated: null };
+    const iS = col(blk.columns, 'BUYSELL');
+    const iP = col(blk.columns, 'PRICE');
+    const iQ = col(blk.columns, 'QUANTITY');
+    const iT = col(blk.columns, 'UPDATETIME');
+    const rows = blk.data
+        .map(r => ({ side: String(r[iS]).toUpperCase(), price: num(r[iP]), qty: num(r[iQ]), t: iT >= 0 ? r[iT] : null }))
+        .filter(r => r.price !== null && r.qty !== null && (r.side === 'B' || r.side === 'S'));
+    return { rows, updated: rows.length && rows[0].t ? rows[0].t : null };
+}
+
+/* cfg: { url, dec, bid, offer, bcsUrl } — продавцы красным, покупатели зелёным, максимальная глубина, которую отдаёт MOEX */
+function renderOrderBook(box, cfg) {
+    const fmt = v => nf(cfg.dec).format(v);
+    box.replaceChildren(mk('div', 'note', 'Загрузка стакана...'));
+
+    const refresh = mk('button', 'btn', '↻ Обновить стакан');
+    refresh.addEventListener('click', () => renderOrderBook(box, cfg));
+
+    fetchOrderBook(cfg.url).then(res => {
+        const parts = [mk('h4', null, 'Стакан заявок')];
+        const sells = res.rows.filter(r => r.side === 'S').sort((a, b) => b.price - a.price);
+        const buys = res.rows.filter(r => r.side === 'B').sort((a, b) => b.price - a.price);
+
+        if (!sells.length && !buys.length) {
+            parts.push(mk('div', 'note',
+                'MOEX не отдаёт стакан в бесплатном (задержанном) доступе, поэтому полноценной глубины здесь нет. ' +
+                'Лучшие цены из котировок ниже, а живой стакан смотрите в приложении брокера.'));
+            if (cfg.bid !== null && cfg.bid !== undefined) parts.push(rowEl('Лучшая цена покупки (бид)', fmt(cfg.bid), 'pos'));
+            if (cfg.offer !== null && cfg.offer !== undefined) parts.push(rowEl('Лучшая цена продажи (оффер)', fmt(cfg.offer), 'neg'));
+            if (cfg.bcsUrl) {
+                const a = mk('a', 'btn primary', 'Открыть стакан в БКС');
+                a.href = cfg.bcsUrl;
+                a.target = '_blank';
+                a.rel = 'noopener';
+                parts.push(a);
+            }
+            parts.push(refresh);
+            box.replaceChildren(...parts);
+            return;
+        }
+
+        const maxQty = Math.max(...res.rows.map(r => r.qty), 1);
+        const head = mk('div', 'ob-head');
+        head.append(mk('span', null, 'Цена'), mk('span', null, 'Объём (шт.)'));
+        parts.push(head);
+
+        const rowEl2 = (r, cls) => {
+            const row = mk('div', 'ob-row ' + cls);
+            const bar = mk('div', 'ob-bar');
+            bar.style.width = `${Math.max(2, (r.qty / maxQty) * 100)}%`;
+            row.append(bar, mk('span', null, fmt(r.price)), mk('span', null, nf(0).format(r.qty)));
+            return row;
+        };
+        sells.forEach(r => parts.push(rowEl2(r, 'ob-sell')));
+        if (sells.length && buys.length) {
+            const bestAsk = sells[sells.length - 1].price;
+            const bestBid = buys[0].price;
+            const sp = bestAsk - bestBid;
+            parts.push(mk('div', 'ob-spread', `Спред: ${fmt(sp)} (${nf(2).format((sp / bestAsk) * 100)} %)`));
+        }
+        buys.forEach(r => parts.push(rowEl2(r, 'ob-buy')));
+
+        const sumS = sells.reduce((s, r) => s + r.qty, 0);
+        const sumB = buys.reduce((s, r) => s + r.qty, 0);
+        parts.push(rowEl('Продавцов всего (шт.)', nf(0).format(sumS), 'neg'));
+        parts.push(rowEl('Покупателей всего (шт.)', nf(0).format(sumB), 'pos'));
+        parts.push(mk('div', 'note', `Уровней: ${sells.length} на продажу, ${buys.length} на покупку${res.updated ? `; обновлено ${res.updated}` : ''}. Глубина — максимум, который отдаёт MOEX.`));
+        parts.push(refresh);
+        box.replaceChildren(...parts);
+    }).catch(e => {
+        console.error(e);
+        // MOEX без подписки отдаёт стакан не JSON-ом (или закрывает доступ) — это не сбой, а ограничение бесплатного доступа
+        const unavailable = /некорректн|HTTP 40[134]/i.test(e.message);
+        const parts = [mk('h4', null, 'Стакан заявок'), mk('div', 'note', unavailable
+            ? 'MOEX не отдаёт стакан в бесплатном (задержанном) доступе, поэтому глубины здесь нет. Живой стакан смотрите в приложении брокера.'
+            : `Не удалось получить стакан: ${e.message}`)];
+        if (unavailable) {
+            if (cfg.bid !== null && cfg.bid !== undefined) parts.push(rowEl('Лучшая цена покупки (бид)', fmt(cfg.bid), 'pos'));
+            if (cfg.offer !== null && cfg.offer !== undefined) parts.push(rowEl('Лучшая цена продажи (оффер)', fmt(cfg.offer), 'neg'));
+        }
+        if (cfg.bcsUrl) {
+            const a = mk('a', 'btn primary', 'Открыть стакан в БКС');
+            a.href = cfg.bcsUrl;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            parts.push(a);
+        }
+        parts.push(refresh);
+        box.replaceChildren(...parts);
+    });
+}
+
+/* Вкладка «Новости»: только про эту бумагу. matcher(title) — отбор по названию/тикеру, если подходящих достаточно. */
+function renderNewsTab(box, query, matcher) {
+    box.replaceChildren(mk('h4', null, 'Новости по бумаге'), mk('div', 'note', 'Загрузка новостей...'));
+    loadSecurityNews(query).then(all => {
+        let list = all;
+        if (matcher) {
+            const f = all.filter(it => matcher(it.title));
+            if (f.length >= 3) list = f;
+        }
+        list = list.slice(0, 25);
+        const parts = [mk('h4', null, 'Новости по бумаге')];
+        if (!list.length) {
+            parts.push(mk('div', 'note', 'Свежих новостей не найдено.'));
+        } else {
+            list.forEach(it => {
+                const a = mk('a', 'news-line');
+                a.href = it.link;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.append(mk('div', 't', it.title));
+                const m = mk('div', 'm');
+                m.append(mk('b', null, it.src), ` · ${timeAgo(it.ts)}`);
+                a.append(m);
+                parts.push(a);
+            });
+        }
+        parts.push(mk('div', 'note', `Поиск новостей: «${query}» (Google News через прокси). Заголовки и ссылки принадлежат изданиям.`));
+        const again = mk('button', 'btn', '↻ Обновить новости');
+        again.addEventListener('click', () => renderNewsTab(box, query, matcher));
+        parts.push(again);
+        box.replaceChildren(...parts);
+    }).catch(e => {
+        console.error(e);
+        const again = mk('button', 'btn', '↻ Повторить');
+        again.addEventListener('click', () => renderNewsTab(box, query, matcher));
+        box.replaceChildren(mk('h4', null, 'Новости по бумаге'),
+            mk('div', 'note', `Не удалось загрузить новости: ${e.message}. Прокси могли быть недоступны (проверьте сеть и VPN).`), again);
+    });
+}
+
+/* Название для поиска: без «ПАО», «ао», «ап», серий и т.п. */
+function cleanCompanyName(name) {
+    return String(name || '')
+        .replace(/\b(ПАО|АО|ОАО|ЗАО|ООО|МКПАО|ао|ап|п|ап\.|ао\.|акции|обыкновенные|привилегированные|[0-9]+[-\s]?[ао]{2}|-ао|-ап|-п)\b/gi, ' ')
+        .replace(/[«»"()]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+
+/* ====== Внебиржевой рынок (OTC с ЦК) MOEX ====== */
+
+const VERSION = 'o1';
+const MOEX_ISS = 'https://iss.moex.com/iss';
+const STOCKS_PAGE = 'index.html';
+const BONDS_PAGE = 'bonds.html';
+const FAV_PAGE = 'favorites.html';
+const NEWS_PAGE = 'news.html';
+const COLOR_SCALE = { day: 2 };          // внебиржевые бумаги двигаются сильнее — шкала цветов вдвое мягче
+const REFRESH_MS = 30000;
+const KNOWN_OTC_BOARDS = [
+    { engine: 'stock', market: 'shares', board: 'MTQR', title: 'OTC: Акции (Стакан Т+1)' },
+    { engine: 'stock', market: 'shares', board: 'MPTR', title: 'OTC: РПС с ЦК Акции' }
+];
+
+const SORTS = [
+    ['color', 'Цвет (изменение)', -1],
+    ['turnover', 'Оборот', -1],
+    ['name', 'Название', 1],
+    ['price', 'Цена', -1],
+    ['spread', 'Спред', 1]
+];
+
+let type = new URLSearchParams(location.search).get('type') === 'foreign' ? 'foreign' : 'ru';
+let items = [];
+let boardsInfo = { list: [], via: '', errors: [] };
+let sortKey = 'color';
+let sortDir = -1;
+let query = '';
+let loading = false;
+let timer = null;
+let modalId = null;
+let modalTab = 'summary';
+let chartPanel = null;
+let newsFor = null;
+
+const $ = id => document.getElementById(id);
+const colIdx = cols => Object.fromEntries(cols.map((c, i) => [String(c).toUpperCase(), i]));
+
+function rowEl(label, value, cls) {
+    const r = mk('div', 'row');
+    r.append(mk('span', null, label), mk('span', cls || null, value));
+    return r;
+}
+
+function shortDate(dateStr) {
+    if (!dateStr) return '—';
+    const [y, m, d] = String(dateStr).slice(0, 10).split('-');
+    return `${d}.${m}.${y.slice(2)}`;
+}
+
+/* ---------- данные ---------- */
+
+/* Доски внебиржевого рынка акций ищем в общем справочнике досок MOEX (index.json), запасной вариант — MTQR и MPTR. */
+async function discoverBoards() {
+    const errors = [];
+    try {
+        const data = await fetchJson(`${MOEX_ISS}/index.json?iss.meta=off&iss.only=boards`, { retries: 1, timeout: 20000 });
+        const d = data.boards;
+        if (d && Array.isArray(d.data)) {
+            const iE = col(d.columns, 'engine_id');
+            const iM = col(d.columns, 'market_id');
+            const iB = col(d.columns, 'boardid');
+            const iT = col(d.columns, 'board_title');
+            const iTr = col(d.columns, 'is_traded');
+            const list = [];
+            d.data.forEach(r => {
+                const board = String(r[iB]);
+                const title = String(r[iT] || '');
+                if (String(r[iE]) !== 'stock') return;
+                if (iTr >= 0 && Number(r[iTr]) === 0) return;
+                if (/облиг|bond/i.test(title)) return;
+                if (/^(MTQR|MPTR)$/i.test(board) || /(otc|внебирж)/i.test(title)) {
+                    list.push({ engine: 'stock', market: String(r[iM]), board, title });
+                }
+            });
+            if (list.length) return { list, via: 'справочник досок MOEX', errors };
+            errors.push('в справочнике досок нет внебиржевых досок акций');
+        }
+    } catch (e) {
+        errors.push(`справочник досок: ${e.message}`);
+    }
+    return { list: KNOWN_OTC_BOARDS, via: 'запасной список (MTQR, MPTR)', errors };
+}
+
+async function fetchOtcBoard(b) {
+    const url =
+        `${MOEX_ISS}/engines/${b.engine}/markets/${b.market}/boards/${b.board}/securities.json?iss.meta=off&iss.only=securities,marketdata` +
+        `&securities.columns=SECID,BOARDID,SHORTNAME,SECNAME,ISIN,PREVPRICE,PREVLEGALCLOSEPRICE,DECIMALS,LOTSIZE,CURRENCYID,FACEUNIT` +
+        `&marketdata.columns=SECID,BOARDID,BID,OFFER,OPEN,LOW,HIGH,LAST,LASTCHANGEPRCNT,VALTODAY,VOLTODAY,NUMTRADES,WAPRICE,MARKETPRICE`;
+    const data = await fetchJson(url);
+    const sec = data.securities;
+    const md = data.marketdata;
+    if (!sec || !Array.isArray(sec.data)) throw new Error('пустой список');
+    const si = colIdx(sec.columns);
+    const mi = md && md.columns ? colIdx(md.columns) : {};
+    const map = new Map();
+    sec.data.forEach(r => {
+        const id = r[si.SECID];
+        if (!id) return;
+        map.set(id, {
+            id, board: b.board, market: b.market, engine: b.engine, boardTitle: b.title,
+            name: r[si.SHORTNAME] || id, secname: r[si.SECNAME] || null, isin: r[si.ISIN] || null,
+            prev: num(r[si.PREVPRICE]) ?? num(r[si.PREVLEGALCLOSEPRICE]), decimals: num(r[si.DECIMALS]),
+            lot: num(r[si.LOTSIZE]), cur: r[si.CURRENCYID] || r[si.FACEUNIT] || null,
+            last: null, bid: null, offer: null, open: null, low: null, high: null,
+            valToday: null, volToday: null, trades: null, wap: null, mp: null
+        });
+    });
+    if (md && Array.isArray(md.data)) {
+        md.data.forEach(r => {
+            const it = map.get(r[mi.SECID]);
+            if (!it) return;
+            it.last = num(r[mi.LAST]);
+            it.bid = num(r[mi.BID]);
+            it.offer = num(r[mi.OFFER]);
+            it.open = num(r[mi.OPEN]);
+            it.low = num(r[mi.LOW]);
+            it.high = num(r[mi.HIGH]);
+            it.valToday = num(r[mi.VALTODAY]);
+            it.volToday = num(r[mi.VOLTODAY]);
+            it.trades = num(r[mi.NUMTRADES]);
+            it.wap = num(r[mi.WAPRICE]);
+            it.mp = num(r[mi.MARKETPRICE]);
+        });
+    }
+    return Array.from(map.values());
+}
+
+function decorate(it) {
+    it.price = it.last ?? it.prev ?? it.wap ?? it.mp ?? null;
+    it.change = it.price !== null && it.prev ? (it.price / it.prev - 1) * 100 : null;
+    it.foreign = !!it.isin && !/^RU/i.test(it.isin);
+    it.spread = it.bid && it.offer && it.offer > 0 ? ((it.offer - it.bid) / it.offer) * 100 : null;
+    return it;
+}
+
+async function loadAll() {
+    if (loading) return;
+    loading = true;
+    const stop = items.length ? null : showProgress('Загрузка внебиржевого рынка');
+    if (!boardsInfo.list.length) boardsInfo = await discoverBoards();
+    const results = await Promise.allSettled(boardsInfo.list.map(fetchOtcBoard));
+    if (stop) stop();
+
+    const errors = boardsInfo.errors.slice();
+    const merged = new Map();
+    results.forEach((r, i) => {
+        const b = boardsInfo.list[i];
+        if (r.status !== 'fulfilled') {
+            errors.push(`${b.board}: ${r.reason && r.reason.message ? r.reason.message : 'ошибка'}`);
+            return;
+        }
+        r.value.forEach(it => {
+            decorate(it);
+            const cur = merged.get(it.id);
+            if (!cur || (it.valToday || 0) > (cur.valToday || 0) || (cur.last === null && it.last !== null)) merged.set(it.id, it);
+        });
+    });
+    items = Array.from(merged.values()).filter(it => it.price !== null);
+    loading = false;
+    render();
+
+    if (!items.length) {
+        setStatus('error', `Внебиржевые бумаги не загрузились (${errors.join('; ') || 'пустой ответ MOEX'}). Нажмите «Обновить».`);
+    } else {
+        setStatus(errors.length ? 'warn' : 'ok',
+            `Обновлено ${new Date().toLocaleTimeString('ru-RU')}: ${items.length} бумаг · доски ${boardsInfo.list.map(b => b.board).join(', ')} · ${VERSION}` +
+            (errors.length ? ` · проблемы: ${errors.join('; ')}` : ''));
+    }
+    if (modalId) renderLive();
+}
+
+/* ---------- плитки ---------- */
+
+function sortValue(it, key) {
+    switch (key) {
+        case 'name': return String(it.name).toLowerCase();
+        case 'turnover': return it.valToday;
+        case 'price': return it.price;
+        case 'spread': return it.spread;
+        default: {
+            const c = it.change;
+            return c === null || Math.round(c * 100) / 100 === 0 ? null : c;
+        }
+    }
+}
+
+function visibleItems() {
+    let list = items.filter(it => (type === 'foreign') === it.foreign);
+    if (query) list = list.filter(it => `${it.name} ${it.id} ${it.secname || ''} ${it.isin || ''}`.toLowerCase().includes(query));
+    const dec = list.map(it => ({ it, v: sortValue(it, sortKey) }));
+    dec.sort((a, b) => {
+        if (a.v === null && b.v === null) return String(a.it.name).localeCompare(String(b.it.name));
+        if (a.v === null) return 1;
+        if (b.v === null) return -1;
+        if (a.v === b.v) return String(a.it.name).localeCompare(String(b.it.name));
+        if (typeof a.v === 'string') return sortDir * a.v.localeCompare(b.v);
+        return sortDir * (a.v - b.v);
+    });
+    return dec.map(d => d.it);
+}
+
+function metricText(it) {
+    switch (sortKey) {
+        case 'turnover': return it.valToday ? `Оборот ${formatMoney(it.valToday)}` : 'нет сделок';
+        case 'spread': return it.spread !== null ? `Спред ${nf(1).format(it.spread)} %` : 'нет заявок';
+        case 'price': return it.cur && it.cur !== 'SUR' ? it.cur : '';
+        default: return it.valToday ? `Оборот ${formatMoney(it.valToday)}` : it.isin ? it.isin.slice(0, 2) : '';
+    }
+}
+
+function createTile(it) {
+    const card = mk('div', 'card ' + getBgClass(it.change, 'day'));
+    card.dataset.id = it.id;
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+    const left = mk('div', 'card-left');
+    const nameEl = mk('div', 'name', it.name);
+    nameEl.title = `${it.secname || it.name} (${it.id})${it.isin ? ' · ' + it.isin : ''}`;
+    left.append(nameEl, mk('div', 'price', `${formatPrice(it.price, it.decimals)} ₽`));
+    const right = mk('div', 'card-right');
+    right.append(mk('div', 'change', formatChange(it.change)), mk('div', 'delta', metricText(it)));
+    card.append(left, right);
+    card.addEventListener('click', () => openItem(it.id));
+    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openItem(it.id); } });
+    return card;
+}
+
+function render() {
+    const list = visibleItems();
+    const label = type === 'foreign' ? 'иностранных' : 'российских';
+    $('otcNote').textContent = items.length
+        ? `${label[0].toUpperCase() + label.slice(1)} акций на внебиржевом рынке: ${list.length}${query ? ' (по поиску)' : ''}. ` +
+          'OTC с центральным контрагентом: ликвидность низкая, спреды широкие, цены «последней сделки» могут быть давними. ' +
+          'Покупка доступна только квалифицированным инвесторам, продажа — любым. Данные с задержкой.'
+        : '';
+    $('grid').replaceChildren(...list.map(createTile));
+    renderControls();
+}
+
+function renderControls() {
+    $('typeSwitch').replaceChildren(...[['ru', 'Российские'], ['foreign', 'Иностранные']].map(([k, label]) => {
+        const b = mk('button', type === k ? 'active' : null, label);
+        b.addEventListener('click', () => {
+            type = k;
+            try { history.replaceState(null, '', `?type=${k}`); } catch (_) { /* ignore */ }
+            document.title = k === 'ru' ? 'Внебиржа: российские акции' : 'Внебиржа: иностранные акции';
+            render();
+        });
+        return b;
+    }));
+    $('sorts').replaceChildren(...SORTS.map(([k, label, dir]) => {
+        const active = sortKey === k;
+        const b = mk('button', active ? 'active' : null, label + (active ? (sortDir < 0 ? ' ↓' : ' ↑') : ''));
+        b.addEventListener('click', () => {
+            if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = dir; }
+            render();
+        });
+        return b;
+    }));
+    $('navRu').className = type === 'ru' ? 'active' : '';
+    $('navFn').className = type === 'foreign' ? 'active' : '';
+}
+
+/* ---------- карточка ---------- */
+
+function openItem(id) {
+    const it = items.find(x => x.id === id);
+    if (!it) return;
+    modalId = id;
+    $('modal').hidden = false;
+    document.body.style.overflow = 'hidden';
+    $('modalTitle').textContent = `${it.name} (${it.id})`;
+    $('modalSub').textContent = `${it.secname || ''}${it.isin ? ' · ' + it.isin : ''}`;
+    setModalTab('summary');
+    renderLive();
+
+    if (chartPanel) chartPanel.destroy();
+    const enc = encodeURIComponent(it.id);
+    chartPanel = makeChartPanel({
+        candlesBase: `${MOEX_ISS}/engines/${it.engine}/markets/${it.market}/boards/${it.board}/securities/${enc}`,
+        historyBase: `${MOEX_ISS}/history/engines/${it.engine}/markets/${it.market}/boards/${it.board}/securities/${enc}`,
+        decimals: it.decimals
+    });
+    $('modalChart').replaceChildren(mk('h4', null, 'График'), chartPanel.el);
+}
+
+function closeItem() {
+    if (chartPanel) { chartPanel.destroy(); chartPanel = null; }
+    $('modalChart').replaceChildren();
+    modalId = null;
+    newsFor = null;
+    $('modal').hidden = true;
+    document.body.style.overflow = '';
+}
+
+function setModalTab(tab) {
+    modalTab = tab;
+    ['summary', 'news'].forEach(t => {
+        const cap = t[0].toUpperCase() + t.slice(1);
+        $('pane' + cap).hidden = t !== tab;
+        $('tab' + cap).className = 'tab' + (t === tab ? ' active' : '');
+    });
+    if (tab === 'news' && modalId) renderNews();
+}
+
+function renderLive() {
+    const it = modalId && items.find(x => x.id === modalId);
+    if (!it) return;
+    const dec = it.decimals;
+    const rows = [mk('h4', null, 'Сводка')];
+    rows.push(rowEl('Цена', `${formatPrice(it.price, dec)} ₽`));
+    rows.push(rowEl('Изменение за день', formatChange(it.change), signCls(it.change)));
+    rows.push(rowEl('Предыдущее закрытие', it.prev !== null ? `${formatPrice(it.prev, dec)} ₽` : '—'));
+    rows.push(rowEl('Последняя сделка', it.last !== null ? `${formatPrice(it.last, dec)} ₽` : 'сегодня сделок не было'));
+    rows.push(rowEl('Открытие / минимум / максимум', [it.open, it.low, it.high].map(v => (v !== null ? formatPrice(v, dec) : '—')).join(' / ')));
+    rows.push(rowEl('Покупка / продажа (заявки)', `${it.bid !== null ? formatPrice(it.bid, dec) : '—'} / ${it.offer !== null ? formatPrice(it.offer, dec) : '—'}`));
+    if (it.spread !== null) rows.push(rowEl('Спред', `${nf(2).format(it.spread)} %`, it.spread > 3 ? 'neg' : ''));
+    rows.push(rowEl('Объём торгов, шт.', formatInt(it.volToday)));
+    rows.push(rowEl('Оборот, ₽', formatMoney(it.valToday)));
+    rows.push(rowEl('Сделок', formatInt(it.trades)));
+    if (it.wap !== null) rows.push(rowEl('Средневзвешенная цена', `${formatPrice(it.wap, dec)} ₽`));
+    if (it.lot) rows.push(rowEl('Размер лота', `${formatInt(it.lot)} шт.`));
+    rows.push(rowEl('Тип', it.foreign ? `Иностранная акция (${String(it.isin).slice(0, 2)})` : 'Российская акция'));
+    rows.push(rowEl('Режим торгов', `${it.boardTitle || it.board} (${it.board})`));
+    rows.push(mk('div', 'note',
+        'Внебиржевой рынок с центральным контрагентом: ликвидность низкая, цены могут сильно отличаться от справедливых. ' +
+        'Покупать могут только квалифицированные инвесторы. Данные MOEX с задержкой около 15 минут. Не инвестиционная рекомендация.'));
+    $('modalLive').replaceChildren(...rows);
+}
+
+function renderNews() {
+    const it = modalId && items.find(x => x.id === modalId);
+    if (!it || newsFor === it.id) return;
+    newsFor = it.id;
+    const nm = cleanCompanyName(it.secname || it.name) || it.name;
+    const stem = nm.toLowerCase().slice(0, 6);
+    renderNewsTab($('modalNews'), `${nm} акции`, title => {
+        const t = title.toLowerCase();
+        return t.includes(it.id.toLowerCase()) || (stem && t.includes(stem));
+    });
+}
+
+/* ---------- события ---------- */
+
+$('stocksLink').href = STOCKS_PAGE;
+$('bondsLink').href = BONDS_PAGE;
+$('favLink').href = FAV_PAGE;
+$('newsLink').href = NEWS_PAGE;
+$('logoutLink').addEventListener('click', e => {
+    e.preventDefault();
+    try { sessionStorage.removeItem('mx_k'); } catch (_) { /* ignore */ }
+    location.reload();
+});
+$('refreshBtn').addEventListener('click', () => { boardsInfo = { list: [], via: '', errors: [] }; loadAll(); });
+$('searchInput').addEventListener('input', e => { query = String(e.target.value || '').trim().toLowerCase(); render(); });
+$('modalClose').addEventListener('click', closeItem);
+$('modal').addEventListener('click', e => { if (e.target === $('modal')) closeItem(); });
+$('tabSummary').addEventListener('click', () => setModalTab('summary'));
+$('tabNews').addEventListener('click', () => setModalTab('news'));
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && modalId) closeItem(); });
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { if (timer) clearInterval(timer); timer = null; }
+    else { loadAll(); timer = setInterval(loadAll, REFRESH_MS); }
+});
+
+document.title = type === 'ru' ? 'Внебиржа: российские акции' : 'Внебиржа: иностранные акции';
+renderControls();
+loadAll();
+timer = setInterval(loadAll, REFRESH_MS);
+
+</script>
+</body>
+</html>
