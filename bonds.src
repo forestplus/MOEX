@@ -2839,9 +2839,213 @@ document.addEventListener('visibilitychange', () => {
     }
 });
 
+
+/* ====== КАЛЕНДАРЬ КУПОНОВ ПО МЕСЯЦАМ (на 12 месяцев вперёд) ====== */
+
+const CAL_KEY = 'mx.couponCal.v1';
+const CAL_TTL = 12 * 3600 * 1000;
+const CAL_CONCURRENCY = 6;
+const CAL_MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+let couponCal = null;        // { t, months: { 'YYYY-MM': [ {secid, name, board, isOfz, date, value, pct} ] } }
+let couponCalBusy = false;
+let couponCalFilter = 'all'; // 'all' | 'ofz' | 'corp'
+
+function calStoreGet() {
+    try {
+        const raw = localStorage.getItem(CAL_KEY);
+        const c = raw ? JSON.parse(raw) : null;
+        if (c && c.months && Date.now() - c.t < CAL_TTL) return c;
+    } catch (_) { /* приватный режим или повреждённые данные */ }
+    return null;
+}
+
+function calStoreSet(value) {
+    try { localStorage.setItem(CAL_KEY, JSON.stringify(value)); } catch (_) { /* квота */ }
+}
+
+async function calLoadCouponsFor(b, today, end) {
+    const enc = encodeURIComponent(b.secid);
+    const out = [];
+    let start = 0;
+    for (let page = 0; page < 6; page++) {
+        const data = await fetchJson(
+            `${MOEX_ISS}/securities/${enc}/bondization.json?iss.meta=off&iss.only=coupons&limit=100&start=${start}`,
+            { retries: 1, timeout: 15000 });
+        const blk = data.coupons;
+        if (!blk || !Array.isArray(blk.data)) break;
+        const iD = col(blk.columns, 'coupondate');
+        const iV = col(blk.columns, 'value');
+        const iP = col(blk.columns, 'valueprc');
+        let reachedEnd = false;
+        blk.data.forEach(r => {
+            const d = r[iD] ? String(r[iD]).slice(0, 10) : null;
+            if (!d) return;
+            if (d > end) { reachedEnd = true; return; }
+            if (d < today) return;
+            out.push({
+                secid: b.secid,
+                name: b.name,
+                board: b.board,
+                isOfz: !!b.isOfz,
+                date: d,
+                value: num(r[iV]),
+                pct: num(r[iP])
+            });
+        });
+        if (reachedEnd || blk.data.length < 100) break;
+        start += blk.data.length;
+    }
+    return out;
+}
+
+async function buildCouponCalendar(onProgress) {
+    const today = moscowDateStr(new Date());
+    const end = shiftDateStr(today, { months: 12 });
+    const list = Object.values(bondById).filter(b => !b.matDate || String(b.matDate).slice(0, 10) >= today);
+
+    const months = {};
+    let done = 0;
+    let i = 0;
+    const workers = Array.from({ length: CAL_CONCURRENCY }, async () => {
+        while (i < list.length) {
+            const b = list[i++];
+            try {
+                const cps = await calLoadCouponsFor(b, today, end);
+                cps.forEach(c => {
+                    const m = c.date.slice(0, 7);
+                    (months[m] = months[m] || []).push(c);
+                });
+            } catch (e) {
+                console.error('coupons', b.secid, e);
+            }
+            done++;
+            if (onProgress) onProgress(done, list.length);
+        }
+    });
+    await Promise.all(workers);
+
+    Object.keys(months).forEach(m => months[m].sort((a, c) => a.date.localeCompare(c.date)));
+    return { t: Date.now(), months };
+}
+
+function calFilterList(list) {
+    if (couponCalFilter === 'ofz') return list.filter(c => c.isOfz);
+    if (couponCalFilter === 'corp') return list.filter(c => !c.isOfz);
+    return list;
+}
+
+function renderCouponCal() {
+    const box = document.getElementById('couponCal');
+    if (!box) return;
+    box.replaceChildren();
+
+    box.append(mk('h4', 'block-title', 'Купоны по месяцам: ближайшие 12 месяцев'));
+
+    const filters = mk('div', 'sorts');
+    [['all', 'Все'], ['ofz', 'Только ОФЗ'], ['corp', 'Только корпоративные']].forEach(([key, label]) => {
+        const btn = mk('button', couponCalFilter === key ? 'active' : null, label);
+        btn.addEventListener('click', () => {
+            couponCalFilter = key;
+            renderCouponCal();
+        });
+        filters.append(btn);
+    });
+    const refresh = mk('button', null, '↻ Обновить календарь');
+    refresh.addEventListener('click', () => loadCouponCalendar(true));
+    filters.append(refresh);
+    box.append(filters);
+
+    if (!couponCal) {
+        box.append(mk('div', 'block-note', 'Календарь ещё не загружен.'));
+        return;
+    }
+
+    const keys = Object.keys(couponCal.months).sort();
+    if (!keys.length) {
+        box.append(mk('div', 'block-note', 'Купонов на ближайший год не найдено.'));
+        return;
+    }
+
+    keys.forEach(key => {
+        const list = calFilterList(couponCal.months[key]);
+        if (!list.length) return;
+        const [y, m] = key.split('-').map(Number);
+        box.append(mk('div', 'block-title', `${CAL_MONTHS_RU[m - 1]} ${y} · выплат: ${list.length}`));
+        const grid = mk('div', 'grid');
+        list.forEach(c => {
+            const tile = mk('div', 'card bg-neutral');
+            const left = mk('div', 'card-left');
+            left.append(mk('div', 'name', c.name), mk('div', 'price', c.secid));
+            const right = mk('div', 'card-right');
+            const amount = c.value !== null ? `${nf(2).format(c.value)} ₽` : '—';
+            const pctText = c.pct !== null ? ` · ${formatPct(c.pct)}` : '';
+            right.append(
+                mk('div', 'change', amount),
+                mk('div', 'delta', `${shortDate(c.date)}${pctText}`)
+            );
+            tile.append(left, right);
+            tile.addEventListener('click', () => {
+                if (bondById[c.secid]) openBond(c.secid);
+            });
+            grid.append(tile);
+        });
+        box.append(grid);
+    });
+}
+
+async function loadCouponCalendar(force) {
+    if (couponCalBusy) return;
+    const box = document.getElementById('couponCal');
+    if (!box) return;
+
+    if (!force) {
+        const cached = calStoreGet();
+        if (cached) {
+            couponCal = cached;
+            renderCouponCal();
+            return;
+        }
+    }
+
+    couponCalBusy = true;
+    box.replaceChildren(
+        mk('h4', 'block-title', 'Купоны по месяцам: ближайшие 12 месяцев'),
+        mk('div', 'block-note', 'Загрузка купонов по всем облигациям, это может занять минуту и больше...')
+    );
+
+    try {
+        couponCal = await buildCouponCalendar((done, total) => {
+            const note = box.querySelector('.block-note');
+            if (note) note.textContent = `Загрузка купонов: ${done} из ${total}`;
+        });
+        calStoreSet(couponCal);
+    } catch (e) {
+        console.error(e);
+        box.replaceChildren(mk('div', 'block-note', `Не удалось загрузить календарь: ${e.message}`));
+        couponCalBusy = false;
+        return;
+    }
+    couponCalBusy = false;
+    renderCouponCal();
+}
+
+function initCouponCal() {
+    if (document.getElementById('couponCal')) return;
+    const d = mk('div');
+    d.id = 'couponCal';
+    d.style.marginTop = '18px';
+    const anchor = document.getElementById('blocks') || document.getElementById('more');
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(d, anchor.nextSibling);
+    else document.body.append(d);
+    loadCouponCalendar(false);
+}
+
 renderSorts();
 initBlocks();
 start();
+initCouponCal();
 </script>
 </body>
 </html>
