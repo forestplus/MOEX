@@ -24,7 +24,8 @@ class BcsClient:
             "client_id": CLIENT_ID,
             "refresh_token": self._refresh,
         }, timeout=self._timeout)
-        r.raise_for_status()
+        if r.status_code != 200:
+            raise RuntimeError(f"Авторизация BCS: HTTP {r.status_code}, ответ: {r.text[:300]}")
         j = r.json()
         self._access = j["access_token"]
         self._expires_at = time.time() + int(j.get("expires_in", 86400))
@@ -33,13 +34,12 @@ class BcsClient:
 
     def _request(self, method, path, **kw):
         self._auth()
-        r = self._s.request(method, BASE + path,
-                            headers={"Authorization": f"Bearer {self._access}"},
+        headers = {"Authorization": f"Bearer {self._access}"}
+        r = self._s.request(method, BASE + path, headers=headers,
                             timeout=self._timeout, **kw)
-        if r.status_code == 429:  # лимит запросов: короткая пауза и повтор
+        if r.status_code == 429:  # лимит запросов: пауза и повтор
             time.sleep(2)
-            r = self._s.request(method, BASE + path,
-                                headers={"Authorization": f"Bearer {self._access}"},
+            r = self._s.request(method, BASE + path, headers=headers,
                                 timeout=self._timeout, **kw)
         r.raise_for_status()
         return r.json()
