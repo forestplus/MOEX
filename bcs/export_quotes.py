@@ -4,15 +4,15 @@ import pathlib
 from datetime import datetime, timezone
 from bcs_client import BcsClient
 
-TICKERS = pathlib.Path("bcs/tickers.txt")
-OUT = pathlib.Path("data/bcs_quotes.json")
+TICKERS = pathlib.Path("tickers.txt")
+OUT = pathlib.Path("../data/bcs_quotes.json")
 
 
 def main():
     tickers = [t.strip() for t in TICKERS.read_text(encoding="utf-8").splitlines()
                if t.strip() and not t.startswith("#")]
     c = BcsClient(os.environ["BCS_API_KEY_READ"])
-    # ПРОВЕРИТЬ формат: здесь предполагается список инструментов с тикером и classCode
+    # ПРОВЕРИТЬ формат тела запроса по документации get-quotes
     payload = {"instruments": [{"ticker": t, "classCode": "TQBR"} for t in tickers]}
     data = c.quotes(payload)
 
