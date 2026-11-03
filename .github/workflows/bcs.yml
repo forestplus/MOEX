@@ -1,0 +1,37 @@
+name: BCS API
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/30 6-16 * * 1-5"   # примерно в торговые часы МСК (UTC)
+
+permissions:
+  contents: write
+
+jobs:
+  bcs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+
+      - name: Check token
+        working-directory: bcs
+        env:
+          BCS_API_KEY_READ: ${{ secrets.BCS_API_KEY_READ }}
+        run: python check_token.py
+
+      - name: Export quotes
+        working-directory: bcs
+        env:
+          BCS_API_KEY_READ: ${{ secrets.BCS_API_KEY_READ }}
+        run: python export_quotes.py
+
+      - name: Commit data
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add data/bcs_quotes.json
+          git diff --cached --quiet || (git commit -m "BCS quotes update" && git push)
