@@ -9,9 +9,8 @@ def main():
     try:
         c._auth()
         print("OK: access-токен получен")
-    except requests.HTTPError as e:
-        print(f"FAIL: авторизация, HTTP {e.response.status_code}. "
-              "Проверьте токен, client_id и срок действия (90 дней).")
+    except RuntimeError as e:
+        print("FAIL:", e)
         sys.exit(1)
 
     try:
