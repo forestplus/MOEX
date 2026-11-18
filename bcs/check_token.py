@@ -1,29 +1,55 @@
+"""
+Проверка токена БКС: получает access-токен и дёргает /portfolio.
+Печатает срок жизни refresh-токена и предупреждает, если осталось меньше WARN_DAYS дней.
+Если токен ротирован — кладёт новый в RUNTIME_DIR/new_refresh_token (для workflow).
+"""
+
 import os
+import pathlib
 import sys
-import requests
+
 from bcs_client import BcsClient
 
+WARN_DAYS = 10
+RUNTIME_DIR = pathlib.Path(__file__).parent / ".runtime"
 
-def main():
-    c = BcsClient(os.environ.get("BCS_API_KEY_READ", ""))
+
+def save_rotated_token(new_token: str, _expires_in):
+    RUNTIME_DIR.mkdir(exist_ok=True)
+    (RUNTIME_DIR / "new_refresh_token").write_text(new_token, encoding="utf-8")
+    print("ВНИМАНИЕ: BCS ротировал refresh-токен, новый сохранён для обновления секрета")
+
+
+def make_client() -> BcsClient:
+    return BcsClient(os.environ.get("BCS_API_KEY_READ", ""), on_refresh=save_rotated_token)
+
+
+def check_token(c: BcsClient) -> bool:
     try:
-        c._auth()
+        c._auth()  # noqa: SLF001 — сознательно проверяем сам обмен токена
         print("OK: access-токен получен")
     except RuntimeError as e:
         print("FAIL:", e)
-        sys.exit(1)
+        return False
+
+    if c.refresh_expires_in is not None:
+        days = c.refresh_expires_in // 86400
+        print(f"Refresh-токен живёт ещё ~{days} дн.")
+        if days < WARN_DAYS:
+            print(f"ВНИМАНИЕ: меньше {WARN_DAYS} дней! Перевыпустите токен в «БКС Мир инвестиций» "
+                  "и обновите секрет BCS_API_KEY_READ")
 
     try:
         p = c.portfolio()
-        # Печатаем только названия полей, без значений и номеров счёта
         if isinstance(p, dict):
-            print("OK: /api/v1/portfolio, поля верхнего уровня:", sorted(p.keys()))
+            print("OK: /portfolio, поля верхнего уровня:", sorted(p.keys()))
         else:
-            print("OK: /api/v1/portfolio, тип ответа:", type(p).__name__)
-    except requests.HTTPError as e:
-        print(f"FAIL: портфель, HTTP {e.response.status_code}")
-        sys.exit(1)
+            print("OK: /portfolio, тип ответа:", type(p).__name__)
+        return True
+    except Exception as e:  # портфель может быть недоступен при валидном токене
+        print("FAIL: /portfolio:", e)
+        return False
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(0 if check_token(make_client()) else 1)

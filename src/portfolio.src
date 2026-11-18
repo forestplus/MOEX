@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Портфель БКС — аналитика</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, Helvetica, sans-serif; background: #f0f0f0; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 1200px; background: #fff; padding: 16px; box-shadow: 0 2px 10px rgba(0,0,0,.1); }
+        .nav { display: flex; gap: 8px; margin-bottom: 10px; font-size: 14px; flex-wrap: wrap; }
+        .nav a { padding: 4px 14px; border: 1px solid #ccc; border-radius: 16px; color: #333; text-decoration: none; background: #fff; }
+        .nav a.active { background: #2e7d32; color: #fff; border-color: #2e7d32; }
+        .nav a.logout { margin-left: auto; color: #777; }
+        .header { display: flex; align-items: center; margin-bottom: 10px; font-size: 14px; color: #333; flex-wrap: wrap; gap: 10px; }
+        .header button { padding: 4px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; background: #fff; cursor: pointer; }
+        .header button:hover { background: #f5f5f5; }
+        .status { font-size: 12px; color: #666; }
+        .status.error { color: #c00; font-weight: bold; }
+        .status.ok { color: #2e7d32; }
+        .status.loading { color: #f57c00; }
+
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-bottom: 12px; }
+        .stat { border: 1px solid #eee; border-radius: 8px; padding: 10px 12px; background: #fafafa; }
+        .stat .lbl { font-size: 11px; color: #777; margin-bottom: 4px; }
+        .stat .val { font-size: 18px; font-weight: bold; color: #222; }
+        .stat .sub { font-size: 12px; margin-top: 2px; }
+        .pos { color: #2e7d32; font-weight: bold; }
+        .neg { color: #c62828; font-weight: bold; }
+
+        .alloc { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: #eee; margin: 4px 0 2px; }
+        .alloc span { display: block; height: 100%; }
+        .alloc-cap { font-size: 11px; color: #777; margin-bottom: 12px; }
+
+        table.pf { width: 100%; border-collapse: collapse; font-size: 13px; }
+        table.pf th { text-align: right; font-size: 11px; color: #777; padding: 6px 8px; border-bottom: 2px solid #e0e0e0; cursor: pointer; user-select: none; white-space: nowrap; }
+        table.pf th:first-child, table.pf td:first-child { text-align: left; }
+        table.pf th.sorted { color: #1565c0; }
+        table.pf td { text-align: right; padding: 7px 8px; border-bottom: 1px solid #f0f0f0; white-space: nowrap; }
+        table.pf tr:hover td { background: #f7fbff; }
+        table.pf td.tk { font-weight: bold; color: #1565c0; }
+        table.pf td.nm { max-width: 220px; overflow: hidden; text-overflow: ellipsis; color: #555; font-weight: normal; }
+        table.pf tr.cash td { background: #fbfbf6; font-style: italic; }
+        table.pf tr.total td { border-top: 2px solid #e0e0e0; border-bottom: none; font-weight: bold; }
+
+        .note { font-size: 12px; color: #777; line-height: 1.5; margin-top: 12px; }
+        .empty { border: 2px dashed #f9a825; background: #fffde7; border-radius: 8px; padding: 14px 16px; font-size: 13px; line-height: 1.6; color: #333; }
+        .empty code { background: #f0f0f0; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+        @media (max-width: 760px) {
+            table.pf td.nm { display: none; }
+            table.pf th:nth-child(2) { display: none; }
+            body { padding: 8px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="nav">
+        <a href="index.html" id="stocksLink">Акции</a>
+        <a href="bonds.html" id="bondsLink">Облигации</a>
+        <a href="favorites.html" id="favLink">Избранное</a>
+        <a href="news.html" id="newsLink">Новости</a>
+        <a href="otc.html?type=ru" id="otcLink">Внебиржа</a>
+        <a href="#" class="active">Портфель</a>
+        <a href="#" id="logoutLink" class="logout">Выйти</a>
+    </div>
+    <div class="header">
+        <strong>Портфель БКС</strong>
+        <button id="reloadBtn" title="Перезагрузить данные">Обновить</button>
+        <span id="status" class="status"></span>
+    </div>
+    <div id="root"></div>
+    <div class="note">
+        Данные выгружает GitHub Actions через БКС Trade API (токен «только для чтения») примерно каждые 30 минут
+        в торговые часы и кладёт в <code>data/bcs_portfolio.json</code>. Это снимок, а не реальное время.
+    </div>
+</div>
+<script>
+'use strict';
+//@import shared/core.js
+
+const VERSION = 'v1';
+const DATA_URL = 'data/bcs_portfolio.json';
+const AUTO_RELOAD_MS = 5 * 60 * 1000;
+
+const statusEl = document.getElementById('status');
+const root = document.getElementById('root');
+const { mk, fetchJson, fmtNum, fmtRub, fmtMoney, fmtPct, fmtSignedRub, fmtQty, humanDateTime, plClass, setStatus } = Core;
+
+let sortKey = 'share';
+let sortDir = -1;
+let lastData = null;
+
+const COLS = [
+    { key: 'ticker',   label: 'Тикер' },
+    { key: 'name',     label: 'Название' },
+    { key: 'qty',      label: 'Кол-во' },
+    { key: 'avg',      label: 'Ср. цена' },
+    { key: 'price',    label: 'Цена' },
+    { key: 'value',    label: 'Стоимость' },
+    { key: 'share',    label: 'Доля, %' },
+    { key: 'pl',       label: 'P/L, ₽' },
+    { key: 'plPct',    label: 'P/L, %' },
+    { key: 'dailyPct', label: 'За день, %' }
+];
+
+function positionRow(p) {
+    return {
+        ticker: p.ticker || '?',
+        name: p.displayName || '',
+        qty: p.quantity,
+        avg: p.balancePrice,
+        price: p.currentPrice,
+        value: p.currentValueRub,
+        share: p.portfolioShare,
+        pl: p.unrealizedPL,
+        plPct: p.unrealizedPercentPL,
+        dailyPct: p.dailyPercentPL,
+        currency: p.currency || 'RUB',
+        type: p.instrumentType || p.upperType || ''
+    };
+}
+
+function statCard(label, valueHtml, subHtml) {
+    const el = mk('div', 'stat');
+    el.append(mk('div', 'lbl', label));
+    const v = mk('div', 'val'); v.innerHTML = valueHtml; el.append(v);
+    if (subHtml) { const s = mk('div', 'sub'); s.innerHTML = subHtml; el.append(s); }
+    return el;
+}
+
+function renderSummary(d) {
+    const cards = mk('div', 'cards');
+    const s = d.summary || {};
+    cards.append(statCard('Оценка портфеля', fmtMoney(s.currentValueRub),
+        s.accountName ? String(s.accountName) : ''));
+    const dRub = s.dailyChangeRub, dPct = s.dailyChangePct;
+    cards.append(statCard('Изменение за день',
+        `<span class="${plClass(dRub)}">${fmtSignedRub(dRub)}</span>`,
+        `<span class="${plClass(dPct)}">${fmtPct(dPct)}</span>`));
+    const tRub = s.totalChangeRub, tPct = s.totalChangePct;
+    cards.append(statCard('За всё время',
+        `<span class="${plClass(tRub)}">${fmtSignedRub(tRub)}</span>`,
+        `<span class="${plClass(tPct)}">${fmtPct(tPct)}</span>`));
+    const cash = (d.cash || []).filter(c => c && Number.isFinite(c.sum));
+    const cashRub = cash.filter(c => c.currency === 'RUB' || c.currency === 'SUR').reduce((a, c) => a + c.sum, 0);
+    const other = cash.filter(c => c.currency !== 'RUB' && c.currency !== 'SUR');
+    cards.append(statCard('Свободные деньги', fmtMoney(cashRub),
+        other.map(c => `${fmtNum(c.sum)} ${c.currency}`).join(' · ') || ''));
+    if (s.stabilityStatus) {
+        cards.append(statCard('Устойчивость счёта', String(s.stabilityStatus),
+            s.marginOn ? 'Маржинальная торговля включена' : 'Без маржиналки'));
+    }
+    return cards;
+}
+
+function renderAlloc(rows) {
+    const box = mk('div');
+    const bar = mk('div', 'alloc');
+    const HUES = [210, 120, 30, 280, 0, 180, 330, 60, 240, 90];
+    const top = rows.filter(r => Number.isFinite(r.share) && r.share > 0)
+        .sort((a, b) => b.share - a.share).slice(0, 10);
+    top.forEach((r, i) => {
+        const seg = document.createElement('span');
+        seg.style.width = r.share + '%';
+        seg.style.background = `hsl(${HUES[i % HUES.length]},55%,45%)`;
+        seg.title = `${r.ticker}: ${fmtNum(r.share, 1)} %`;
+        bar.append(seg);
+    });
+    box.append(bar);
+    box.append(mk('div', 'alloc-cap', 'Структура портфеля: ' +
+        top.slice(0, 5).map(r => `${r.ticker} ${fmtNum(r.share, 1)} %`).join(' · ') + (top.length > 5 ? ' · …' : '')));
+    return box;
+}
+
+function compare(a, b, key) {
+    const x = a[key], y = b[key];
+    if (typeof x === 'string' || typeof y === 'string') return String(x).localeCompare(String(y), 'ru');
+    const nx = Number.isFinite(x) ? x : -Infinity, ny = Number.isFinite(y) ? y : -Infinity;
+    return nx - ny;
+}
+
+function renderTable(rows) {
+    const table = mk('table', 'pf');
+    const head = mk('tr');
+    COLS.forEach(c => {
+        const th = mk('th', c.key === sortKey ? 'sorted' : '', c.label + (c.key === sortKey ? (sortDir < 0 ? ' ↓' : ' ↑') : ''));
+        th.addEventListener('click', () => {
+            if (sortKey === c.key) sortDir = -sortDir; else { sortKey = c.key; sortDir = -1; }
+            render(lastData);
+        });
+        head.append(th);
+    });
+    table.append(head);
+
+    const sorted = rows.slice().sort((a, b) => sortDir * compare(a, b, sortKey));
+    let totVal = 0, totPl = 0;
+    sorted.forEach(r => {
+        if (Number.isFinite(r.value)) totVal += r.value;
+        if (Number.isFinite(r.pl)) totPl += r.pl;
+        const tr = mk('tr');
+        tr.append(mk('td', 'tk', r.ticker));
+        tr.append(mk('td', 'nm', r.name));
+        tr.append(mk('td', null, fmtQty(r.qty)));
+        tr.append(mk('td', null, fmtNum(r.avg)));
+        tr.append(mk('td', null, fmtNum(r.price)));
+        tr.append(mk('td', null, fmtRub(r.value, 0)));
+        tr.append(mk('td', null, fmtNum(r.share, 1)));
+        tr.append(mk('td', plClass(r.pl), fmtSignedRub(r.pl)));
+        tr.append(mk('td', plClass(r.plPct), fmtPct(r.plPct)));
+        tr.append(mk('td', plClass(r.dailyPct), fmtPct(r.dailyPct)));
+        table.append(tr);
+    });
+
+    if (sorted.length) {
+        const tr = mk('tr', 'total');
+        tr.append(mk('td', null, 'Итого'));
+        tr.append(mk('td'));
+        tr.append(mk('td')); tr.append(mk('td')); tr.append(mk('td'));
+        tr.append(mk('td', null, fmtRub(totVal, 0)));
+        tr.append(mk('td', null, '100'));
+        tr.append(mk('td', plClass(totPl), fmtSignedRub(totPl)));
+        tr.append(mk('td')); tr.append(mk('td'));
+        table.append(tr);
+    }
+    return table;
+}
+
+function renderEmpty(err) {
+    const box = mk('div', 'empty');
+    box.innerHTML =
+        '<b>Данные портфеля пока не выгружены.</b><br>' +
+        (err ? `Ошибка загрузки: ${String(err.message || err)}.<br>` : '') +
+        'Чтобы страница ожила:<br>' +
+        '1. Выпустите в «БКС Мир инвестиций» токен API <b>«только для чтения»</b> (Профиль → счёт → Токены API).<br>' +
+        '2. Добавьте его в секреты репозитория: Settings → Secrets and variables → Actions → <code>BCS_API_KEY_READ</code>.<br>' +
+        '3. Запустите workflow <b>BCS API</b> вручную (Actions → BCS API → Run workflow) или дождитесь расписания.<br>' +
+        '4. Для автообновления токена при ротации добавьте секрет <code>GH_PAT</code> (personal access token с правом на изменение секретов репозитория).';
+    return box;
+}
+
+function render(d) {
+    lastData = d;
+    root.replaceChildren();
+    if (!d || !Array.isArray(d.positions)) { root.append(renderEmpty(null)); return; }
+    root.append(renderSummary(d));
+    const rows = d.positions.map(positionRow);
+    if (!rows.length && !(d.cash || []).length) { root.append(renderEmpty(null)); return; }
+    root.append(renderAlloc(rows));
+    root.append(renderTable(rows));
+    if (Number.isFinite(d.tokenExpiresInDays)) {
+        const note = mk('div', 'note');
+        const cls = d.tokenExpiresInDays < 10 ? 'neg' : '';
+        note.innerHTML =
+            `Refresh-токен БКС протухнет примерно через <span class="${cls}">${d.tokenExpiresInDays} дн.</span> — ` +
+            'перевыпустите его в личном кабинете и обновите секрет <code>BCS_API_KEY_READ</code>.';
+        root.append(note);
+    }
+}
+
+async function load(manual) {
+    setStatus(statusEl, 'loading', 'Загрузка данных портфеля...');
+    try {
+        const d = await fetchJson(`${DATA_URL}?t=${Date.now()}`, { retries: manual ? 1 : 2, timeout: 12000 });
+        render(d);
+        setStatus(statusEl, 'ok', `Обновлено: ${humanDateTime(d.updated)} · ${VERSION}`);
+    } catch (e) {
+        root.replaceChildren(renderEmpty(e));
+        setStatus(statusEl, 'error', 'Нет данных: ' + (e.message || e));
+    }
+}
+
+document.getElementById('reloadBtn').addEventListener('click', () => load(true));
+document.getElementById('logoutLink').addEventListener('click', e => {
+    e.preventDefault();
+    try { sessionStorage.removeItem('mx_k'); } catch (_) { /* ignore */ }
+    location.reload();
+});
+
+load(false);
+setInterval(() => load(false), AUTO_RELOAD_MS);
+</script>
+</body>
+</html>
