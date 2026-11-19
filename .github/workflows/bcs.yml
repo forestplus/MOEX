@@ -3,8 +3,9 @@ name: BCS API
 on:
   workflow_dispatch:
   schedule:
-    # примерно торговые часы МСК (UTC): каждые 30 минут по будням
-    - cron: "*/30 6-16 * * 1-5"
+    # примерно торговые часы МСК (UTC): каждые 30 минут по будням;
+    # окно до 20 UTC (23:00 МСК), чтобы захватывать вечернюю сессию внебиржи США
+    - cron: "*/30 6-20 * * 1-5"
 
 permissions:
   contents: write
@@ -37,6 +38,15 @@ jobs:
           MX_LOGIN: ${{ secrets.MX_LOGIN }}
           MX_PASSWORD: ${{ secrets.MX_PASSWORD }}
         run: python export_portfolio.py
+
+      - name: Export OTC market
+        working-directory: bcs
+        continue-on-error: true  # внебиржа — доп. раздел, не валим основной экспорт
+        env:
+          BCS_API_KEY_READ: ${{ secrets.BCS_API_KEY_READ }}
+          MX_LOGIN: ${{ secrets.MX_LOGIN }}
+          MX_PASSWORD: ${{ secrets.MX_PASSWORD }}
+        run: python export_otc.py
 
       - name: Export quotes
         working-directory: bcs
