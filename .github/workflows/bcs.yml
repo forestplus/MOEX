@@ -48,6 +48,14 @@ jobs:
           MX_PASSWORD: ${{ secrets.MX_PASSWORD }}
         run: python export_otc.py
 
+      - name: Probe OTC (debug)
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: bcs
+        continue-on-error: true
+        env:
+          BCS_API_KEY_READ: ${{ secrets.BCS_API_KEY_READ }}
+        run: python probe_otc.py
+
       - name: Export quotes
         working-directory: bcs
         continue-on-error: true  # котировки дублируют MOEX ISS — не критично

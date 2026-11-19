@@ -140,6 +140,22 @@ def portfolio_tickers(c) -> set:
         return set()
 
 
+def paged_by_type(c, itype: str) -> list:
+    """by-type отдаёт ответ страницами: size=500, листаем page, пока не придёт меньше size."""
+    out = []
+    page = 0
+    while page < 40:
+        resp = c.get("/instruments/by-type", base=BASE_INFO,
+                     params={"type": itype, "page": page, "size": 500})
+        rows = resp.get("instruments") if isinstance(resp, dict) else resp
+        rows = rows or []
+        out.extend(rows)
+        if len(rows) < 500:
+            break
+        page += 1
+    return out
+
+
 def main():
     c = make_client()
     mine = portfolio_tickers(c)
@@ -147,7 +163,7 @@ def main():
     items = []
     for kind, cap in (("FOREIGN", MAX_FOREIGN), ("STOCK", MAX_RU)):
         try:
-            resp = c.get("/instruments/by-type", base=BASE_INFO, params={"type": kind})
+            rows = paged_by_type(c, kind)
         except Exception as e:
             print(f"ПРЕДУПРЕЖДЕНИЕ: /instruments/by-type?type={kind} упал: {e}")
             continue
