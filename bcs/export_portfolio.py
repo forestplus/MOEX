@@ -88,6 +88,26 @@ def main():
     portfolio = c.portfolio()  # обязательный кусок — если упал, падаем
     # API возвращает позиции списком верхнего уровня; на всякий случай принимаем и dict
     raw_positions = portfolio.get("positions") if isinstance(portfolio, dict) else portfolio
+
+    if os.environ.get("BCS_DEBUG"):
+        # структурная отладка: только дискриминирующие поля, без сумм
+        import re as _re
+        interesting = _re.compile(r"account|agreement|kind|section|date|portfolio|type|board|state", _re.I)
+        print(f"DEBUG: type={type(portfolio).__name__} len={len(raw_positions or [])}")
+        for i, p in enumerate(raw_positions or []):
+            if not isinstance(p, dict):
+                print(f"DEBUG #{i}: {type(p).__name__}")
+                continue
+            info = {}
+            for k, v in p.items():
+                if isinstance(v, (dict, list)):
+                    if isinstance(v, dict) and k.lower() in ("quantity",):
+                        info[k] = v
+                    continue
+                if k in ("ticker", "displayName") or interesting.search(k):
+                    info[k] = v
+            print(f"DEBUG #{i}: {json.dumps(info, ensure_ascii=False, default=str)[:400]}")
+
     positions = [norm_position(p) for p in raw_positions or [] if isinstance(p, dict)]
 
     cash, summary = [], {}
