@@ -873,7 +873,7 @@ function fmtUpdated(iso) {
 
 const SORTS = [
     ['color', 'Цвет (изменение)', -1],
-    ['turnover', 'Оборот', -1],
+    ['mktcap', 'Капитализация', -1],
     ['name', 'Название', 1],
     ['price', 'Цена', -1],
     ['spread', 'Спред', 1]
@@ -933,10 +933,9 @@ function decorate(raw) {
     it.ask = num(it.ask);
     it.change = num(it.changePct);
     it.spread = num(it.spreadPct);
-    it.valToday = num(it.turnover);
-    it.volToday = num(it.volume);
     it.mktcap = num(it.mktcap);
-    it.foreign = it.type === 'FOREIGN'
+    it.trading = it.tradingStatus === 17 ? true : (it.tradingStatus === 18 ? false : null);
+    it.foreign = String(it.type || '').startsWith('FOREIGN')
         || (it.isin && !/^RU/i.test(it.isin))
         || (it.cur && !['RUB', 'SUR', 'RUR'].includes(it.cur));
     it.decimals = it.price !== null ? priceDec(it.price) : 2;
@@ -977,7 +976,7 @@ async function loadAll() {
 function sortValue(it, key) {
     switch (key) {
         case 'name': return String(it.name).toLowerCase();
-        case 'turnover': return it.valToday;
+        case 'mktcap': return it.mktcap;
         case 'price': return it.price;
         case 'spread': return it.spread;
         default: {
@@ -1004,7 +1003,7 @@ function visibleItems() {
 
 function metricText(it) {
     switch (sortKey) {
-        case 'turnover': return it.valToday ? `Оборот ${fmtCompact(it.valToday, it.cur)}` : (it.volToday ? `${formatInt(it.volToday)} шт.` : 'нет сделок');
+        case 'mktcap': return it.mktcap ? `Кап. ${fmtCompact(it.mktcap, it.cur)}` : (it.isin ? it.isin.slice(0, 2) : '');
         case 'spread': return it.spread !== null ? `Спред ${nf(1).format(it.spread)} %` : 'нет заявок';
         case 'price': return it.cur || '';
         default: return it.inPortfolio ? 'в портфеле' : (it.isin ? it.isin.slice(0, 2) : '');
@@ -1107,12 +1106,12 @@ function renderLive() {
     rows.push(rowEl('Открытие / минимум / максимум', [it.open, it.low, it.high].map(v => (v !== null ? nf(dec).format(v) : '—')).join(' / ')));
     rows.push(rowEl('Покупка / продажа (заявки)', `${it.bid !== null ? nf(dec).format(it.bid) : '—'} / ${it.ask !== null ? nf(dec).format(it.ask) : '—'}`));
     if (it.spread !== null) rows.push(rowEl('Спред', `${nf(2).format(it.spread)} %`, it.spread > 3 ? 'neg' : ''));
-    rows.push(rowEl('Объём, шт.', formatInt(it.volToday)));
-    rows.push(rowEl('Оборот', it.valToday ? fmtCompact(it.valToday, it.cur) : '—'));
     if (it.mktcap) rows.push(rowEl('Капитализация', fmtCompact(it.mktcap, it.cur)));
+    if (it.trading !== null) rows.push(rowEl('Торги сейчас', it.trading ? 'идут' : 'закрыты', it.trading ? 'pos' : ''));
     if (it.lot) rows.push(rowEl('Размер лота', `${formatInt(it.lot)} шт.`));
     if (it.isin) rows.push(rowEl('ISIN', it.isin));
-    rows.push(rowEl('Тип', it.foreign ? `Иностранная бумага (${it.isin ? String(it.isin).slice(0, 2) : it.cur || '—'})` : 'Российская бумага'));
+    const kindLabel = it.type === 'ETF' ? 'ETF' : (it.foreign ? `Иностранная бумага (${it.isin ? String(it.isin).slice(0, 2) : it.cur || '—'})` : 'Российская бумага');
+    rows.push(rowEl('Тип', kindLabel));
     if (it.qualifiedOnly) rows.push(rowEl('Статус', 'Только для квалифицированных инвесторов', 'neg'));
     if (it.inPortfolio) rows.push(rowEl('Портфель', 'Бумага есть в вашем портфеле', 'pos'));
     rows.push(rowEl('Котировка от', fmtUpdated(it.quoteTime || updatedAt)));
