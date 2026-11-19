@@ -14,8 +14,8 @@ import json
 from bcs_client import BASE_INFO
 from check_token import make_client
 
-TYPES = ["STOCK", "FOREIGN", "BONDS", "DEPOSITARY", "EURO", "ETF", "MUTUAL", "NOTES"]
-OTC_MARKERS = ("OTC", "QMEBLCK", "MTQR")
+TYPES = ["STOCK", "FOREIGN", "FOREIGN_STOCK", "BONDS", "ETF", "NOTES"]
+OTC_MARKERS = ("OTC", "QMEBLCK", "MTQR", "BQMEA")
 PROBE_TICKER = "O.30303M1027"  # Meta Platforms, публичный код инструмента
 
 
@@ -35,11 +35,11 @@ def paged_by_type(c, itype: str) -> list:
     page = 0
     while page < 40:
         resp = c.get("/instruments/by-type", base=BASE_INFO,
-                     params={"type": itype, "page": page, "size": 500})
+                     params={"type": itype, "page": page, "size": 100})
         rows = resp.get("instruments") if isinstance(resp, dict) else resp
         rows = rows or []
         out.extend(rows)
-        if len(rows) < 500:
+        if len(rows) < 100:
             break
         page += 1
     return out
@@ -77,12 +77,12 @@ def main():
                 "primaryBoard", "boards", "isin")}, ensure_ascii=False, default=str)[:500])
 
     # 3) котировка известного OTC-тикера — схема полей
-    for cc in ("OTC", "QMEBLCK", "MTQR"):
+    for tk, cc in ((PROBE_TICKER, "BQMEA"), ("AFMC", "MTQR"), ("ARKK", "SPBOTC")):
         try:
-            q = c.quotes([{"ticker": PROBE_TICKER, "classCode": cc}])
-            print(f"QUOTES {cc}:", json.dumps(q, ensure_ascii=False, default=str)[:600])
+            q = c.quotes([{"ticker": tk, "classCode": cc}])
+            print(f"QUOTES {tk}@{cc}:", json.dumps(q, ensure_ascii=False, default=str)[:700])
         except Exception as e:
-            print(f"QUOTES {cc}: FAIL {e}")
+            print(f"QUOTES {tk}@{cc}: FAIL {e}")
 
     # 4) мета инструмента по тикеру
     try:
