@@ -65,8 +65,13 @@ jobs:
 
       - name: Commit data
         run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git pull --rebase origin main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/
-          git diff --cached --quiet || (git commit -m "BCS data update" && git push)
+          if git diff --cached --quiet; then
+            echo "Нет изменений в data/"
+          else
+            git commit -m "BCS data update"
+            git pull --rebase origin main
+            git push
+          fi
