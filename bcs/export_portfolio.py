@@ -169,6 +169,12 @@ def main():
         print(f"Дедупликация по срокам расчётов: {len(raw_positions)} -> {len(deduped)} записей")
     positions = [norm_position(p) for p in deduped]
 
+    # БКС отдаёт portfolioShare = 0 по всем записям — считаем долю сами
+    total_value = sum(p["currentValueRub"] or 0 for p in positions)
+    for p in positions:
+        if not p.get("portfolioShare") and total_value:
+            p["portfolioShare"] = round((p["currentValueRub"] or 0) / total_value * 100, 2)
+
     # деньги — в первую очередь из moneyLimit самого портфеля (с учётом term),
     # /limits — только как запасной вариант
     cash = cash_from_positions(deduped)
