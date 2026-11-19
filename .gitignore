@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# Рантайм BCS-скриптов (сюда попадает ротированный refresh-токен — НЕ коммитить!)
+bcs/.runtime/
+
+# Локальные секреты
+.env
+*.local

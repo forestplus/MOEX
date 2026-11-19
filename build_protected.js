@@ -2,11 +2,16 @@
 /*
  * Шифрует страницы паролем и собирает защищённые файлы.
  *
- * Использование:
- *   node build_protected.js "<логин>" "<пароль>" src/index.src.html index.html src/bonds.src.html bonds.html
+ * Использование (из корня репозитория):
+ *   node build_protected.js "<логин>" "<пароль>"                 — все страницы по умолчанию
+ *   node build_protected.js "<логин>" "<пароль>" src/index.src index.html ...  — свои пары
  *
  * или через переменные окружения (пароль не попадёт в историю команд):
- *   MX_LOGIN=... MX_PASSWORD=... node build_protected.js src/index.src.html index.html src/bonds.src.html bonds.html
+ *   MX_LOGIN=... MX_PASSWORD=... node build_protected.js
+ *   MX_LOGIN=... MX_PASSWORD=... npm run build
+ *
+ * В исходниках работает директива встраивания общих модулей:
+ *   //@import shared/core.js     (путь — относительно файла страницы)
  *
  * Все страницы одного запуска шифруются ОДНИМ ключом: после входа на одной странице
  * вторая открывается без повторного ввода (пока открыта вкладка).
@@ -15,14 +20,37 @@
  * текст (AES-256-GCM, ключ из PBKDF2-SHA256, 600 000 итераций). Неверный пароль просто
  * не расшифровывает страницу.
  *
- * ВАЖНО: исходники (src/*.src.html) и этот скрипт в публичный репозиторий не публиковать.
+ * ВАЖНО: исходники (src/*.src) и этот скрипт в публичный репозиторий не публиковать.
  */
 'use strict';
 
 const fs = require('fs');
+const path = require('path');
 const crypto = require('crypto');
 
 const ITER = 600000;
+
+/* Страницы по умолчанию: исходник -> зашифрованный файл */
+const DEFAULT_PAGES = [
+    ['src/index.src', 'index.html'],
+    ['src/bonds.src', 'bonds.html'],
+    ['src/otc.src', 'otc.html'],
+    ['src/favorites.src', 'favorites.html'],
+    ['src/news.src', 'news.html'],
+    ['src/portfolio.src', 'portfolio.html']
+];
+
+/* Встраивает строки вида `//@import <относительный/путь>` (вложенность поддерживается). */
+function inlineImports(file, stack = []) {
+    const abs = path.resolve(file);
+    if (stack.includes(abs)) throw new Error(`Циклический @import: ${[...stack, abs].join(' -> ')}`);
+    const dir = path.dirname(abs);
+    return fs.readFileSync(abs, 'utf8').replace(/^[ \t]*\/\/@import[ \t]+(\S+)[ \t]*$/gm, (m, rel) => {
+        const target = path.join(dir, rel);
+        if (!fs.existsSync(target)) throw new Error(`@import: файл не найден: ${target} (из ${abs})`);
+        return inlineImports(target, [...stack, abs]);
+    });
+}
 
 let args = process.argv.slice(2);
 let login = process.env.MX_LOGIN;
@@ -31,8 +59,13 @@ if (!login || !password) {
     login = args.shift();
     password = args.shift();
 }
-if (!login || !password || args.length < 2 || args.length % 2) {
-    console.error('Использование: node build_protected.js "<логин>" "<пароль>" <src1> <out1> [<src2> <out2> ...]');
+if (!login || !password) {
+    console.error('Использование: node build_protected.js "<логин>" "<пароль>" [<src1> <out1> ...]');
+    process.exit(1);
+}
+if (!args.length) args = DEFAULT_PAGES.flat();
+if (args.length % 2) {
+    console.error('Пары «исходник выходной_файл» неполные:', args.join(' '));
     process.exit(1);
 }
 
@@ -196,7 +229,7 @@ const keyBytes = crypto.pbkdf2Sync(login + ':' + password, salt, ITER, 32, 'sha2
 
 for (let i = 0; i < args.length; i += 2) {
     const [src, out] = [args[i], args[i + 1]];
-    const html = fs.readFileSync(src, 'utf8');
+    const html = inlineImports(src);
     const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv('aes-256-gcm', keyBytes, iv);
     const ct = Buffer.concat([cipher.update(html, 'utf8'), cipher.final()]);

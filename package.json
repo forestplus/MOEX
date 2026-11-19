@@ -1,0 +1,13 @@
+{
+  "name": "moex-heatmap",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Тепловая карта российского фондового рынка (Мосбиржа): акции, облигации, внебиржевой рынок, новости, избранное, портфель БКС.",
+  "scripts": {
+    "build": "node build_protected.js",
+    "check:bcs": "python bcs/check_token.py",
+    "export:portfolio": "python bcs/export_portfolio.py",
+    "export:quotes": "python bcs/export_quotes.py"
+  },
+  "devDependencies": {}
+}

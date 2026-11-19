@@ -47,6 +47,8 @@
         <a href="bonds.html" id="bondsLink">Облигации</a>
         <a href="favorites.html" id="favLink">Избранное</a>
         <a href="#" class="active">Новости</a>
+        <a href="otc.html?type=ru" id="otcLink">Внебиржа</a>
+        <a href="portfolio.html" id="portfolioLink">Портфель</a>
         <a href="#" id="logoutLink" class="logout">Выйти</a>
     </div>
     <div class="header">

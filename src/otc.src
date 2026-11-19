@@ -262,6 +262,7 @@
         <a href="news.html" id="newsLink">Новости</a>
         <a href="otc.html?type=ru" id="navRu">Внебиржа РФ</a>
         <a href="otc.html?type=foreign" id="navFn">Внебиржа ин.</a>
+        <a href="portfolio.html" id="portfolioLink">Портфель</a>
         <a href="#" id="logoutLink" class="logout">Выйти</a>
     </div>
     <div class="header">

@@ -1,11 +1,17 @@
 name: BCS API
+
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/30 6-16 * * 1-5"   # примерно в торговые часы МСК (UTC)
+    # примерно торговые часы МСК (UTC): каждые 30 минут по будням
+    - cron: "*/30 6-16 * * 1-5"
 
 permissions:
   contents: write
+
+concurrency:
+  group: bcs-export
+  cancel-in-progress: false
 
 jobs:
   bcs:
@@ -15,7 +21,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - run: pip install requests
+      - run: pip install requests cryptography
 
       - name: Check token
         working-directory: bcs
@@ -23,15 +29,44 @@ jobs:
           BCS_API_KEY_READ: ${{ secrets.BCS_API_KEY_READ }}
         run: python check_token.py
 
-      - name: Export quotes
+      - name: Export portfolio
         working-directory: bcs
         env:
           BCS_API_KEY_READ: ${{ secrets.BCS_API_KEY_READ }}
+          # если заданы — JSON портфеля шифруется тем же паролем, что и страницы
+          MX_LOGIN: ${{ secrets.MX_LOGIN }}
+          MX_PASSWORD: ${{ secrets.MX_PASSWORD }}
+        run: python export_portfolio.py
+
+      - name: Export quotes
+        working-directory: bcs
+        continue-on-error: true  # котировки дублируют MOEX ISS — не критично
+        env:
+          BCS_API_KEY_READ: ${{ secrets.BCS_API_KEY_READ }}
         run: python export_quotes.py
+
+      - name: Rotate BCS secret if needed
+        # Если БКС ротировал refresh-токен, скрипты кладут новый в bcs/.runtime/.
+        # Обновляем секрет, иначе следующий прогон отвалится с 400/401.
+        # Нужен секрет GH_PAT (fine-grained PAT с правом Secrets: write на этот репозиторий).
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          if [ ! -f bcs/.runtime/new_refresh_token ]; then
+            echo "Ротации не было"
+          elif [ -z "$GH_TOKEN" ]; then
+            echo "::warning::БКС ротировал refresh-токен, но секрета GH_PAT нет — обновите BCS_API_KEY_READ вручную, иначе следующий прогон упадёт!"
+          else
+            gh secret set BCS_API_KEY_READ --body "$(cat bcs/.runtime/new_refresh_token)" \
+              --repo "$GITHUB_REPOSITORY" --app actions
+            echo "::notice::Refresh-токен BCS ротирован и секрет обновлён"
+            rm bcs/.runtime/new_refresh_token
+          fi
 
       - name: Commit data
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add data/bcs_quotes.json
-          git diff --cached --quiet || (git commit -m "BCS quotes update" && git push)
+          git pull --rebase origin main
+          git add data/
+          git diff --cached --quiet || (git commit -m "BCS data update" && git push)
