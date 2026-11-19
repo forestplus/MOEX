@@ -36,7 +36,6 @@ jobs:
           # если заданы — JSON портфеля шифруется тем же паролем, что и страницы
           MX_LOGIN: ${{ secrets.MX_LOGIN }}
           MX_PASSWORD: ${{ secrets.MX_PASSWORD }}
-          BCS_DEBUG: "1"
         run: python export_portfolio.py
 
       - name: Export quotes

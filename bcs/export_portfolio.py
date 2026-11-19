@@ -13,6 +13,7 @@
 import json
 import os
 import pathlib
+import re
 from datetime import datetime, timezone
 
 from check_token import make_client
@@ -82,6 +83,35 @@ def norm_summary(marginal) -> dict:
     }
 
 
+_TERM_RE = re.compile(r"T(\d+)", re.I)
+
+
+def _term_rank(p: dict) -> int:
+    """Ранг срока расчётов: T0 -> 0, T1 -> 1, ...; без term считаем T0."""
+    m = _TERM_RE.search(str(p.get("term") or ""))
+    return int(m.group(1)) if m else 0
+
+
+def dedupe_by_term(items: list) -> list:
+    """
+    БКС отдаёт одну позицию несколькими записями — по срокам расчётов (T0, T1, T2...).
+    Запись с большим term КУМУЛЯТИВНА (включает сделки, расчёты по которым ещё не прошли),
+    поэтому суммировать записи нельзя — берём для каждого инструмента запись
+    с максимальным term: это актуальная позиция, как в приложении брокера.
+    """
+    best, order = {}, []
+    for p in items or []:
+        if not isinstance(p, dict):
+            continue
+        key = (p.get("type"), p.get("ticker"), p.get("board"))
+        if key not in best:
+            best[key] = p
+            order.append(key)
+        elif _term_rank(p) > _term_rank(best[key]):
+            best[key] = p
+    return [best[k] for k in order]
+
+
 def main():
     c = make_client()
 
@@ -99,7 +129,10 @@ def main():
             if isinstance(p, dict) and p.get("ticker") in ("MGKL", "RUB", "EUTR"):
                 print(f"DEBUG FULL #{i}: {json.dumps(p, ensure_ascii=False, default=str)[:1200]}")
 
-    positions = [norm_position(p) for p in raw_positions or [] if isinstance(p, dict)]
+    deduped = dedupe_by_term(raw_positions)
+    if raw_positions is not None and len(deduped) != len(raw_positions):
+        print(f"Дедупликация по срокам расчётов: {len(raw_positions)} -> {len(deduped)} записей")
+    positions = [norm_position(p) for p in deduped]
 
     cash, summary = [], {}
     try:
