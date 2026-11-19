@@ -73,6 +73,8 @@
     <div class="note">
         Данные выгружает GitHub Actions через БКС Trade API (токен «только для чтения») примерно каждые 30 минут
         в торговые часы и кладёт в <code>data/bcs_portfolio.json</code>. Это снимок, а не реальное время.
+        Денежный остаток API отдаёт без вычета комиссии за сегодняшние сделки, поэтому может на копейки
+        отличаться от приложения брокера.
     </div>
 </div>
 <script>
@@ -198,13 +200,14 @@ function renderTable(rows) {
     sorted.forEach(r => {
         if (Number.isFinite(r.value)) totVal += r.value;
         if (Number.isFinite(r.pl)) totPl += r.pl;
+        const isCur = r.type === 'CURRENCY'; // деньгам — копейки, а не округление
         const tr = mk('tr');
         tr.append(mk('td', 'tk', r.ticker));
         tr.append(mk('td', 'nm', r.name));
-        tr.append(mk('td', null, fmtQty(r.qty)));
+        tr.append(mk('td', null, isCur ? fmtNum(r.qty, 2) : fmtQty(r.qty)));
         tr.append(mk('td', null, fmtNum(r.avg)));
         tr.append(mk('td', null, fmtNum(r.price)));
-        tr.append(mk('td', null, fmtRub(r.value, 0)));
+        tr.append(mk('td', null, fmtRub(r.value, isCur ? 2 : 0)));
         tr.append(mk('td', null, fmtNum(r.share, 1)));
         tr.append(mk('td', plClass(r.pl), fmtSignedRub(r.pl)));
         tr.append(mk('td', plClass(r.plPct), fmtPct(r.plPct)));
@@ -298,6 +301,7 @@ async function load(manual) {
 document.getElementById('reloadBtn').addEventListener('click', () => load(true));
 document.getElementById('logoutLink').addEventListener('click', e => {
     e.preventDefault();
+    try { new BroadcastChannel('mx_auth').postMessage({ t: 'logout' }); } catch (_) { /* ignore */ }
     try { sessionStorage.removeItem('mx_k'); } catch (_) { /* ignore */ }
     location.reload();
 });

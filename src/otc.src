@@ -1943,6 +1943,7 @@ $('favLink').href = FAV_PAGE;
 $('newsLink').href = NEWS_PAGE;
 $('logoutLink').addEventListener('click', e => {
     e.preventDefault();
+    try { new BroadcastChannel('mx_auth').postMessage({ t: 'logout' }); } catch (_) { /* ignore */ }
     try { sessionStorage.removeItem('mx_k'); } catch (_) { /* ignore */ }
     location.reload();
 });

@@ -112,6 +112,41 @@ def dedupe_by_term(items: list) -> list:
     return [best[k] for k in order]
 
 
+def cash_from_positions(deduped: list) -> list:
+    """Свободные деньги — из moneyLimit-записей /portfolio (они уже дедуплицированы по term:
+    берётся запись с учётом сегодняшних сделок). Надёжнее, чем отдельный /limits."""
+    out = []
+    for p in deduped or []:
+        if not isinstance(p, dict) or p.get("type") != "moneyLimit":
+            continue
+        cur = p.get("currency") or p.get("ticker")
+        s = _f(p.get("quantity"))
+        if cur and s is not None:
+            out.append({"currency": cur, "sum": s})
+    return out
+
+
+def computed_summary(deduped: list, cash: list) -> dict:
+    """Сводка, посчитанная из самих позиций — запасной вариант,
+    когда /marginal-indicators для счёта недоступен (404)."""
+    depo = [p for p in deduped or [] if isinstance(p, dict) and p.get("type") == "depoLimit"]
+    val = sum(_f(p.get("currentValueRub")) or 0 for p in depo)
+    val += sum(c["sum"] for c in cash if c["currency"] in ("RUB", "SUR"))
+    pl = sum(_f(p.get("unrealizedPL")) or 0 for p in depo)
+    cost = sum(_f(p.get("balanceValueRub")) or 0 for p in depo)
+    day = sum(_f(p.get("dailyPL")) or 0 for p in depo)
+    account = next((p.get("account") for p in deduped or [] if isinstance(p, dict) and p.get("account")), None)
+    base = val - day
+    return {
+        "currentValueRub": round(val, 2) if val else None,
+        "dailyChangeRub": round(day, 2),
+        "dailyChangePct": round(day / base * 100, 2) if base else None,
+        "totalChangeRub": round(pl, 2),
+        "totalChangePct": round(pl / cost * 100, 2) if cost else None,
+        "accountName": account,
+    }
+
+
 def main():
     c = make_client()
 
@@ -134,15 +169,24 @@ def main():
         print(f"Дедупликация по срокам расчётов: {len(raw_positions)} -> {len(deduped)} записей")
     positions = [norm_position(p) for p in deduped]
 
-    cash, summary = [], {}
-    try:
-        cash = norm_cash(c.limits())
-    except Exception as e:
-        print("ПРЕДУПРЕЖДЕНИЕ: /limits недоступен:", e)
+    # деньги — в первую очередь из moneyLimit самого портфеля (с учётом term),
+    # /limits — только как запасной вариант
+    cash = cash_from_positions(deduped)
+    if not cash:
+        try:
+            cash = norm_cash(c.limits())
+        except Exception as e:
+            print("ПРЕДУПРЕЖДЕНИЕ: /limits недоступен:", e)
+
+    summary = {}
     try:
         summary = norm_summary(c.marginal_indicators())
     except Exception as e:
         print("ПРЕДУПРЕЖДЕНИЕ: /marginal-indicators недоступен:", e)
+    if not summary.get("currentValueRub"):
+        fallback = {k: v for k, v in computed_summary(deduped, cash).items() if v is not None}
+        summary = {**fallback, **{k: v for k, v in summary.items() if v is not None}}
+        print("Сводка посчитана из позиций (marginal-indicators недоступен)")
 
     mode = write_json_or_encrypted({
         "source": "BCS trade-api",

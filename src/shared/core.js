@@ -10,6 +10,25 @@
 
 const Core = (() => {
 
+    /* ---------- синхронизация входа между вкладками ----------
+       Оболочка входа (build_protected.js) держит ключ в sessionStorage['mx_k'].
+       Здесь страницы отвечают на запросы ключа от новых вкладок
+       и разлогиниваются, если выход нажали в другой вкладке. */
+    try {
+        const mxBc = new BroadcastChannel('mx_auth');
+        mxBc.onmessage = ev => {
+            const m = (ev && ev.data) || {};
+            if (m.t === 'need') {
+                let k = null;
+                try { k = sessionStorage.getItem('mx_k'); } catch (_) { /* ignore */ }
+                if (k) mxBc.postMessage({ t: 'key', k });
+            } else if (m.t === 'logout') {
+                try { sessionStorage.removeItem('mx_k'); } catch (_) { /* ignore */ }
+                location.reload();
+            }
+        };
+    } catch (_) { /* BroadcastChannel недоступен — живём без синхронизации */ }
+
     /* ---------- DOM ---------- */
 
     function mk(tag, cls, text) {

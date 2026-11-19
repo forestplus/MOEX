@@ -4369,6 +4369,7 @@ document.getElementById('divDateBtn').addEventListener('click', () => setSortMod
 document.getElementById('divYieldBtn').addEventListener('click', () => setSortMode('divYield'));
 document.getElementById('logoutLink').addEventListener('click', e => {
     e.preventDefault();
+    try { new BroadcastChannel('mx_auth').postMessage({ t: 'logout' }); } catch (_) { /* ignore */ }
     try { sessionStorage.removeItem('mx_k'); } catch (_) { /* ignore */ }
     location.reload();
 });

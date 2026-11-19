@@ -122,11 +122,19 @@ var SALT = '__SALT__', ITER = __ITER__, SK = 'mx_k';
 var $ = function (id) { return document.getElementById(id); };
 var payloadB64 = $('p').textContent.replace(/\\s+/g, '');
 
+/* ---- синхронизация входа между вкладками/окнами (в пределах одного origin) ----
+   Вошёл в одной вкладке — остальные формы входа открываются сами, без повторного ввода.
+   Ключ (не пароль) передаётся только между вкладками этого же сайта. */
+var bc = null, keyB64 = null, unlocked = false;
+try { bc = new BroadcastChannel('mx_auth'); } catch (_) { bc = null; }
+function shareKey() { if (bc && keyB64) bc.postMessage({ t: 'key', k: keyB64 }); }
+
 function fromB64(s) { var b = atob(s), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
 function toB64(a) { var s = ''; for (var i = 0; i < a.length; i++) s += String.fromCharCode(a[i]); return btoa(s); }
 function msg(t) { $('m').textContent = t || ''; }
 
 async function openWith(keyBytes) {
+    unlocked = true;
     var key = await crypto.subtle.importKey('raw', keyBytes, 'AES-GCM', false, ['decrypt']);
     var data = fromB64(payloadB64);
     var plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: data.slice(0, 12) }, key, data.slice(12));
@@ -198,7 +206,9 @@ $('f').addEventListener('submit', async function (e) {
     $('go').disabled = true; msg('Проверка...');
     try {
         var bytes = await derive(login, pass);
-        try { sessionStorage.setItem(SK, toB64(bytes)); } catch (_) {}
+        keyB64 = toB64(bytes);
+        try { sessionStorage.setItem(SK, keyB64); } catch (_) {}
+        shareKey();
         await openWith(bytes);
     } catch (err) {
         try { sessionStorage.removeItem(SK); } catch (_) {}
@@ -213,10 +223,25 @@ $('f').addEventListener('submit', async function (e) {
 
 newCaptcha();
 
+if (bc) bc.onmessage = function (ev) {
+    var m = (ev && ev.data) || {};
+    if (m.t === 'need') { shareKey(); return; }
+    if (m.t === 'logout') { try { sessionStorage.removeItem(SK); } catch (_) {} location.reload(); return; }
+    if (m.t === 'key' && !unlocked && typeof m.k === 'string') {
+        keyB64 = m.k;
+        try { sessionStorage.setItem(SK, m.k); } catch (_) {}
+        openWith(fromB64(m.k)).catch(function () { try { sessionStorage.removeItem(SK); } catch (_) {} });
+    }
+};
+
 var saved = null;
 try { saved = sessionStorage.getItem(SK); } catch (_) {}
 if (saved) {
+    keyB64 = saved;
     openWith(fromB64(saved)).catch(function () { try { sessionStorage.removeItem(SK); } catch (_) {} });
+    shareKey(); // вдруг рядом висит форма входа — пусть откроется
+} else if (bc) {
+    bc.postMessage({ t: 'need' }); // спросим ключ у уже залогиненных вкладок
 }
 })();
 </script>
