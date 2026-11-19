@@ -1,0 +1,38 @@
+name: Build pages
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "build_protected.js"
+      - "package.json"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build protected pages
+        env:
+          MX_LOGIN: ${{ secrets.MX_LOGIN }}
+          MX_PASSWORD: ${{ secrets.MX_PASSWORD }}
+        run: npm run build
+
+      - name: Commit built pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add *.html
+          if git diff --cached --quiet; then
+            echo "Нет изменений в собранных страницах"
+          else
+            git commit -m "Build protected pages"
+            git pull --rebase
+            git push
+          fi
