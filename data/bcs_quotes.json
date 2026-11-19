@@ -1,16 +1,16 @@
 {
  "source": "BCS trade-api",
- "updated": "2026-11-19T03:43:44+00:00",
+ "updated": "2026-11-19T03:51:26+00:00",
  "data": {
   "records": [
    {
     "ticker": "SBER",
     "classCode": "TQBR",
-    "dateTime": "2026-11-19T03:06:15.000Z",
-    "securityTradingStatus": 18,
+    "dateTime": "2026-11-19T03:51:18.000Z",
+    "securityTradingStatus": 101,
     "currency": "RUB",
-    "bid": 297.91,
-    "offer": 298.08,
+    "bid": 298.12,
+    "offer": 297.91,
     "open": 298.66,
     "close": 297.91,
     "high": 300.0,
@@ -19,17 +19,17 @@
     "last": 297.91,
     "bidYield": 0.0,
     "offerYield": 0.0,
-    "change": -0.65,
-    "changeRate": -0.22
+    "change": 0.0,
+    "changeRate": 0.0
    },
    {
     "ticker": "GAZP",
     "classCode": "TQBR",
-    "dateTime": "2026-11-19T03:06:15.000Z",
-    "securityTradingStatus": 18,
+    "dateTime": "2026-11-19T03:51:20.000Z",
+    "securityTradingStatus": 101,
     "currency": "RUB",
-    "bid": 115.62,
-    "offer": 115.75,
+    "bid": 116.1,
+    "offer": 115.55,
     "open": 118.21,
     "close": 115.61,
     "high": 119.28,
@@ -38,17 +38,17 @@
     "last": 115.61,
     "bidYield": 0.0,
     "offerYield": 0.0,
-    "change": -2.58,
-    "changeRate": -2.18
+    "change": 0.0,
+    "changeRate": 0.0
    },
    {
     "ticker": "LKOH",
     "classCode": "TQBR",
-    "dateTime": "2026-11-19T03:06:15.000Z",
-    "securityTradingStatus": 18,
+    "dateTime": "2026-11-19T03:51:20.000Z",
+    "securityTradingStatus": 101,
     "currency": "RUB",
-    "bid": 5948.5,
-    "offer": 5951.0,
+    "bid": 5958.5,
+    "offer": 5950.0,
     "open": 6032.0,
     "close": 5948.5,
     "high": 6059.0,
@@ -57,17 +57,17 @@
     "last": 5948.5,
     "bidYield": 0.0,
     "offerYield": 0.0,
-    "change": -83.0,
-    "changeRate": -1.38
+    "change": 0.0,
+    "changeRate": 0.0
    },
    {
     "ticker": "OZON",
     "classCode": "TQBR",
-    "dateTime": "2026-11-19T03:06:15.000Z",
-    "securityTradingStatus": 18,
+    "dateTime": "2026-11-19T03:51:07.000Z",
+    "securityTradingStatus": 101,
     "currency": "RUB",
-    "bid": 3667.0,
-    "offer": 3669.0,
+    "bid": 3666.5,
+    "offer": 3669.5,
     "open": 3697.5,
     "close": 3669.5,
     "high": 3729.5,
@@ -76,8 +76,8 @@
     "last": 3669.5,
     "bidYield": 0.0,
     "offerYield": 0.0,
-    "change": -28.0,
-    "changeRate": -0.76
+    "change": 0.0,
+    "changeRate": 0.0
    }
   ]
  }
