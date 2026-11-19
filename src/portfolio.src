@@ -235,7 +235,9 @@ function renderEmpty(err) {
         '1. Выпустите в «БКС Мир инвестиций» токен API <b>«только для чтения»</b> (Профиль → счёт → Токены API).<br>' +
         '2. Добавьте его в секреты репозитория: Settings → Secrets and variables → Actions → <code>BCS_API_KEY_READ</code>.<br>' +
         '3. Запустите workflow <b>BCS API</b> вручную (Actions → BCS API → Run workflow) или дождитесь расписания.<br>' +
-        '4. Для автообновления токена при ротации добавьте секрет <code>GH_PAT</code> (personal access token с правом на изменение секретов репозитория).';
+        '4. Для автообновления токена при ротации добавьте секрет <code>GH_PAT</code> (personal access token с правом на изменение секретов репозитория).<br>' +
+        '5. Чтобы данные портфеля не лежали в открытом виде, добавьте секреты <code>MX_LOGIN</code> и <code>MX_PASSWORD</code> ' +
+        '(те же, что у страниц) — workflow будет шифровать JSON, а страница расшифрует его после входа.';
     return box;
 }
 
@@ -258,10 +260,33 @@ function render(d) {
     }
 }
 
+/* Данные могут быть зашифрованы тем же ключом, что и страницы (AES-256-GCM,
+   ключ от пароля уже лежит в sessionStorage после входа). Открытый JSON тоже поддерживаем. */
+function fromB64(s) { const b = atob(s), a = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
+
+async function fetchPortfolioData(manual) {
+    const r = await Core.fetchWithTimeout(`${DATA_URL}?t=${Date.now()}`, { timeout: 12000 });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const text = (await r.text()).trim();
+    if (text.startsWith('{')) return JSON.parse(text); // открытый JSON (шифрование выключено)
+
+    const keyB64 = sessionStorage.getItem('mx_k');
+    if (!keyB64) throw new Error('данные зашифрованы — выйдите и войдите под своим паролем ещё раз');
+    const key = await crypto.subtle.importKey('raw', fromB64(keyB64), 'AES-GCM', false, ['decrypt']);
+    const bytes = fromB64(text.replace(/\s+/g, ''));
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytes.slice(0, 12) }, key, bytes.slice(12));
+    return JSON.parse(new TextDecoder().decode(plain));
+}
+
 async function load(manual) {
     setStatus(statusEl, 'loading', 'Загрузка данных портфеля...');
     try {
-        const d = await fetchJson(`${DATA_URL}?t=${Date.now()}`, { retries: manual ? 1 : 2, timeout: 12000 });
+        let d = null, lastErr = null;
+        for (let i = 0; i <= (manual ? 1 : 2); i++) {
+            try { d = await fetchPortfolioData(manual); break; }
+            catch (e) { lastErr = e; if (i < 2) await new Promise(res => setTimeout(res, 800 * (i + 1))); }
+        }
+        if (!d) throw lastErr;
         render(d);
         setStatus(statusEl, 'ok', `Обновлено: ${humanDateTime(d.updated)} · ${VERSION}`);
     } catch (e) {

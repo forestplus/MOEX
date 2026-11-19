@@ -16,6 +16,7 @@ import pathlib
 from datetime import datetime, timezone
 
 from check_token import make_client
+from crypto_box import write_json_or_encrypted
 
 OUT = pathlib.Path(__file__).parent.parent / "data" / "bcs_portfolio.json"
 
@@ -87,16 +88,15 @@ def main():
     except Exception as e:
         print("ПРЕДУПРЕЖДЕНИЕ: /marginal-indicators недоступен:", e)
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps({
+    mode = write_json_or_encrypted({
         "source": "BCS trade-api",
         "updated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "tokenExpiresInDays": (c.refresh_expires_in // 86400) if c.refresh_expires_in else None,
         "summary": summary,
         "cash": cash,
         "positions": positions,
-    }, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"OK: позиций {len(positions)}, денежных лимитов {len(cash)} -> {OUT}")
+    }, OUT, repo_root=OUT.parent.parent)
+    print(f"OK: позиций {len(positions)}, денежных лимитов {len(cash)} -> {OUT} [{mode}]")
 
 
 if __name__ == "__main__":
