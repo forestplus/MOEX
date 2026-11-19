@@ -47,18 +47,28 @@ def norm_position(p: dict) -> dict:
     }
 
 
-def norm_cash(limits: dict) -> list:
+def norm_cash(limits) -> list:
+    if isinstance(limits, dict):
+        items = limits.get("moneyLimit") or []
+    elif isinstance(limits, list):
+        items = limits  # вдруг API тоже отдаёт список верхним уровнем
+    else:
+        return []
     out = []
-    for m in limits.get("moneyLimit") or []:
+    for m in items:
+        if not isinstance(m, dict):
+            continue
         q = m.get("quantity") or {}
         out.append({"currency": m.get("currencyCode"), "sum": _f(q.get("value"))})
     return [c for c in out if c["sum"] is not None]
 
 
-def norm_summary(marginal: dict) -> dict:
-    v = (marginal or {}).get("portfolioCurrentValue") or {}
-    st = (marginal or {}).get("portfolioStability") or {}
-    ag = (marginal or {}).get("agreementData") or {}
+def norm_summary(marginal) -> dict:
+    if not isinstance(marginal, dict):
+        return {}
+    v = marginal.get("portfolioCurrentValue") or {}
+    st = marginal.get("portfolioStability") or {}
+    ag = marginal.get("agreementData") or {}
     return {
         "currentValueRub": _f(v.get("currentValueRub")),
         "dailyChangeRub": _f(v.get("dailyPortfolioChangeRub")),
@@ -76,7 +86,9 @@ def main():
     c = make_client()
 
     portfolio = c.portfolio()  # обязательный кусок — если упал, падаем
-    positions = [norm_position(p) for p in portfolio.get("positions") or []]
+    # API возвращает позиции списком верхнего уровня; на всякий случай принимаем и dict
+    raw_positions = portfolio.get("positions") if isinstance(portfolio, dict) else portfolio
+    positions = [norm_position(p) for p in raw_positions or [] if isinstance(p, dict)]
 
     cash, summary = [], {}
     try:
