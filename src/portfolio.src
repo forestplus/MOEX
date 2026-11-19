@@ -90,13 +90,42 @@
         .srow .v { font-weight: 600; color: #222; text-align: right; white-space: nowrap; }
         .spos { background: #fafafa; border: 1px solid #eee; border-radius: 8px; padding: 9px 11px; font-size: 13px; display: grid; grid-template-columns: 1fr 1fr; gap: 5px 12px; margin-top: 12px; }
 
+        /* график свечей в модалке */
+        .chart-box { margin-top: 14px; }
+        .chart-bar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; }
+        .chart-bar .sep { flex-basis: 100%; height: 0; }
+        .chart-btn { border: 1px solid #ccc; border-radius: 6px; background: #fff; color: #333; font-size: 12px; padding: 4px 10px; cursor: pointer; }
+        .chart-btn:hover { background: #f5f5f5; }
+        .chart-btn.on { background: #1565c0; border-color: #1565c0; color: #fff; }
+        .chart-stage { position: relative; height: 260px; border: 1px solid #e8e8e8; border-radius: 8px; overflow: hidden; touch-action: none; background: #fff; }
+        .chart-stage canvas { display: block; width: 100%; height: 100%; }
+        .chart-cap { font-size: 11px; color: #666; min-height: 15px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+        .chart-note { font-size: 11px; color: #999; margin-top: 2px; }
+
         .note { font-size: 12px; color: #777; line-height: 1.5; margin-top: 12px; }
         .empty { border: 2px dashed #f9a825; background: #fffde7; border-radius: 8px; padding: 14px 16px; font-size: 13px; line-height: 1.6; color: #333; }
         .empty code { background: #f0f0f0; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+        .tbl-wrap { overflow-x: auto; }
+
+        /* ---------- мобильная адаптация ---------- */
         @media (max-width: 760px) {
-            table.pf td.nm { display: none; }
-            table.pf th:nth-child(2) { display: none; }
             body { padding: 8px; }
+            .container { padding: 10px; }
+            /* на телефоне таблица не влезает: цена и % за день уже есть на мини-карточке,
+               средняя/доля/P/L% доступны в карточке бумаги по тапу */
+            table.pf .c-name, table.pf .c-avg, table.pf .c-price,
+            table.pf .c-share, table.pf .c-plPct, table.pf .c-dailyPct { display: none; }
+            table.pf { font-size: 12px; }
+            table.pf td, table.pf th { padding: 5px 5px; }
+            .mini { min-width: 118px; max-width: 150px; min-height: 40px; padding: 3px 6px; }
+            .cards { grid-template-columns: 1fr 1fr; gap: 6px; }
+            .stat { padding: 8px 9px; }
+            .stat .val { font-size: 16px; }
+            .legend { font-size: 11px; gap: 3px 10px; }
+            .nav { font-size: 12px; gap: 5px; }
+            .nav a { padding: 4px 10px; }
+            .chart-stage { height: 220px; }
+            .spos { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -189,7 +218,6 @@ function positionRow(p) {
 const CUR_SYM = { RUB: '₽', SUR: '₽', USD: '$', EUR: '€', HKD: 'HK$', CNY: '¥', GBP: '£', CHF: '₣', KZT: '₸' };
 function curSym(cur) { return CUR_SYM[cur] || (cur ? String(cur) + ' ' : '₽'); }
 function priceDec(v) { const a = Math.abs(v); return (a > 0 && a < 1) ? 4 : 2; }
-/* цена с значком валюты бумаги: Meta — $, 1347_HK — HK$, остальное — ₽ */
 function fmtCur(v, cur) {
     if (!Number.isFinite(v)) return '—';
     return fmtNum(v, priceDec(v)) + ' ' + curSym(cur);
@@ -197,6 +225,16 @@ function fmtCur(v, cur) {
 function fmtCurSigned(v, cur) {
     if (!Number.isFinite(v)) return '—';
     return (v > 0 ? '+' : '−') + fmtNum(Math.abs(v), priceDec(v)) + ' ' + curSym(cur);
+}
+/* облигации котируются в процентах от номинала, а не в рублях */
+function isBond(r) { return r.type === 'BONDS'; }
+function fmtPrice(v, r) {
+    if (!Number.isFinite(v)) return '—';
+    return isBond(r) ? fmtNum(v, 2) + ' %' : fmtCur(v, r.currency);
+}
+function fmtPriceSigned(v, r) {
+    if (!Number.isFinite(v)) return '—';
+    return isBond(r) ? (v > 0 ? '+' : '−') + fmtNum(Math.abs(v), 2) + ' %' : fmtCurSigned(v, r.currency);
 }
 
 function statCard(label, valueHtml, subHtml) {
@@ -304,9 +342,11 @@ function buildMiniCard(r) {
     card.title = `${r.name || r.ticker} — нажмите для подробной информации`;
 
     const left = mk('div', 'mini-left');
-    const nameEl = mk('div', 'mini-name', r.ticker);
+    // у внебиржи БКС тикер — служебный код (O.30303M1027), показываем название бумаги
+    const label = (r.ticker.startsWith('O.') && r.name) ? r.name : r.ticker;
+    const nameEl = mk('div', 'mini-name', label);
     nameEl.title = `${r.name} (${r.ticker})`;
-    const priceEl = mk('div', 'mini-price', fmtCur(r.price, r.currency));
+    const priceEl = mk('div', 'mini-price', fmtPrice(r.price, r));
     left.append(nameEl, priceEl);
 
     const right = mk('div', 'mini-right');
@@ -321,7 +361,7 @@ function buildMiniCard(r) {
     card.addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
     });
-    miniCards[r.ticker] = { card, priceEl, changeEl, deltaEl, currency: r.currency };
+    miniCards[r.ticker] = { card, priceEl, changeEl, deltaEl, row: r };
     return card;
 }
 
@@ -355,7 +395,7 @@ async function enrichFromMoex(rows) {
                 const prev = prevByTicker[ticker];
                 if ((!Number.isFinite(pct) || pct === 0) && Number.isFinite(price) && Number.isFinite(prev) && prev)
                     pct = (price - prev) / prev * 100;
-                if (Number.isFinite(price)) els.priceEl.textContent = fmtCur(price, els.currency);
+                if (Number.isFinite(price)) els.priceEl.textContent = fmtPrice(price, els.row);
                 els.changeEl.textContent = Number.isFinite(pct) ? fmtPct(pct) : '—';
                 els.deltaEl.textContent = Number.isFinite(delta) && delta !== 0
                     ? (delta > 0 ? '+' : '−') + fmtNum(Math.abs(delta), priceDec(delta)) : '';
@@ -363,7 +403,7 @@ async function enrichFromMoex(rows) {
                 // колонка «За день, %» в таблице — БКС отдаёт нули, тянем отсюда же
                 if (els.dailyTd && Number.isFinite(pct)) {
                     els.dailyTd.textContent = fmtPct(pct);
-                    els.dailyTd.className = plClass(pct);
+                    els.dailyTd.className = 'c-dailyPct ' + plClass(pct);
                 }
             }
         } catch (e) { /* ISS недоступен — карточки остаются нейтральными */ }
@@ -472,7 +512,7 @@ async function openSecurityModal(r) {
     plCell.innerHTML = `P/L: <span class="${plClass(r.pl)}">${fmtSignedRub(r.pl)} (${fmtPct(r.plPct)})</span>`;
     pos.append(
         mk('div', null, `Кол-во: ${fmtQty(r.qty)}`),
-        mk('div', null, `Средняя: ${fmtCur(r.avg, r.currency)}`),
+        mk('div', null, `Средняя: ${fmtPrice(r.avg, r)}`),
         mk('div', null, `Стоимость: ${fmtRub(r.value, 2)}`),
         plCell
     );
@@ -487,6 +527,7 @@ async function openSecurityModal(r) {
 
     document.getElementById('smSub').textContent = typeLabel +
         (live && live.isin ? ' · ISIN ' + live.isin : '') +
+        (isBond(r) ? ' · цена в % от номинала' : '') +
         (!live && !marketOf(r) ? ' · на MOEX не торгуется' : '');
 
     if (!live) {
@@ -496,7 +537,7 @@ async function openSecurityModal(r) {
         return;
     }
 
-    const cur = r.currency;
+    
     const price = Number.isFinite(live.last) ? live.last : live.prev;
     let pct = Number.isFinite(live.pct) && live.pct !== 0 ? live.pct : null;
     if (pct === null && Number.isFinite(price) && Number.isFinite(live.prev) && live.prev)
@@ -515,14 +556,14 @@ async function openSecurityModal(r) {
 
     const sec = mk('div', 'ssec');
     sec.append(mk('h4', null, 'Сегодня' + (live.time ? ' · ' + String(live.time).slice(11, 16) + ' МСК' : '')));
-    sec.append(srow('Цена сейчас', fmtCur(price, cur)));
+    sec.append(srow('Цена сейчас', fmtPrice(price, r)));
     let chHtml = `<span class="${plClass(pct)}">${fmtPct(pct)}</span>`;
-    if (Number.isFinite(delta)) chHtml += ` · <span class="${plClass(delta)}">${fmtCurSigned(delta, cur)}</span>`;
+    if (Number.isFinite(delta) && delta !== 0) chHtml += ` · <span class="${plClass(delta)}">${fmtPriceSigned(delta, r)}</span>`;
     sec.append(srow('Изменение за день', chHtml));
-    if (Number.isFinite(live.open)) sec.append(srow('Цена открытия', fmtCur(live.open, cur)));
-    if (Number.isFinite(live.prev)) sec.append(srow('Закрытие предыдущего дня', fmtCur(live.prev, cur)));
+    if (Number.isFinite(live.open)) sec.append(srow('Цена открытия', fmtPrice(live.open, r)));
+    if (Number.isFinite(live.prev)) sec.append(srow('Закрытие предыдущего дня', fmtPrice(live.prev, r)));
     if (Number.isFinite(live.low) && Number.isFinite(live.high))
-        sec.append(srow('Мин / макс за день', `${fmtCur(live.low, cur)} — ${fmtCur(live.high, cur)}`));
+        sec.append(srow('Мин / макс за день', `${fmtPrice(live.low, r)} — ${fmtPrice(live.high, r)}`));
     if (Number.isFinite(live.vol) && live.vol > 0) sec.append(srow('Объём, шт', fmtQty(live.vol)));
     if (Number.isFinite(live.trades) && live.trades > 0) sec.append(srow('Сделок', fmtQty(live.trades)));
     if (Number.isFinite(live.lot)) sec.append(srow('Размер лота', fmtQty(live.lot)));
@@ -538,15 +579,340 @@ async function openSecurityModal(r) {
         const hsec = mk('div', 'ssec');
         hsec.append(mk('h4', null, 'Исторические минимум и максимум'));
         if (hist.lo) hsec.append(srow('Минимум за всё время',
-            `${fmtCur(hist.lo.v, cur)} <span style="color:#888">(${fmtMonth(hist.lo.d)})</span>`));
+            `${fmtPrice(hist.lo.v, r)} <span style="color:#888">(${fmtMonth(hist.lo.d)})</span>`));
         if (hist.hi) hsec.append(srow('Максимум за всё время',
-            `${fmtCur(hist.hi.v, cur)} <span style="color:#888">(${fmtMonth(hist.hi.d)})</span>`));
+            `${fmtPrice(hist.hi.v, r)} <span style="color:#888">(${fmtMonth(hist.hi.d)})</span>`));
         if (hist.lo && hist.hi && Number.isFinite(price)) {
             hsec.append(srow('Отступ от минимума', `<span class="pos">+${fmtNum((price / hist.lo.v - 1) * 100, 1)} %</span>`));
             hsec.append(srow('Отступ от максимума', `<span class="neg">${fmtNum((price / hist.hi.v - 1) * 100, 1)} %</span>`));
         }
         liveBox.append(hsec);
     }
+
+    // график свечей — грузим в фоне, чтобы модалка открывалась мгновенно
+    if (marketOf(r)) liveBox.append(createChartSection(r));
+}
+
+/* ---------- график свечей (как в разделе «Акции», компактная версия) ---------- */
+/* ISS умеет свечи 1 / 10 / 60 мин, день, неделя, месяц; 5м и 15м собираем из минутных. */
+const CHART_TF = [
+    { key: '1m',  label: '1м',     kind: 'intra',  agg: 1,  days: 1 },
+    { key: '5m',  label: '5м',     kind: 'intra',  agg: 5,  days: 2 },
+    { key: '15m', label: '15м',    kind: 'intra',  agg: 15, days: 3 },
+    { key: '1h',  label: '1ч',     kind: 'native', interval: 60, days: 30 },
+    { key: '1d',  label: 'День',   kind: 'native', interval: 24, days: 1100 },
+    { key: '1w',  label: 'Неделя', kind: 'native', interval: 7,  days: 3650 },
+    { key: '1M',  label: 'Месяц',  kind: 'native', interval: 31, days: 20000 }
+];
+const CHART_VISIBLE = { '1m': 120, '5m': 90, '15m': 80, '1h': 80, '1d': 90, '1w': 104, '1M': 60 };
+
+function mskToday() {
+    return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Moscow' }).format(new Date());
+}
+function shiftDays(dateStr, days) {
+    const d = new Date(dateStr + 'T12:00:00Z');
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+}
+
+async function fetchCandlePages(base, query) {
+    const out = [];
+    let start = 0;
+    for (let page = 0; page < 14; page++) {
+        const url = `${base}/candles.json?${query}&start=${start}&iss.meta=off&iss.only=candles` +
+            '&candles.columns=begin,open,close,high,low,value,volume';
+        const data = await Core.fetchJson(url, { retries: 1, timeout: 15000 });
+        const c = data.candles;
+        if (!c || !Array.isArray(c.data)) break;
+        const idx = Object.fromEntries(c.columns.map((x, i) => [x, i]));
+        for (const row of c.data) {
+            const o = row[idx.open], cl = row[idx.close], h = row[idx.high], l = row[idx.low];
+            if (![o, cl, h, l].every(Number.isFinite)) continue;
+            out.push({ t: String(row[idx.begin]).replace('T', ' '), o, c: cl, h, l,
+                v: row[idx.volume] || 0, val: row[idx.value] || 0 });
+        }
+        if (c.data.length < 500) break; // ISS отдаёт максимум 500 свечей за запрос
+        start += c.data.length;
+    }
+    return out;
+}
+
+function aggregateCandles(rows, agg) {
+    const out = [];
+    let cur = null, curKey = null;
+    for (const r of rows) {
+        const day = r.t.slice(0, 10);
+        const mins = Number(r.t.slice(11, 13)) * 60 + Number(r.t.slice(14, 16));
+        const key = `${day}#${Math.floor(mins / agg)}`;
+        if (key !== curKey) {
+            const bm = Math.floor(mins / agg) * agg;
+            const hh = String(Math.floor(bm / 60)).padStart(2, '0');
+            const mm = String(bm % 60).padStart(2, '0');
+            cur = { t: `${day} ${hh}:${mm}:00`, o: r.o, c: r.c, h: r.h, l: r.l, v: r.v, val: r.val };
+            out.push(cur);
+            curKey = key;
+        } else {
+            cur.h = Math.max(cur.h, r.h);
+            cur.l = Math.min(cur.l, r.l);
+            cur.c = r.c;
+            cur.v += r.v;
+            cur.val += r.val;
+        }
+    }
+    return out;
+}
+
+async function loadChartData(r, tf) {
+    const [market, board] = marketOf(r);
+    const base = `https://iss.moex.com/iss/engines/stock/markets/${market}/boards/${board}/securities/${encodeURIComponent(r.ticker)}`;
+    const today = mskToday();
+    const enc = encodeURIComponent;
+
+    if (tf.kind === 'intra') {
+        const chunks = [];
+        let found = 0;
+        for (let i = 0; i < 10 && found < tf.days; i++) {
+            const d = shiftDays(today, -i);
+            const rows = await fetchCandlePages(base, `interval=1&from=${enc(d + ' 00:00:00')}&till=${enc(d + ' 23:59:59')}`);
+            if (rows.length) { chunks.unshift(rows); found++; }
+        }
+        let rows = chunks.flat();
+        if (tf.agg > 1) rows = aggregateCandles(rows, tf.agg);
+        const what = tf.agg > 1 ? `Свечи ${tf.agg} мин собраны из минутных` : 'Минутные свечи';
+        return { candles: rows, note: `${what}: ${found} торг. дн. (последние). Время московское.` };
+    }
+    const from = shiftDays(today, -tf.days);
+    const rows = await fetchCandlePages(base, `interval=${tf.interval}&from=${from}&till=${enc(today + ' 23:59:59')}`);
+    const span = tf.key === '1h' ? '30 дней' : tf.key === '1d' ? '~3 года' : tf.key === '1w' ? '~10 лет' : 'вся история';
+    return { candles: rows, note: `Свечи MOEX (${span}). Время московское.` };
+}
+
+function createChartSection(r) {
+    const box = mk('div', 'chart-box');
+    box.append(mk('h4', null, 'График'));
+    const bar = mk('div', 'chart-bar');
+    const stage = mk('div', 'chart-stage');
+    const canvas = document.createElement('canvas');
+    stage.append(canvas);
+    const cap = mk('div', 'chart-cap', '');
+    const note = mk('div', 'chart-note', 'Загружаю свечи…');
+    box.append(bar, stage, cap, note);
+
+    const UP = '#2e7d32', DOWN = '#c62828';
+    let data = [], tfKey = '1d', mode = 'candles';
+    let visible = CHART_VISIBLE['1d'], end = 0; // end — индекс ПОСЛЕДНЕЙ видимой свечи
+    let hover = -1, drag = null;
+
+    const tfButtons = {};
+    CHART_TF.forEach(tf => {
+        const b = mk('button', 'chart-btn' + (tf.key === tfKey ? ' on' : ''), tf.label);
+        b.addEventListener('click', () => load(tf.key));
+        tfButtons[tf.key] = b;
+        bar.append(b);
+    });
+    const modeBtn = mk('button', 'chart-btn', 'Свечи');
+    modeBtn.addEventListener('click', () => {
+        mode = mode === 'candles' ? 'line' : 'candles';
+        modeBtn.textContent = mode === 'candles' ? 'Свечи' : 'Линия';
+        draw();
+    });
+    const zoomOut = mk('button', 'chart-btn', '−');
+    const zoomIn = mk('button', 'chart-btn', '+');
+    const resetBtn = mk('button', 'chart-btn', '⟲');
+    zoomOut.title = 'Отдалить'; zoomIn.title = 'Приблизить'; resetBtn.title = 'Сбросить масштаб';
+    zoomOut.addEventListener('click', () => { visible = Math.min(data.length + 6, Math.round(visible * 1.3)); clampView(); draw(); });
+    zoomIn.addEventListener('click', () => { visible = Math.max(8, Math.round(visible / 1.3)); clampView(); draw(); });
+    resetBtn.addEventListener('click', () => { visible = CHART_VISIBLE[tfKey] || 90; end = data.length; clampView(); draw(); });
+    bar.append(modeBtn, zoomOut, zoomIn, resetBtn);
+
+    function clampView() {
+        visible = Math.max(8, Math.min(visible, data.length + 6));
+        end = Math.max(visible, Math.min(end, data.length));
+        if (end < 1) end = data.length;
+    }
+
+    function dims() {
+        const dpr = window.devicePixelRatio || 1;
+        const w = stage.clientWidth || 320, h = stage.clientHeight || 240;
+        // размер канвы задаём явно и в style — надёжнее, чем CSS 100% (был глюк с половинной шириной)
+        canvas.style.width = w + 'px';
+        canvas.style.height = h + 'px';
+        const pw = Math.round(w * dpr), ph = Math.round(h * dpr);
+        if (canvas.width !== pw || canvas.height !== ph) { canvas.width = pw; canvas.height = ph; }
+        return { w, h, dpr };
+    }
+
+    function fmtAxis(v) {
+        const a = Math.abs(v);
+        const dec = a >= 1000 ? 0 : a >= 1 ? 2 : 4;
+        return fmtNum(v, dec);
+    }
+    function fmtAxisDate(t, intraday) {
+        return intraday ? t.slice(11, 16) : t.slice(8, 10) + '.' + t.slice(5, 7) + '.' + t.slice(2, 4);
+    }
+
+    function draw() {
+        const { w, h, dpr } = dims();
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+        if (!data.length) return;
+        clampView();
+        const view = data.slice(Math.max(0, end - visible), end);
+        if (!view.length) return;
+
+        const padR = 52, padL = 4, padT = 8, padB = 16;
+        const plotW = w - padL - padR;
+        const priceH = Math.round((h - padT - padB) * 0.74);
+        const volTop = padT + priceH + 6;
+        const volH = h - padB - volTop;
+
+        let mn = Infinity, mx = -Infinity, mxV = 0;
+        view.forEach(c => { mn = Math.min(mn, c.l); mx = Math.max(mx, c.h); mxV = Math.max(mxV, c.v || 0); });
+        if (!(mx > mn)) { mx = mn + Math.abs(mn || 1) * 0.01; }
+        const pad = (mx - mn) * 0.06;
+        mn -= pad; mx += pad;
+        const X = i => padL + (i + 0.5) * plotW / view.length;
+        const Y = v => padT + (mx - v) / (mx - mn) * priceH;
+        const intraday = tfKey === '1m' || tfKey === '5m' || tfKey === '15m' || tfKey === '1h';
+
+        // сетка и подписи цен
+        ctx.strokeStyle = '#eee'; ctx.fillStyle = '#999'; ctx.font = '10px Arial';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        for (let g = 0; g <= 4; g++) {
+            const v = mn + (mx - mn) * g / 4;
+            const y = Y(v);
+            ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(w - padR, y); ctx.stroke();
+            ctx.fillText(fmtAxis(v), w - padR + 5, y);
+        }
+        // даты
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        const ticks = Math.min(4, view.length);
+        for (let g = 0; g < ticks; g++) {
+            const i = Math.round((view.length - 1) * g / (ticks - 1 || 1));
+            ctx.fillText(fmtAxisDate(view[i].t, intraday), X(i), h - padB + 4);
+        }
+
+        // объёмы
+        if (mxV > 0) {
+            const bw = Math.min(24, Math.max(1, plotW / view.length * 0.62));
+            view.forEach((c, i) => {
+                ctx.fillStyle = c.c >= c.o ? 'rgba(46,125,50,.35)' : 'rgba(198,40,40,.35)';
+                const vh = (c.v || 0) / mxV * volH;
+                ctx.fillRect(X(i) - bw / 2, volTop + volH - vh, bw, vh);
+            });
+        }
+
+        // свечи или линия
+        const bw = Math.min(24, Math.max(1, plotW / view.length * 0.62));
+        if (mode === 'candles') {
+            view.forEach((c, i) => {
+                const up = c.c >= c.o;
+                ctx.strokeStyle = up ? UP : DOWN;
+                ctx.fillStyle = up ? UP : DOWN;
+                const x = X(i);
+                ctx.beginPath(); ctx.moveTo(x, Y(c.h)); ctx.lineTo(x, Y(c.l)); ctx.stroke();
+                const y1 = Y(Math.max(c.o, c.c)), y2 = Y(Math.min(c.o, c.c));
+                ctx.fillRect(x - bw / 2, y1, bw, Math.max(1, y2 - y1));
+            });
+        } else {
+            ctx.strokeStyle = '#1565c0'; ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            view.forEach((c, i) => { const x = X(i), y = Y(c.c); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+            ctx.stroke();
+            ctx.lineWidth = 1;
+        }
+
+        // последняя цена
+        const last = view[view.length - 1];
+        const ly = Y(last.c);
+        if (ly >= padT && ly <= padT + priceH) {
+            ctx.strokeStyle = last.c >= last.o ? UP : DOWN;
+            ctx.setLineDash([4, 3]);
+            ctx.beginPath(); ctx.moveTo(padL, ly); ctx.lineTo(w - padR, ly); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = last.c >= last.o ? UP : DOWN;
+            const label = fmtAxis(last.c);
+            const lw = ctx.measureText(label).width + 8;
+            ctx.fillRect(w - padR + 1, ly - 8, Math.max(lw, padR - 3), 15);
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            ctx.fillText(label, w - padR + 5, ly);
+        }
+
+        // кроссхаир
+        if (hover >= 0 && hover < view.length) {
+            const c = view[hover];
+            const x = X(hover);
+            ctx.strokeStyle = 'rgba(0,0,0,.35)';
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, h - padB); ctx.stroke();
+            ctx.setLineDash([]);
+            cap.textContent = `${c.t.slice(0, 16)} · О ${fmtAxis(c.o)} · Макс ${fmtAxis(c.h)} · Мин ${fmtAxis(c.l)} · З ${fmtAxis(c.c)}` +
+                (c.v ? ` · Об ${fmtQty(c.v)}` : '');
+        }
+    }
+
+    function hoverFromEvent(e) {
+        const rect = stage.getBoundingClientRect();
+        const x = e.clientX - rect.left - 4;
+        const plotW = rect.width - 4 - 52;
+        const i = Math.floor(x / plotW * Math.min(visible, data.length));
+        hover = (i >= 0 && i < Math.min(visible, data.length)) ? i : -1;
+    }
+
+    stage.addEventListener('pointerdown', e => {
+        drag = { x: e.clientX, end };
+        stage.setPointerCapture(e.pointerId);
+    });
+    stage.addEventListener('pointermove', e => {
+        if (drag) {
+            const rect = stage.getBoundingClientRect();
+            const perPx = visible / (rect.width - 56);
+            end = drag.end + Math.round((drag.x - e.clientX) * perPx);
+            clampView();
+            hover = -1;
+        } else {
+            hoverFromEvent(e);
+        }
+        draw();
+    });
+    stage.addEventListener('pointerup', () => { drag = null; });
+    window.addEventListener('resize', draw);
+    stage.addEventListener('pointerleave', () => { if (!drag) { hover = -1; cap.textContent = ''; draw(); } });
+    stage.addEventListener('wheel', e => {
+        e.preventDefault();
+        visible = Math.max(8, Math.min(data.length + 6, Math.round(visible * (e.deltaY > 0 ? 1.2 : 1 / 1.2))));
+        clampView(); draw();
+    }, { passive: false });
+
+    let loadSeq = 0;
+    async function load(key) {
+        tfKey = key;
+        Object.values(tfButtons).forEach(b => b.classList.remove('on'));
+        tfButtons[key].classList.add('on');
+        const tf = CHART_TF.find(t => t.key === key);
+        const seq = ++loadSeq;
+        note.textContent = 'Загружаю свечи…';
+        try {
+            const res = await loadChartData(r, tf);
+            if (seq !== loadSeq) return; // юзер уже переключил таймфрейм
+            data = res.candles;
+            visible = CHART_VISIBLE[key] || 90;
+            end = data.length;
+            hover = -1;
+            note.textContent = data.length
+                ? `${res.note} Свечей: ${data.length}. Колесо — масштаб, перетаскивание — сдвиг, наведение — подробности.`
+                : 'Свечей нет — по бумаге сегодня не было сделок либо история недоступна.';
+            draw();
+        } catch (e) {
+            if (seq !== loadSeq) return;
+            note.textContent = 'Не удалось загрузить свечи: ' + String(e.message || e);
+        }
+    }
+
+    load('1d');
+    return box;
 }
 
 function renderTable(rows) {
@@ -554,7 +920,8 @@ function renderTable(rows) {
     const table = mk('table', 'pf');
     const head = mk('tr');
     COLS.forEach(c => {
-        const th = mk('th', c.key === sortKey ? 'sorted' : '', c.label + (c.key === sortKey ? (sortDir < 0 ? ' ↓' : ' ↑') : ''));
+        const cls = `c-${c.key}` + (c.key === sortKey ? ' sorted' : '');
+        const th = mk('th', cls, c.label + (c.key === sortKey ? (sortDir < 0 ? ' ↓' : ' ↑') : ''));
         th.addEventListener('click', () => {
             if (sortKey === c.key) sortDir = -sortDir; else { sortKey = c.key; sortDir = -1; }
             render(lastData);
@@ -570,19 +937,19 @@ function renderTable(rows) {
         if (Number.isFinite(r.pl)) totPl += r.pl;
         const isCur = r.type === 'CURRENCY'; // деньгам — копейки, а не округление
         const tr = mk('tr');
-        const tkTd = mk('td', 'tk');
+        const tkTd = mk('td', 'tk c-ticker');
         const mini = buildMiniCard(r);
         if (mini) tkTd.append(mini); else tkTd.textContent = r.ticker;
         tr.append(tkTd);
-        tr.append(mk('td', 'nm', r.name));
-        tr.append(mk('td', null, isCur ? fmtNum(r.qty, 2) : fmtQty(r.qty)));
-        tr.append(mk('td', null, isCur ? fmtNum(r.avg, 2) : fmtCur(r.avg, r.currency)));
-        tr.append(mk('td', null, isCur ? fmtNum(r.price, 2) : fmtCur(r.price, r.currency)));
-        tr.append(mk('td', null, fmtRub(r.value, isCur ? 2 : 0)));
-        tr.append(mk('td', null, fmtNum(r.share, 1)));
-        tr.append(mk('td', plClass(r.pl), fmtSignedRub(r.pl)));
-        tr.append(mk('td', plClass(r.plPct), fmtPct(r.plPct)));
-        const dailyTd = mk('td', plClass(r.dailyPct), fmtPct(r.dailyPct));
+        tr.append(mk('td', 'nm c-name', r.name));
+        tr.append(mk('td', 'c-qty', isCur ? fmtNum(r.qty, 2) : fmtQty(r.qty)));
+        tr.append(mk('td', 'c-avg', isCur ? fmtNum(r.avg, 2) : fmtPrice(r.avg, r)));
+        tr.append(mk('td', 'c-price', isCur ? fmtNum(r.price, 2) : fmtPrice(r.price, r)));
+        tr.append(mk('td', 'c-value', fmtRub(r.value, isCur ? 2 : 0)));
+        tr.append(mk('td', 'c-share', fmtNum(r.share, 1)));
+        tr.append(mk('td', 'c-pl ' + plClass(r.pl), fmtSignedRub(r.pl)));
+        tr.append(mk('td', 'c-plPct ' + plClass(r.plPct), fmtPct(r.plPct)));
+        const dailyTd = mk('td', 'c-dailyPct ' + plClass(r.dailyPct), fmtPct(r.dailyPct));
         tr.append(dailyTd);
         const els = miniCards[r.ticker];
         if (els) els.dailyTd = dailyTd;
@@ -591,16 +958,18 @@ function renderTable(rows) {
 
     if (sorted.length) {
         const tr = mk('tr', 'total');
-        tr.append(mk('td', null, 'Итого'));
-        tr.append(mk('td'));
-        tr.append(mk('td')); tr.append(mk('td')); tr.append(mk('td'));
-        tr.append(mk('td', null, fmtRub(totVal, 0)));
-        tr.append(mk('td', null, '100'));
-        tr.append(mk('td', plClass(totPl), fmtSignedRub(totPl)));
-        tr.append(mk('td')); tr.append(mk('td'));
+        tr.append(mk('td', 'c-ticker', 'Итого'));
+        tr.append(mk('td', 'c-name'));
+        tr.append(mk('td', 'c-qty')); tr.append(mk('td', 'c-avg')); tr.append(mk('td', 'c-price'));
+        tr.append(mk('td', 'c-value', fmtRub(totVal, 0)));
+        tr.append(mk('td', 'c-share', '100'));
+        tr.append(mk('td', 'c-pl ' + plClass(totPl), fmtSignedRub(totPl)));
+        tr.append(mk('td', 'c-plPct')); tr.append(mk('td', 'c-dailyPct'));
         table.append(tr);
     }
-    return table;
+    const wrap = mk('div', 'tbl-wrap');
+    wrap.append(table);
+    return wrap;
 }
 
 function renderEmpty(err) {

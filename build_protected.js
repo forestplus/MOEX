@@ -86,7 +86,7 @@ h1 { margin: 0 0 14px; font-size: 20px; color: #222; }
 label { display: block; font-size: 12px; color: #666; margin: 10px 0 4px; }
 input[type=text], input[type=password] { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; }
 .cap { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-canvas { border: 1px solid #ddd; border-radius: 8px; width: 100%; max-width: 240px; height: auto; background: #eef2f7; }
+#cv { border: 1px solid #ddd; border-radius: 8px; width: 100%; max-width: 240px; height: auto; background: #eef2f7; }
 .cap button { border: 1px solid #ccc; background: #fff; border-radius: 8px; padding: 8px 10px; font-size: 16px; cursor: pointer; }
 .go { width: 100%; margin-top: 16px; padding: 12px; border: none; border-radius: 8px; background: #2e7d32;
       color: #fff; font-size: 16px; cursor: pointer; }
@@ -141,7 +141,10 @@ async function openWith(keyBytes) {
     var html = new TextDecoder().decode(plain);
     document.open();
     // Chromium: document.open() при асинхронном вызове иногда НЕ очищает документ —
-    // тогда write() дописывает контент к форме входа. Чистим явно.
+    // тогда write() дописывает контент к форме входа, а стили оболочки из <head>
+    // (напр. canvas { max-width: 240px } капчи) ПРОСАЧИВАЮТСЯ на целевую страницу.
+    // Чистим явно и head, и body.
+    if (document.head) document.head.replaceChildren();
     if (document.body) document.body.replaceChildren();
     document.write(html);
     document.close();
