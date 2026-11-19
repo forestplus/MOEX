@@ -140,6 +140,9 @@ async function openWith(keyBytes) {
     var plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: data.slice(0, 12) }, key, data.slice(12));
     var html = new TextDecoder().decode(plain);
     document.open();
+    // Chromium: document.open() при асинхронном вызове иногда НЕ очищает документ —
+    // тогда write() дописывает контент к форме входа. Чистим явно.
+    if (document.body) document.body.replaceChildren();
     document.write(html);
     document.close();
 }

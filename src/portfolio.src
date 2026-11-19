@@ -43,6 +43,31 @@
         table.pf tr.cash td { background: #fbfbf6; font-style: italic; }
         table.pf tr.total td { border-top: 2px solid #e0e0e0; border-bottom: none; font-weight: bold; }
 
+        /* тепловые мини-карточки в колонке «Тикер» (палитра как на тепловой карте) */
+        .mini { display: flex; justify-content: space-between; align-items: stretch; gap: 6px;
+                min-width: 150px; max-width: 200px; min-height: 44px; padding: 4px 7px; border-radius: 6px;
+                color: #fff; font-size: 12px; line-height: 1.25; cursor: pointer;
+                transition: filter .1s ease, transform .1s ease; -webkit-tap-highlight-color: transparent; }
+        .mini:hover { filter: brightness(1.12); transform: scale(1.02); }
+        .mini:focus-visible { outline: 2px solid #1565c0; outline-offset: -1px; }
+        .mini-left { display: flex; flex-direction: column; justify-content: space-between; min-width: 0; overflow: hidden; }
+        .mini-right { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; text-align: right; white-space: nowrap; }
+        .mini-name { font-weight: bold; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .mini-price { font-size: 11px; opacity: .95; font-variant-numeric: tabular-nums; }
+        .mini-change { font-size: 12px; font-weight: bold; font-variant-numeric: tabular-nums; }
+        .mini-delta { font-size: 10px; opacity: .9; font-variant-numeric: tabular-nums; }
+        .bg-pos-5 { background-color: #2e7d32; }
+        .bg-pos-4 { background-color: #388e3c; }
+        .bg-pos-3 { background-color: #43a047; }
+        .bg-pos-2 { background-color: #81c784; color: #1a1a1a; }
+        .bg-pos-1 { background-color: #c8e6c9; color: #1a1a1a; }
+        .bg-neg-1 { background-color: #ef9a9a; color: #1a1a1a; }
+        .bg-neg-2 { background-color: #e57373; color: #1a1a1a; }
+        .bg-neg-3 { background-color: #d32f2f; }
+        .bg-neg-4 { background-color: #c62828; }
+        .bg-neg-5 { background-color: #8e0000; }
+        .bg-neutral { background-color: #9e9e9e; color: #fff; }
+
         .note { font-size: 12px; color: #777; line-height: 1.5; margin-top: 12px; }
         .empty { border: 2px dashed #f9a825; background: #fffde7; border-radius: 8px; padding: 14px 16px; font-size: 13px; line-height: 1.6; color: #333; }
         .empty code { background: #f0f0f0; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
@@ -182,7 +207,89 @@ function compare(a, b, key) {
     return nx - ny;
 }
 
+/* ---------- тепловые мини-карточки тикеров ---------- */
+
+let miniCards = {};
+
+/* шкала цвета — как на тепловой карте акций */
+function getBgClass(change) {
+    if (!Number.isFinite(change) || Math.round(change * 100) / 100 === 0) return 'bg-neutral';
+    const abs = Math.abs(change);
+    const level = abs >= 5 ? 5 : abs >= 2 ? 4 : abs >= 1 ? 3 : abs >= 0.5 ? 2 : 1;
+    return (change > 0 ? 'bg-pos-' : 'bg-neg-') + level;
+}
+
+/* куда ведёт клик: та же карточка бумаги, что и на страницах «Акции»/«Облигации» (?open=) */
+function targetFor(r) {
+    if (r.type === 'STOCK') return `index.html?open=${encodeURIComponent(r.ticker)}`;
+    if (r.type === 'BONDS') return `bonds.html?open=${encodeURIComponent(r.ticker)}`;
+    if (r.type && r.type.startsWith('OTC')) return 'otc.html?type=foreign'; // БКС-внебиржа, своей модалки нет
+    return null;
+}
+
+function buildMiniCard(r) {
+    if (r.type === 'CURRENCY') return null;
+    const url = targetFor(r);
+    const card = mk('div', 'mini ' + getBgClass(r.dailyPct));
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+    card.title = `${r.name || r.ticker} — открыть карточку бумаги`;
+
+    const left = mk('div', 'mini-left');
+    const nameEl = mk('div', 'mini-name', r.ticker);
+    nameEl.title = `${r.name} (${r.ticker})`;
+    const priceEl = mk('div', 'mini-price', fmtNum(r.price));
+    left.append(nameEl, priceEl);
+
+    const right = mk('div', 'mini-right');
+    const changeEl = mk('div', 'mini-change', fmtPct(r.dailyPct));
+    const deltaEl = mk('div', 'mini-delta', '');
+    right.append(changeEl, deltaEl);
+    card.append(left, right);
+
+    if (url) {
+        const go = () => { location.href = url; };
+        card.addEventListener('click', go);
+        card.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); }
+        });
+    }
+    miniCards[r.ticker] = { card, priceEl, changeEl, deltaEl };
+    return card;
+}
+
+/* БКС отдаёт dailyPL = 0 вне сессии — дотягиваем живое изменение за день с MOEX ISS
+   (только биржевые бумаги: акции TQBR, облигации TQRD; внебиржа БКС на ISS отсутствует). */
+async function enrichFromMoex(rows) {
+    const COLS = 'SECID,LAST,CHANGE,LASTTOPREVPRICE';
+    const groups = [
+        ['shares', 'TQBR', rows.filter(r => r.type === 'STOCK').map(r => r.ticker)],
+        ['bonds', 'TQRD', rows.filter(r => r.type === 'BONDS').map(r => r.ticker)]
+    ];
+    for (const [market, board, tickers] of groups) {
+        if (!tickers.length) continue;
+        try {
+            const url = `https://iss.moex.com/iss/engines/stock/markets/${market}/boards/${board}/securities.json` +
+                `?iss.meta=off&iss.only=marketdata&marketdata.columns=${COLS}` +
+                `&securities=${tickers.map(encodeURIComponent).join(',')}`;
+            const data = await Core.fetchJson(url, { retries: 1, timeout: 10000 });
+            const idx = Object.fromEntries(data.marketdata.columns.map((c, i) => [c, i]));
+            for (const md of data.marketdata.data || []) {
+                const els = miniCards[md[idx.SECID]];
+                if (!els) continue;
+                const price = md[idx.LAST], pct = md[idx.LASTTOPREVPRICE], delta = md[idx.CHANGE];
+                if (Number.isFinite(price)) els.priceEl.textContent = fmtNum(price);
+                els.changeEl.textContent = Number.isFinite(pct) ? fmtPct(pct) : '—';
+                els.deltaEl.textContent = Number.isFinite(delta) && delta !== 0
+                    ? (delta > 0 ? '+' : '−') + fmtNum(Math.abs(delta)) : '';
+                els.card.className = 'mini ' + getBgClass(pct);
+            }
+        } catch (e) { /* ISS недоступен — карточки остаются нейтральными */ }
+    }
+}
+
 function renderTable(rows) {
+    miniCards = {};
     const table = mk('table', 'pf');
     const head = mk('tr');
     COLS.forEach(c => {
@@ -202,7 +309,10 @@ function renderTable(rows) {
         if (Number.isFinite(r.pl)) totPl += r.pl;
         const isCur = r.type === 'CURRENCY'; // деньгам — копейки, а не округление
         const tr = mk('tr');
-        tr.append(mk('td', 'tk', r.ticker));
+        const tkTd = mk('td', 'tk');
+        const mini = buildMiniCard(r);
+        if (mini) tkTd.append(mini); else tkTd.textContent = r.ticker;
+        tr.append(tkTd);
         tr.append(mk('td', 'nm', r.name));
         tr.append(mk('td', null, isCur ? fmtNum(r.qty, 2) : fmtQty(r.qty)));
         tr.append(mk('td', null, fmtNum(r.avg)));
@@ -253,6 +363,7 @@ function render(d) {
     if (!rows.length && !(d.cash || []).length) { root.append(renderEmpty(null)); return; }
     root.append(renderAlloc(rows));
     root.append(renderTable(rows));
+    enrichFromMoex(rows); // подкрасит мини-карточки живым изменением за день
     if (Number.isFinite(d.tokenExpiresInDays)) {
         const note = mk('div', 'note');
         const cls = d.tokenExpiresInDays < 10 ? 'neg' : '';
